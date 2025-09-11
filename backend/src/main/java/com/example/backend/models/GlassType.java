@@ -1,7 +1,7 @@
 package com.example.backend.models;
 
+import com.example.backend.models.enums.CalculationMethod;
 import jakarta.persistence.*;
-import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,13 +27,17 @@ public class GlassType {
 
     @Column(name = "price_per_meter", nullable = false)
     private Double pricePerMeter;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "calculation_method", nullable = false)
+    private CalculationMethod calculationMethod = CalculationMethod.AREA;
 
     public GlassType(String name, Double thickness, String color, Double pricePerMeter) {
         this.name = name;
         this.thickness = thickness;
         this.color = color;
         this.pricePerMeter = pricePerMeter;
-    }
+        this.calculationMethod = CalculationMethod.AREA; // Default to area calculation
 
+    }
 
 }

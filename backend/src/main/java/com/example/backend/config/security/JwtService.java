@@ -13,11 +13,18 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class JwtService {
 
     private static final String JWT_SECRET = "633292096cab01eb8f5100d1f3e0bcb0e0e704b2ab78d2706c4650ea3cfd586e863a33ea7318ee7d851682618ec773060a2ba86deb7490dc84e32bd10112a29d713ba96acbf2ad2a61480a99f3c4999be4f40fbc0dde04bb13cf9c9c84a6084abeb15677bca2d440778d3eaabbae1f42640a16d5913865559fb5e6d2d65f851cfe9c39e78f5fd26b1cdc5d04a27188779928161375af1f74acdd6b80749d1983f4c2aa8bacbb5cf7d67f7f0c52cda907a60c735e32a2d53e4f506821e8cb6e83059890b178a9e5b2e06acc040064c4697e4685d7a0c1bf521ff2a437469234fabb03fd884292606b604afcd0337a0805e32a7ad8c335f5d8ba51c2b1e300ca84ae6f5b8366c890cf662449d41d7e64b2437cd506e9123e0fa73b0a1f53d7619c";
+
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+
+    @Value("${jwt.expiration:86400000}")
+    private long jwtExpiration;
 
 
     public String extractUsername(String token) {
@@ -48,7 +55,7 @@ public class JwtService {
     }
 
     private Key getSigningKey() {
-        byte[] keyBytes = Base64.getDecoder().decode(JWT_SECRET);
+        byte[] keyBytes = Base64.getDecoder().decode(jwtSecret);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
@@ -59,7 +66,7 @@ public class JwtService {
     public String generateToken(Map<String, Object> extraClaims, User user) {
         return Jwts.builder().setClaims(extraClaims).setSubject(user.getUsername()).
                 setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 1000))
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256).compact();
     }
 }

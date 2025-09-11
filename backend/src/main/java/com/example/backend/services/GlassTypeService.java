@@ -2,6 +2,7 @@ package com.example.backend.services;
 
 
 import com.example.backend.models.GlassType;
+import com.example.backend.models.enums.CalculationMethod;
 import com.example.backend.repositories.GlassTypeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -62,5 +63,10 @@ public class GlassTypeService {
         if (glassType.getPricePerMeter() == null || glassType.getPricePerMeter() <= 0) {
             throw new IllegalArgumentException("Price per meter must be positive");
         }
+        if (glassType.getCalculationMethod() == null) {
+            glassType.setCalculationMethod(CalculationMethod.AREA); // Default to area
+        }
     }
+
+
 }

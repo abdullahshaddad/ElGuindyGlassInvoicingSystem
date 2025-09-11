@@ -94,7 +94,7 @@ public class InvoiceService {
                 request.getWidth(), request.getHeight(), request.getCuttingType());
 
         // Calculate glass price
-        double glassPrice = line.getAreaM2() * glassType.getPricePerMeter();
+        double glassPrice = line.getQuantityForPricing() * glassType.getPricePerMeter();
 
         // Calculate cutting price using strategy pattern
         double cuttingPrice;

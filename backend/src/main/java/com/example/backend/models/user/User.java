@@ -36,6 +36,8 @@ public class User implements UserDetails
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
 
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(role.name()));

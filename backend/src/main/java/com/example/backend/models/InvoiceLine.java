@@ -1,5 +1,6 @@
 package com.example.backend.models;
 
+import com.example.backend.models.enums.CalculationMethod;
 import com.example.backend.models.enums.CuttingType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,9 +10,7 @@ import java.util.List;
 @Entity
 @Data
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
-@RequiredArgsConstructor
 public class InvoiceLine {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,8 +30,14 @@ public class InvoiceLine {
     @Column(nullable = false)
     private Double height;
 
-    @Column(name = "area_m2", nullable = false)
+    @Column(name = "calculated_quantity", nullable = false)
+    private Double calculatedQuantity; // This will be either area (m²) or length (m) based on glass type
+
+    @Column(name = "area_m2") // Keep for backward compatibility and display
     private Double areaM2;
+
+    @Column(name = "length_m") // For length-based calculations
+    private Double lengthM;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "cutting_type", nullable = false)
@@ -52,22 +57,24 @@ public class InvoiceLine {
         this.glassType = glassType;
         this.width = width;
         this.height = height;
-        this.areaM2 = width * height;
+        calculateQuantities();
         this.cuttingType = cuttingType;
     }
-    public InvoiceLine() {}
 
-
+    public InvoiceLine() {
+    }
 
 
     public void setWidth(Double width) {
         this.width = width;
-        updateArea();
+        calculateQuantities();
+
     }
 
     public void setHeight(Double height) {
         this.height = height;
-        updateArea();
+        calculateQuantities();
+
     }
 
 
@@ -76,4 +83,45 @@ public class InvoiceLine {
             this.areaM2 = width * height;
         }
     }
+          private void calculateQuantities() {
+        if (width != null && height != null) {
+                          // Always calculate area for display/reference
+                    this.areaM2 = width * height;
+              
+                                  if (glassType != null) {
+                                  if (glassType.getCalculationMethod() == CalculationMethod.LENGTH) {
+                                          // For length-based glass types, use the longer dimension
+                                                  this.lengthM = Math.max(width, height);
+                                          this.calculatedQuantity = this.lengthM;
+                                      } else {
+                                          // Default area-based calculation
+                                                  this.lengthM = null;
+                                          this.calculatedQuantity = this.areaM2;
+                                      }
+                              } else {
+                                  // Fallback to area calculation if glass type not set
+                                          this.calculatedQuantity = this.areaM2;
+                              }
+        }
+    }
+  
+              /**
+        * Get the quantity to use for pricing calculation
+        * @return calculated quantity (either area or length based on glass type)
+        */
+              public Double getQuantityForPricing() {
+                  return calculatedQuantity != null ? calculatedQuantity : areaM2;
+              }
+  
+              /**
+        * Get display text for the calculation method used
+        * @return human-readable description of how this line was calculated
+        */
+              public String getCalculationDescription() {
+                  if (glassType != null && glassType.getCalculationMethod() == CalculationMethod.LENGTH) {
+                          return String.format("طول: %.2f متر", lengthM);
+                      } else {
+                          return String.format("مساحة: %.2f متر مربع", areaM2);
+                      }
+              }
 }

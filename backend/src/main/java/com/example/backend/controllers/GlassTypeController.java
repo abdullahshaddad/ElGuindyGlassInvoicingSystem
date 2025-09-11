@@ -1,6 +1,7 @@
 package com.example.backend.controllers;
 
 import com.example.backend.models.GlassType;
+import com.example.backend.models.enums.CalculationMethod;
 import com.example.backend.services.GlassTypeService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,4 +50,10 @@ public class GlassTypeController {
         glassTypeService.deleteById(id);
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/calculation-methods")
+    public ResponseEntity<CalculationMethod[]> getCalculationMethods() {
+        return ResponseEntity.ok(CalculationMethod.values());
+    }
 }
+
