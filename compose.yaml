@@ -41,7 +41,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: minio-dev
+    container_name: minio-guindy
     ports:
       - "9000:9000"  # Changed back to 9000 to match your app.properties
       - "9001:9001"  # Changed back to 9001
@@ -60,7 +60,7 @@ services:
 
   minio-setup:
     image: minio/mc:latest
-    container_name: minio-setup-dev
+    container_name: minio-setup-guindy
     depends_on:
       minio:
         condition: service_healthy

@@ -1,0 +1,302 @@
+/* Import Google Fonts for Arabic */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap');
+
+/* Tailwind CSS imports */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Variables for Theme */
+:root {
+    /* Light theme colors */
+    --color-primary: #0077B6;
+    --color-secondary: #3FA796;
+    --color-accent1: #A97142;
+    --color-accent2: #1C1C1C;
+    --color-neutral: #F5F5F5;
+    --color-border: #B0B0B0;
+
+    /* Typography */
+    --font-primary: 'Tajawal', sans-serif;
+    --font-secondary: 'Cairo', sans-serif;
+
+    /* Additional semantic colors */
+    --color-success: #22C55E;
+    --color-warning: #F59E0B;
+    --color-error: #EF4444;
+    --color-info: #3B82F6;
+
+    /* Background variations */
+    --color-bg-primary: #FFFFFF;
+    --color-bg-secondary: #F8FAFC;
+    --color-bg-tertiary: #F1F5F9;
+
+    /* Text colors */
+    --color-text-primary: #1E293B;
+    --color-text-secondary: #475569;
+    --color-text-tertiary: #64748B;
+    --color-text-inverse: #FFFFFF;
+
+    /* Shadow */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Dark theme */
+.dark {
+    --color-primary: #005f8f;
+    --color-secondary: #2f8a78;
+    --color-accent1: #8a5f36;
+    --color-accent2: #eaeaea;
+    --color-neutral: #111827;
+    --color-border: #3f3f3f;
+
+    /* Dark mode semantic colors */
+    --color-success: #16A34A;
+    --color-warning: #D97706;
+    --color-error: #DC2626;
+    --color-info: #2563EB;
+
+    /* Dark backgrounds */
+    --color-bg-primary: #0F172A;
+    --color-bg-secondary: #1E293B;
+    --color-bg-tertiary: #334155;
+
+    /* Dark text colors */
+    --color-text-primary: #F8FAFC;
+    --color-text-secondary: #CBD5E1;
+    --color-text-tertiary: #94A3B8;
+    --color-text-inverse: #0F172A;
+
+    /* Dark shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+/* Base styles */
+@layer base {
+    /* Set document direction and language for Arabic */
+    html {
+        direction: rtl;
+        lang: ar;
+        font-family: var(--font-primary);
+    }
+
+    body {
+        @apply bg-bg-primary text-text-primary;
+        font-family: var(--font-primary);
+        transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+    }
+
+    /* Ensure proper text direction for Arabic */
+    * {
+        box-sizing: border-box;
+    }
+
+    /* Input and form styling for RTL */
+    input, textarea, select {
+        direction: rtl;
+        text-align: right;
+    }
+
+    /* English text should be LTR */
+    .ltr {
+        direction: ltr;
+        text-align: left;
+    }
+
+    /* Numbers and English words within Arabic text */
+    .mixed-content {
+        unicode-bidi: plaintext;
+    }
+}
+
+/* Component styles */
+@layer components {
+    /* Button variants */
+    .btn-primary {
+        @apply bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+    }
+
+    .btn-secondary {
+        @apply bg-secondary hover:bg-secondary/90 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+    }
+
+    .btn-outline {
+        @apply border border-primary text-primary hover:bg-primary hover:text-white font-medium py-2 px-4 rounded-lg transition-all duration-200;
+    }
+
+    .btn-ghost {
+        @apply text-primary hover:bg-primary/10 font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+    }
+
+    /* Card styles */
+    .card {
+        @apply bg-bg-primary border border-border rounded-lg shadow-sm;
+    }
+
+    .card-header {
+        @apply px-6 py-4 border-b border-border;
+    }
+
+    .card-body {
+        @apply px-6 py-4;
+    }
+
+    .card-footer {
+        @apply px-6 py-4 border-t border-border bg-bg-secondary;
+    }
+
+    /* Form styles */
+    .form-input {
+        @apply w-full px-3 py-2 border border-border rounded-md bg-bg-primary text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200;
+    }
+
+    .form-label {
+        @apply block text-sm font-medium text-text-secondary mb-1;
+    }
+
+    .form-error {
+        @apply text-error text-sm mt-1;
+    }
+
+    /* Navigation styles */
+    .nav-link {
+        @apply text-text-secondary hover:text-primary transition-colors duration-200 font-medium;
+    }
+
+    .nav-link.active {
+        @apply text-primary;
+    }
+
+    /* Alert styles */
+    .alert {
+        @apply p-4 rounded-lg border;
+    }
+
+    .alert-success {
+        @apply bg-success/10 border-success text-success;
+    }
+
+    .alert-warning {
+        @apply bg-warning/10 border-warning text-warning;
+    }
+
+    .alert-error {
+        @apply bg-error/10 border-error text-error;
+    }
+
+    .alert-info {
+        @apply bg-info/10 border-info text-info;
+    }
+}
+
+/* Utility styles */
+@layer utilities {
+    /* Custom background utilities */
+    .bg-bg-primary {
+        background-color: var(--color-bg-primary);
+    }
+
+    .bg-bg-secondary {
+        background-color: var(--color-bg-secondary);
+    }
+
+    .bg-bg-tertiary {
+        background-color: var(--color-bg-tertiary);
+    }
+
+    /* Custom text utilities */
+    .text-text-primary {
+        color: var(--color-text-primary);
+    }
+
+    .text-text-secondary {
+        color: var(--color-text-secondary);
+    }
+
+    .text-text-tertiary {
+        color: var(--color-text-tertiary);
+    }
+
+    .text-text-inverse {
+        color: var(--color-text-inverse);
+    }
+
+    /* Custom shadow utilities */
+    .shadow-custom-sm {
+        box-shadow: var(--shadow-sm);
+    }
+
+    .shadow-custom-md {
+        box-shadow: var(--shadow-md);
+    }
+
+    .shadow-custom-lg {
+        box-shadow: var(--shadow-lg);
+    }
+
+    /* Scrollbar styling for WebKit browsers */
+    .scrollbar-thin {
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-border) transparent;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background-color: var(--color-border);
+        border-radius: 2px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background-color: var(--color-primary);
+    }
+}
+
+/* Animation classes */
+@layer utilities {
+    .animate-slide-in-right {
+        animation: slideInRight 0.3s ease-out;
+    }
+
+    .animate-slide-in-left {
+        animation: slideInLeft 0.3s ease-out;
+    }
+
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .print-only {
+        display: block !important;
+    }
+
+    body {
+        background: white !important;
+        color: black !important;
+    }
+}
+
+/* Mobile-first responsive design helpers */
+@media (max-width: 640px) {
+    .mobile-menu {
+        @apply fixed inset-0 z-50 bg-bg-primary;
+    }
+}
