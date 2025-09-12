@@ -1,7 +1,6 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/layout/Layout';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
@@ -24,80 +23,21 @@ const PageLoader = () => (
     </div>
 );
 
-// Route definitions with their permissions
-const routes = [
-    // Public routes
-    {
-        path: '/login',
-        element: <LoginPage />,
-        isPublic: true,
-    },
+// Role definitions
+const OWNER = 'OWNER';
+const CASHIER = 'CASHIER';
+const WORKER = 'WORKER';
 
-    // Protected routes
-    {
-        path: '/dashboard',
-        element: <DashboardPage />,
-        allowedRoles: ['CASHIER', 'OWNER', 'WORKER'],
-    },
+const ALL_ROLES = [OWNER, CASHIER, WORKER];
+const MANAGEMENT_ROLES = [OWNER];
+const SALES_ROLES = [OWNER, CASHIER];
+const FACTORY_ROLES = [OWNER, WORKER];
 
-    // Invoice routes - Cashier and Owner
-    {
-        path: '/invoices',
-        element: <InvoicesPage />,
-        allowedRoles: ['CASHIER', 'OWNER'],
-    },
-    {
-        path: '/invoices/new',
-        element: <CreateInvoicePage />,
-        allowedRoles: ['CASHIER', 'OWNER'],
-    },
-    {
-        path: '/invoices/:id',
-        element: <InvoiceDetailPage />,
-        allowedRoles: ['CASHIER', 'OWNER'],
-    },
+// Auth redirect component for handling root route
+const AuthRedirect = () => {
+    const { user, isAuthenticated, isLoading } = useAuth();
 
-    // Customer routes - Cashier and Owner
-    {
-        path: '/customers',
-        element: <CustomersPage />,
-        allowedRoles: ['CASHIER', 'OWNER'],
-    },
-
-    // Factory routes - Worker and Owner
-    {
-        path: '/factory',
-        element: <FactoryPage />,
-        allowedRoles: ['WORKER', 'OWNER'],
-    },
-
-    // Admin routes - Owner only
-    {
-        path: '/admin/glass-types',
-        element: <AdminGlassTypesPage />,
-        allowedRoles: ['OWNER'],
-    },
-
-    // Error routes
-    {
-        path: '/unauthorized',
-        element: <UnauthorizedPage />,
-        isPublic: true,
-    },
-    {
-        path: '/404',
-        element: <NotFoundPage />,
-        isPublic: true,
-    },
-];
-
-// Root redirect component
-const RootRedirect = () => {
-    const { isAuthenticated, user, isLoading } = useAuth();
-
-    if (isLoading) {
-        return <LoadingSpinner />;
-    }
+    if (isLoading) return <PageLoader />;
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />;
@@ -105,67 +45,154 @@ const RootRedirect = () => {
 
     // Redirect based on user role
     switch (user?.role) {
-        case 'OWNER':
+        case OWNER:
             return <Navigate to="/dashboard" replace />;
-        case 'CASHIER':
+        case CASHIER:
             return <Navigate to="/invoices" replace />;
-        case 'WORKER':
+        case WORKER:
             return <Navigate to="/factory" replace />;
         default:
             return <Navigate to="/dashboard" replace />;
     }
 };
 
-// Protected route wrapper
-const ProtectedRouteWrapper = ({ children, allowedRoles }) => (
-    <Layout>
-        <ProtectedRoute allowedRoles={allowedRoles}>
-            {children}
-        </ProtectedRoute>
-    </Layout>
-);
+// Role-based route protection component
+const RoleRoute = ({ allowedRoles, children, redirectPath = '/unauthorized' }) => {
+    const { user, isAuthenticated, isLoading } = useAuth();
 
-// Public route wrapper (no layout)
-const PublicRouteWrapper = ({ children }) => {
-    const { isAuthenticated, user } = useAuth();
+    if (isLoading) return <PageLoader />;
 
-    // Redirect authenticated users away from public pages
-    if (isAuthenticated && user) {
-        return <RootRedirect />;
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
+    if (!allowedRoles.includes(user?.role)) {
+        return <Navigate to={redirectPath} replace />;
     }
 
     return children;
 };
+
+// Public route wrapper - redirects authenticated users
+const PublicRoute = ({ children }) => {
+    const { isAuthenticated, isLoading } = useAuth();
+
+    if (isLoading) return <PageLoader />;
+
+    if (isAuthenticated) {
+        return <AuthRedirect />;
+    }
+
+    return children;
+};
+
+// Main layout wrapper with sidebar and navbar
+const MainLayout = () => (
+    <Layout>
+        <Outlet />
+    </Layout>
+);
 
 const AppRouter = () => {
     return (
         <BrowserRouter>
             <Suspense fallback={<PageLoader />}>
                 <Routes>
-                    {/* Root route */}
-                    <Route path="/" element={<RootRedirect />} />
+                    {/* Public Routes */}
+                    <Route
+                        path="/login"
+                        element={
+                            <PublicRoute>
+                                <LoginPage />
+                            </PublicRoute>
+                        }
+                    />
 
-                    {/* Dynamic routes */}
-                    {routes.map((route) => (
+                    {/* Root redirect */}
+                    <Route path="/" element={<AuthRedirect />} />
+
+                    {/* Protected Routes with Layout */}
+                    <Route element={<MainLayout />}>
+                        {/* Dashboard - accessible to all roles */}
                         <Route
-                            key={route.path}
-                            path={route.path}
+                            path="/dashboard"
                             element={
-                                route.isPublic ? (
-                                    <PublicRouteWrapper>
-                                        {route.element}
-                                    </PublicRouteWrapper>
-                                ) : (
-                                    <ProtectedRouteWrapper allowedRoles={route.allowedRoles}>
-                                        {route.element}
-                                    </ProtectedRouteWrapper>
-                                )
+                                <RoleRoute allowedRoles={ALL_ROLES}>
+                                    <DashboardPage />
+                                </RoleRoute>
                             }
                         />
-                    ))}
 
-                    {/* Catch all route - 404 */}
-                    <Route path="*" element={<NotFoundPage />} />
+                        {/* Invoice Management - Sales roles only */}
+                        <Route
+                            path="/invoices"
+                            element={
+                                <RoleRoute allowedRoles={SALES_ROLES}>
+                                    <InvoicesPage />
+                                </RoleRoute>
+                            }
+                        />
+                        <Route
+                            path="/invoices/new"
+                            element={
+                                <RoleRoute allowedRoles={SALES_ROLES}>
+                                    <CreateInvoicePage />
+                                </RoleRoute>
+                            }
+                        />
+                        <Route
+                            path="/invoices/:id"
+                            element={
+                                <RoleRoute allowedRoles={SALES_ROLES}>
+                                    <InvoiceDetailPage />
+                                </RoleRoute>
+                            }
+                        />
+
+                        {/* Customer Management - Sales roles only */}
+                        <Route
+                            path="/customers"
+                            element={
+                                <RoleRoute allowedRoles={SALES_ROLES}>
+                                    <CustomersPage />
+                                </RoleRoute>
+                            }
+                        />
+
+                        {/* Factory Management - Factory roles only */}
+                        <Route
+                            path="/factory"
+                            element={
+                                <RoleRoute allowedRoles={FACTORY_ROLES}>
+                                    <FactoryPage />
+                                </RoleRoute>
+                            }
+                        />
+
+                        {/* Admin Routes - Owner only */}
+                        <Route
+                            path="/admin/glass-types"
+                            element={
+                                <RoleRoute allowedRoles={MANAGEMENT_ROLES}>
+                                    <AdminGlassTypesPage />
+                                </RoleRoute>
+                            }
+                        />
+
+                    </Route>
+
+                    {/* Error Pages - Public routes, no authentication required */}
+                    <Route
+                        path="/unauthorized"
+                        element={<UnauthorizedPage />}
+                    />
+                    <Route
+                        path="/404"
+                        element={<NotFoundPage />}
+                    />
+
+                    {/* Catch all - redirect to 404 */}
+                    <Route path="*" element={<Navigate to="/404" replace />} />
                 </Routes>
             </Suspense>
         </BrowserRouter>

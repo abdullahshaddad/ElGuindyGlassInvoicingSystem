@@ -1,160 +1,71 @@
-import React, { createContext, useContext, useEffect, useReducer } from 'react';
-import { authService } from '../services/authService';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import {authService} from "@services/authService.jsx";
 
-// Auth state reducer
-const authReducer = (state, action) => {
-    switch (action.type) {
-        case 'LOGIN_START':
-            return {
-                ...state,
-                isLoading: true,
-                error: null,
-            };
-        case 'LOGIN_SUCCESS':
-            return {
-                ...state,
-                isLoading: false,
-                isAuthenticated: true,
-                user: action.payload.user,
-                token: action.payload.token,
-                error: null,
-            };
-        case 'LOGIN_FAILURE':
-            return {
-                ...state,
-                isLoading: false,
-                isAuthenticated: false,
-                user: null,
-                token: null,
-                error: action.payload,
-            };
-        case 'LOGOUT':
-            return {
-                ...state,
-                isAuthenticated: false,
-                user: null,
-                token: null,
-                error: null,
-                isLoading: false,
-            };
-        case 'SET_USER':
-            return {
-                ...state,
-                user: action.payload,
-                isAuthenticated: true,
-            };
-        case 'SET_LOADING':
-            return {
-                ...state,
-                isLoading: action.payload,
-            };
-        case 'CLEAR_ERROR':
-            return {
-                ...state,
-                error: null,
-            };
-        default:
-            return state;
-    }
-};
-
-// Initial state
-const initialState = {
-    isAuthenticated: false,
-    user: null,
-    token: null,
-    isLoading: true,
-    error: null,
-};
-
-// Create context
+// Create the context
 const AuthContext = createContext(null);
 
-// Auth provider component
 export const AuthProvider = ({ children }) => {
-    const [state, dispatch] = useReducer(authReducer, initialState);
+    const [user, setUser] = useState(null);
+    const [token, setToken] = useState(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const { t } = useTranslation();
 
-    // Initialize auth state on app load
-    useEffect(() => {
-        initializeAuth();
-    }, []);
-
-    const initializeAuth = async () => {
-        try {
-            dispatch({ type: 'SET_LOADING', payload: true });
-
-            const token = localStorage.getItem('auth_token');
-            if (!token) {
-                dispatch({ type: 'SET_LOADING', payload: false });
-                return;
-            }
-
-            // Verify token and get user info
-            const user = await authService.getMe();
-            dispatch({
-                type: 'LOGIN_SUCCESS',
-                payload: { user, token },
-            });
-        } catch (error) {
-            console.error('Auth initialization failed:', error);
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('refresh_token');
-            dispatch({ type: 'SET_LOADING', payload: false });
-        }
-    };
-
+    // Function to handle login
     const login = async (credentials) => {
         try {
-            dispatch({ type: 'LOGIN_START' });
+            setError(null);
 
             const response = await authService.login(credentials);
-            const { token, user } = response;
+            const { token: jwtToken, user: userData } = response;
 
-            // Store tokens
-            localStorage.setItem('auth_token', token);
+            // Save token to localStorage
+            localStorage.setItem('auth_token', jwtToken);
             if (response.refreshToken) {
                 localStorage.setItem('refresh_token', response.refreshToken);
             }
 
-            dispatch({
-                type: 'LOGIN_SUCCESS',
-                payload: { user, token },
-            });
+            // Save user info to localStorage for persistence
+            localStorage.setItem('user_info', JSON.stringify(userData));
 
-            return { success: true, user };
+            // Update state
+            setToken(jwtToken);
+            setUser(userData);
+            setIsAuthenticated(true);
+
+            return { success: true, user: userData };
         } catch (error) {
+            console.error('Login error:', error);
             const errorMessage = error.response?.data?.message || error.message || 'Login failed';
-            dispatch({
-                type: 'LOGIN_FAILURE',
-                payload: errorMessage,
-            });
+            setError(errorMessage);
             return { success: false, error: errorMessage };
         }
     };
 
+    // Function to handle logout
     const logout = async () => {
         try {
-            // Clear tokens from storage
+            // Call server-side logout if available
+            await authService.logout();
+        } catch (error) {
+            console.warn('Server logout failed, continuing with local logout:', error);
+        } finally {
+            // Always clear local storage and state
             localStorage.removeItem('auth_token');
             localStorage.removeItem('refresh_token');
             localStorage.removeItem('token_expiry');
+            localStorage.removeItem('user_info');
 
-            dispatch({ type: 'LOGOUT' });
-
-            // Optional: Call backend logout endpoint
-            try {
-                await authService.logout();
-            } catch (error) {
-                // Ignore logout endpoint errors
-                console.warn('Logout endpoint failed:', error);
-            }
-        } catch (error) {
-            console.error('Logout error:', error);
-            // Still dispatch logout to clear local state
-            dispatch({ type: 'LOGOUT' });
+            setToken(null);
+            setUser(null);
+            setIsAuthenticated(false);
+            setError(null);
         }
     };
 
+    // Function to refresh token
     const refreshToken = async () => {
         try {
             const refreshToken = localStorage.getItem('refresh_token');
@@ -162,12 +73,13 @@ export const AuthProvider = ({ children }) => {
                 throw new Error('No refresh token available');
             }
 
-            const response = await authService.refreshToken();
-            const { token } = response;
+            const response = await authService.refreshToken(refreshToken);
+            const { token: newToken } = response;
 
-            localStorage.setItem('auth_token', token);
+            localStorage.setItem('auth_token', newToken);
+            setToken(newToken);
 
-            return token;
+            return newToken;
         } catch (error) {
             console.error('Token refresh failed:', error);
             await logout();
@@ -175,29 +87,33 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Function to update user data
     const updateUser = (userData) => {
-        dispatch({ type: 'SET_USER', payload: userData });
+        setUser(userData);
+        localStorage.setItem('user_info', JSON.stringify(userData));
     };
 
+    // Clear error function
     const clearError = () => {
-        dispatch({ type: 'CLEAR_ERROR' });
+        setError(null);
     };
 
+    // Role checking functions
     const hasRole = (requiredRole) => {
-        if (!state.user) return false;
-        return state.user.role === requiredRole;
+        if (!user) return false;
+        return user.role === requiredRole;
     };
 
     const hasAnyRole = (requiredRoles) => {
-        if (!state.user || !requiredRoles?.length) return false;
-        return requiredRoles.includes(state.user.role);
+        if (!user || !requiredRoles?.length) return false;
+        return requiredRoles.includes(user.role);
     };
 
-    // Helper function to check permissions
+    // Permission checking function
     const canAccess = (resource, action = 'read') => {
-        if (!state.user) return false;
+        if (!user) return false;
 
-        const { role } = state.user;
+        const { role } = user;
 
         // Owner has access to everything
         if (role === 'OWNER') return true;
@@ -241,42 +157,79 @@ export const AuthProvider = ({ children }) => {
         return allowedRoles?.includes(role) || false;
     };
 
-    const contextValue = {
-        // State
-        isAuthenticated: state.isAuthenticated,
-        user: state.user,
-        token: state.token,
-        isLoading: state.isLoading,
-        error: state.error,
+    // Initialize auth state from localStorage on mount - NO API CALLS
+    useEffect(() => {
+        const initializeAuth = () => {
+            try {
+                const storedToken = localStorage.getItem('auth_token');
+                const storedUserInfo = localStorage.getItem('user_info');
 
-        // Actions
+                if (storedToken && storedUserInfo) {
+                    // Parse stored user info
+                    const userData = JSON.parse(storedUserInfo);
+
+                    // Set authenticated state immediately
+                    setToken(storedToken);
+                    setUser(userData);
+                    setIsAuthenticated(true);
+                } else {
+                    // No stored auth data
+                    setIsAuthenticated(false);
+                }
+            } catch (error) {
+                console.error('Error parsing stored auth data:', error);
+
+                // Clear invalid data
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('refresh_token');
+                localStorage.removeItem('token_expiry');
+                localStorage.removeItem('user_info');
+
+                setToken(null);
+                setUser(null);
+                setIsAuthenticated(false);
+            } finally {
+                // Always set loading to false
+                setIsLoading(false);
+            }
+        };
+
+        initializeAuth();
+    }, []);
+
+    // Context value
+    const value = {
+        // State
+        user,
+        token,
+        isAuthenticated,
+        isLoading,
+        error,
+
+        // Authentication methods
         login,
         logout,
         refreshToken,
+
+        // User management
         updateUser,
         clearError,
 
-        // Helpers
+        // Utility methods
         hasRole,
         hasAnyRole,
         canAccess,
     };
 
-    return (
-        <AuthContext.Provider value={contextValue}>
-            {children}
-        </AuthContext.Provider>
-    );
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook to use auth context
+// Hook to use the auth context
 export const useAuth = () => {
     const context = useContext(AuthContext);
-
     if (!context) {
         throw new Error('useAuth must be used within an AuthProvider');
     }
-
     return context;
 };
 
