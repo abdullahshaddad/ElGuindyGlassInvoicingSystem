@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import AppRouter from '@/components/AppRouter';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -39,13 +40,15 @@ function App() {
     return (
         <ErrorBoundary>
             <QueryClientProvider client={queryClient}>
-                <AuthProvider>
-                    <Suspense fallback={<GlobalLoader />}>
-                        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-                            <AppRouter />
-                        </div>
-                    </Suspense>
-                </AuthProvider>
+                <ThemeProvider>
+                    <AuthProvider>
+                        <Suspense fallback={<GlobalLoader />}>
+                            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+                                <AppRouter />
+                            </div>
+                        </Suspense>
+                    </AuthProvider>
+                </ThemeProvider>
 
                 {/* React Query Devtools - only in development */}
                 {import.meta.env.DEV && (

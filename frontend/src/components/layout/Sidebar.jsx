@@ -3,20 +3,31 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth, usePermissions } from '@/contexts/AuthContext';
 import clsx from 'clsx';
+import {
+    FiHome,
+    FiFileText,
+    FiUsers,
+    FiSettings,
+    FiBox,
+    FiBarChart,
+    FiTool,
+    FiLogOut,
+    FiX
+} from 'react-icons/fi';
 
-// Icons (you can replace with actual icon library)
+// Professional icon mapping using React Icons
 const icons = {
-    dashboard: '📊',
-    invoices: '🧾',
-    customers: '👥',
-    factory: '🏭',
-    admin: '⚙️',
-    glassTypes: '🔷',
-    reports: '📈',
-    settings: '🔧',
+    dashboard: FiHome,
+    invoices: FiFileText,
+    customers: FiUsers,
+    factory: FiBox,
+    admin: FiSettings,
+    glassTypes: FiTool,
+    reports: FiBarChart,
+    settings: FiSettings,
 };
 
-const NavItem = ({ to, icon, label, isActive, onClick, badge }) => (
+const NavItem = ({ to, icon: IconComponent, label, isActive, onClick, badge }) => (
     <Link
         to={to}
         onClick={onClick}
@@ -27,12 +38,12 @@ const NavItem = ({ to, icon, label, isActive, onClick, badge }) => (
             !isActive && 'text-gray-700 dark:text-gray-300'
         )}
     >
-        <span className="text-xl">{icon}</span>
+        <IconComponent className="w-5 h-5" />
         <span className="font-medium">{label}</span>
         {badge && (
             <span className="mr-auto bg-primary-100 text-primary-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-primary-900 dark:text-primary-300">
-        {badge}
-      </span>
+                {badge}
+            </span>
         )}
     </Link>
 );
@@ -94,7 +105,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                         className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
                         <span className="sr-only">إغلاق القائمة</span>
-                        ✕
+                        <FiX className="w-5 h-5" />
                     </button>
                 </div>
 
@@ -111,21 +122,14 @@ const Sidebar = ({ isOpen, onClose }) => {
                         />
                     </NavGroup>
 
-                    {/* Invoice Management - Cashier & Owner */}
-                    {(isCashier || isOwner) && (
-                        <NavGroup title={t('navigation.invoices', 'الفواتير')}>
+                    {/* Sales Navigation - Visible to Owner and Cashier */}
+                    {canAccess(['OWNER', 'CASHIER']) && (
+                        <NavGroup title={t('navigation.sales', 'المبيعات')}>
                             <NavItem
                                 to="/invoices"
                                 icon={icons.invoices}
                                 label={t('navigation.invoices', 'الفواتير')}
                                 isActive={isActive('/invoices')}
-                                onClick={onClose}
-                            />
-                            <NavItem
-                                to="/invoices/new"
-                                icon="➕"
-                                label={t('navigation.newInvoice', 'فاتورة جديدة')}
-                                isActive={isActive('/invoices/new')}
                                 onClick={onClose}
                             />
                             <NavItem
@@ -138,20 +142,20 @@ const Sidebar = ({ isOpen, onClose }) => {
                         </NavGroup>
                     )}
 
-                    {/* Factory Management - Worker & Owner */}
-                    {(isWorker || isOwner) && (
+                    {/* Factory Navigation - Visible to Owner and Worker */}
+                    {canAccess(['OWNER', 'WORKER']) && (
                         <NavGroup title={t('navigation.factory', 'المصنع')}>
                             <NavItem
                                 to="/factory"
                                 icon={icons.factory}
-                                label={t('navigation.factory', 'المصنع')}
+                                label={t('navigation.factory', 'مهام المصنع')}
                                 isActive={isActive('/factory')}
                                 onClick={onClose}
                             />
                         </NavGroup>
                     )}
 
-                    {/* Admin Section - Owner Only */}
+                    {/* Admin Navigation - Owner only */}
                     {isOwner && (
                         <NavGroup title={t('navigation.admin', 'الإدارة')}>
                             <NavItem
@@ -159,13 +163,6 @@ const Sidebar = ({ isOpen, onClose }) => {
                                 icon={icons.glassTypes}
                                 label={t('navigation.glassTypes', 'أنواع الزجاج')}
                                 isActive={isActive('/admin/glass-types')}
-                                onClick={onClose}
-                            />
-                            <NavItem
-                                to="/admin/users"
-                                icon="👤"
-                                label={t('navigation.users', 'المستخدمون')}
-                                isActive={isActive('/admin/users')}
                                 onClick={onClose}
                             />
                             <NavItem
@@ -179,14 +176,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                     )}
 
                     {/* Settings */}
-                    <NavGroup title={t('navigation.settings', 'الإعدادات')}>
-                        <NavItem
-                            to="/profile"
-                            icon="👤"
-                            label={t('navigation.profile', 'الملف الشخصي')}
-                            isActive={isActive('/profile')}
-                            onClick={onClose}
-                        />
+                    <NavGroup title={t('navigation.account', 'الحساب')}>
                         <NavItem
                             to="/settings"
                             icon={icons.settings}
@@ -197,35 +187,26 @@ const Sidebar = ({ isOpen, onClose }) => {
                     </NavGroup>
                 </div>
 
-                {/* User info and logout */}
-                <div className="border-t border-gray-200 dark:border-gray-700 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-secondary-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                    {user?.displayName}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    {user?.role === 'OWNER' && 'مالك'}
-                                    {user?.role === 'CASHIER' && 'كاشير'}
-                                    {user?.role === 'WORKER' && 'عامل'}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
+                {/* Footer with logout */}
+                <div className="p-4 border-t border-gray-200 dark:border-gray-700">
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-400 rounded-lg transition-all duration-200"
                     >
-                        <span>🚪</span>
-                        {t('navigation.logout', 'تسجيل الخروج')}
+                        <FiLogOut className="w-5 h-5" />
+                        <span className="font-medium">{t('auth.logout', 'تسجيل الخروج')}</span>
                     </button>
                 </div>
             </div>
+
+            {/* Mobile backdrop */}
+            {isOpen && (
+                <div
+                    className="fixed inset-0 z-40 lg:hidden bg-black bg-opacity-50"
+                    onClick={onClose}
+                    aria-hidden="true"
+                />
+            )}
         </>
     );
 };

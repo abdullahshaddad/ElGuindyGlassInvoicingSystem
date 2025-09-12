@@ -1,14 +1,33 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth, usePermissions } from '@/contexts/AuthContext';
+import {
+    FiTrendingUp,
+    FiTrendingDown,
+    FiDollarSign,
+    FiShoppingCart,
+    FiUsers,
+    FiPackage,
+    FiPlus,
+    FiFileText,
+    FiBarChart,
+    FiSettings,
+    FiTool,
+    FiSearch,
+    FiClipboard,
+    FiUser,
+    FiKey,
+    FiBriefcase
+} from 'react-icons/fi';
 
-const StatsCard = ({ title, value, change, icon, color = 'primary' }) => {
+const StatsCard = ({ title, value, change, IconComponent, color = 'primary' }) => {
     const colorClasses = {
         primary: 'bg-primary-500 text-white',
         secondary: 'bg-secondary-500 text-white',
         accent: 'bg-accent-500 text-white',
         green: 'bg-green-500 text-white',
         red: 'bg-red-500 text-white',
+        blue: 'bg-blue-500 text-white',
     };
 
     return (
@@ -21,14 +40,17 @@ const StatsCard = ({ title, value, change, icon, color = 'primary' }) => {
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
                         {value}
                     </p>
-                    {change && (
-                        <p className={`text-sm font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'} mt-1`}>
-                            {change >= 0 ? '↗️' : '↘️'} {Math.abs(change)}%
+                    {change !== undefined && (
+                        <p className={`text-sm font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'} mt-1 flex items-center gap-1`}>
+                            {change >= 0 ? <FiTrendingUp className="w-4 h-4" /> : <FiTrendingDown className="w-4 h-4" />}
+                            {Math.abs(change)}%
                         </p>
                     )}
                 </div>
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${colorClasses[color]}`}>
-                    {icon}
+                <div className="hidden md:block">
+                    <div className={`w-16 h-16 ${colorClasses[color]} rounded-full flex items-center justify-center`}>
+                        <IconComponent className="w-8 h-8" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -42,33 +64,107 @@ const DashboardPage = () => {
 
     const getWelcomeMessage = () => {
         const hour = new Date().getHours();
-        if (hour < 12) return 'صباح الخير';
-        if (hour < 18) return 'مساء الخير';
-        return 'مساء الخير';
+        if (hour < 12) return t('dashboard.welcome.morning', 'صباح الخير');
+        if (hour < 18) return t('dashboard.welcome.afternoon', 'مساء الخير');
+        return t('dashboard.welcome.evening', 'مساء الخير');
+    };
+
+    const getRoleIcon = () => {
+        if (isOwner) return FiKey;
+        if (isCashier) return FiBriefcase;
+        if (isWorker) return FiTool;
+        return FiUser;
     };
 
     const getDashboardStats = () => {
-        // This would normally come from API calls
         if (isOwner) {
             return [
-                { title: 'إجمالي الإيرادات', value: '15,240 ج.م', change: 12.5, icon: '💰', color: 'primary' },
-                { title: 'الفواتير اليوم', value: '23', change: 8.2, icon: '🧾', color: 'secondary' },
-                { title: 'العملاء الجدد', value: '7', change: -2.1, icon: '👥', color: 'accent' },
-                { title: 'الطلبات المعلقة', value: '12', change: 0, icon: '⏳', color: 'red' },
+                {
+                    title: 'إجمالي الإيرادات',
+                    value: '₪45,230',
+                    change: 12,
+                    IconComponent: FiDollarSign,
+                    color: 'green'
+                },
+                {
+                    title: 'الفواتير هذا الشهر',
+                    value: '156',
+                    change: 8,
+                    IconComponent: FiFileText,
+                    color: 'blue'
+                },
+                {
+                    title: 'العملاء الجدد',
+                    value: '23',
+                    change: 15,
+                    IconComponent: FiUsers,
+                    color: 'primary'
+                },
+                {
+                    title: 'الطلبات المعلقة',
+                    value: '7',
+                    change: -3,
+                    IconComponent: FiPackage,
+                    color: 'red'
+                }
             ];
         } else if (isCashier) {
             return [
-                { title: 'الفواتير اليوم', value: '8', change: 5.3, icon: '🧾', color: 'primary' },
-                { title: 'المبيعات اليوم', value: '3,450 ج.م', change: 15.2, icon: '💰', color: 'secondary' },
-                { title: 'العملاء المخدومين', value: '12', change: 8.7, icon: '👥', color: 'accent' },
-                { title: 'الطلبات المعلقة', value: '3', change: -12.5, icon: '⏳', color: 'green' },
+                {
+                    title: 'مبيعات اليوم',
+                    value: '₪2,340',
+                    change: 5,
+                    IconComponent: FiDollarSign,
+                    color: 'green'
+                },
+                {
+                    title: 'الفواتير اليوم',
+                    value: '12',
+                    change: 3,
+                    IconComponent: FiFileText,
+                    color: 'blue'
+                },
+                {
+                    title: 'العملاء المخدومين',
+                    value: '8',
+                    change: 2,
+                    IconComponent: FiUsers,
+                    color: 'primary'
+                },
+                {
+                    title: 'متوسط قيمة الفاتورة',
+                    value: '₪195',
+                    change: 7,
+                    IconComponent: FiShoppingCart,
+                    color: 'accent'
+                }
             ];
         } else if (isWorker) {
             return [
-                { title: 'المهام اليوم', value: '6', change: 0, icon: '🔧', color: 'primary' },
-                { title: 'المهام المكتملة', value: '4', change: 33.3, icon: '✅', color: 'green' },
-                { title: 'المهام المعلقة', value: '2', change: -50, icon: '⏳', color: 'red' },
-                { title: 'ساعات العمل', value: '7.5', change: 6.7, icon: '⏰', color: 'secondary' },
+                {
+                    title: 'مهام اليوم',
+                    value: '5',
+                    IconComponent: FiClipboard,
+                    color: 'blue'
+                },
+                {
+                    title: 'المهام المكتملة',
+                    value: '3',
+                    IconComponent: FiPackage,
+                    color: 'green'
+                },
+                {
+                    title: 'الطلبات الجديدة',
+                    value: '2',
+                    IconComponent: FiPlus,
+                    color: 'primary'
+                },
+                {
+                    title: 'ساعات العمل',
+                    value: '6.5h',
+                    IconComponent: FiTool,
+                    color: 'accent'
+                }
             ];
         }
         return [];
@@ -77,24 +173,84 @@ const DashboardPage = () => {
     const getQuickActions = () => {
         if (isOwner) {
             return [
-                { title: 'عرض التقارير', icon: '📊', href: '/admin/reports', color: 'bg-primary-500' },
-                { title: 'إدارة أنواع الزجاج', icon: '🔷', href: '/admin/glass-types', color: 'bg-secondary-500' },
-                { title: 'إدارة المستخدمين', icon: '👥', href: '/admin/users', color: 'bg-accent-500' },
-                { title: 'الإعدادات', icon: '⚙️', href: '/settings', color: 'bg-gray-500' },
+                {
+                    title: 'عرض التقارير',
+                    IconComponent: FiBarChart,
+                    href: '/admin/reports',
+                    color: 'bg-primary-500'
+                },
+                {
+                    title: 'إدارة أنواع الزجاج',
+                    IconComponent: FiTool,
+                    href: '/admin/glass-types',
+                    color: 'bg-secondary-500'
+                },
+                {
+                    title: 'إدارة المستخدمين',
+                    IconComponent: FiUsers,
+                    href: '/admin/users',
+                    color: 'bg-accent-500'
+                },
+                {
+                    title: 'الإعدادات',
+                    IconComponent: FiSettings,
+                    href: '/settings',
+                    color: 'bg-gray-500'
+                },
             ];
         } else if (isCashier) {
             return [
-                { title: 'فاتورة جديدة', icon: '➕', href: '/invoices/new', color: 'bg-primary-500' },
-                { title: 'عرض الفواتير', icon: '🧾', href: '/invoices', color: 'bg-secondary-500' },
-                { title: 'إدارة العملاء', icon: '👥', href: '/customers', color: 'bg-accent-500' },
-                { title: 'البحث', icon: '🔍', href: '/search', color: 'bg-gray-500' },
+                {
+                    title: 'فاتورة جديدة',
+                    IconComponent: FiPlus,
+                    href: '/invoices/new',
+                    color: 'bg-primary-500'
+                },
+                {
+                    title: 'عرض الفواتير',
+                    IconComponent: FiFileText,
+                    href: '/invoices',
+                    color: 'bg-secondary-500'
+                },
+                {
+                    title: 'إدارة العملاء',
+                    IconComponent: FiUsers,
+                    href: '/customers',
+                    color: 'bg-accent-500'
+                },
+                {
+                    title: 'البحث',
+                    IconComponent: FiSearch,
+                    href: '/search',
+                    color: 'bg-gray-500'
+                },
             ];
         } else if (isWorker) {
             return [
-                { title: 'مهام المصنع', icon: '🏭', href: '/factory', color: 'bg-primary-500' },
-                { title: 'الطلبات الجديدة', icon: '📋', href: '/factory/new-orders', color: 'bg-secondary-500' },
-                { title: 'تقرير الإنتاج', icon: '📈', href: '/factory/production', color: 'bg-accent-500' },
-                { title: 'الملف الشخصي', icon: '👤', href: '/profile', color: 'bg-gray-500' },
+                {
+                    title: 'مهام المصنع',
+                    IconComponent: FiTool,
+                    href: '/factory',
+                    color: 'bg-primary-500'
+                },
+                {
+                    title: 'الطلبات الجديدة',
+                    IconComponent: FiClipboard,
+                    href: '/factory/new-orders',
+                    color: 'bg-secondary-500'
+                },
+                {
+                    title: 'تقرير الإنتاج',
+                    IconComponent: FiBarChart3,
+                    href: '/factory/production',
+                    color: 'bg-accent-500'
+                },
+                {
+                    title: 'الملف الشخصي',
+                    IconComponent: FiUser,
+                    href: '/profile',
+                    color: 'bg-gray-500'
+                },
             ];
         }
         return [];
@@ -102,6 +258,7 @@ const DashboardPage = () => {
 
     const stats = getDashboardStats();
     const quickActions = getQuickActions();
+    const RoleIcon = getRoleIcon();
 
     return (
         <div className="space-y-6">
@@ -120,11 +277,7 @@ const DashboardPage = () => {
                     </div>
                     <div className="hidden md:block">
                         <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-              <span className="text-2xl">
-                {isOwner && '👑'}
-                  {isCashier && '💼'}
-                  {isWorker && '🔧'}
-              </span>
+                            <RoleIcon className="w-8 h-8" />
                         </div>
                     </div>
                 </div>
@@ -138,7 +291,7 @@ const DashboardPage = () => {
                         title={stat.title}
                         value={stat.value}
                         change={stat.change}
-                        icon={stat.icon}
+                        IconComponent={stat.IconComponent}
                         color={stat.color}
                     />
                 ))}
@@ -157,85 +310,93 @@ const DashboardPage = () => {
                             className="flex flex-col items-center p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
                         >
                             <div className={`w-12 h-12 rounded-lg ${action.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                                <span className="text-xl text-white">{action.icon}</span>
+                                <action.IconComponent className="w-6 h-6 text-white" />
                             </div>
                             <span className="text-sm font-medium text-gray-900 dark:text-white text-center">
-                {action.title}
-              </span>
+                                {action.title}
+                            </span>
                         </a>
                     ))}
                 </div>
             </div>
 
-            {/* Recent Activity */}
+            {/* Recent Activity or Chart Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Recent Invoices */}
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                        الفواتير الأخيرة
-                    </h2>
-                    <div className="space-y-3">
-                        {[1, 2, 3].map((_, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                                        #
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                            فاتورة #{2024000 + index + 1}
-                                        </p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            عميل {index + 1}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="text-left">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                        {(Math.random() * 1000 + 500).toFixed(0)} ج.م
-                                    </p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        اليوم
-                                    </p>
-                                </div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                        النشاط الأخير
+                    </h3>
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                <FiFileText className="w-4 h-4 text-white" />
                             </div>
-                        ))}
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                    فاتورة جديدة #1024
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    منذ دقيقتين
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                                <FiUsers className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                    عميل جديد مضاف
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    منذ 5 دقائق
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+                                <FiPackage className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                    طلب جديد في المصنع
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    منذ 10 دقائق
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* System Status */}
+                {/* Summary Chart or Stats */}
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                        حالة النظام
-                    </h2>
-                    <div className="space-y-3">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                        ملخص الأداء
+                    </h3>
+                    <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">الخادم</span>
-                            <span className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm text-green-600 dark:text-green-400">متصل</span>
-              </span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">معدل الإنجاز</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">85%</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">قاعدة البيانات</span>
-                            <span className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm text-green-600 dark:text-green-400">متصلة</span>
-              </span>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div className="bg-green-500 h-2 rounded-full" style={{ width: '85%' }}></div>
                         </div>
+
                         <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">الطابعة</span>
-                            <span className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                <span className="text-sm text-yellow-600 dark:text-yellow-400">تحذير</span>
-              </span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">رضا العملاء</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">92%</span>
                         </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div className="bg-blue-500 h-2 rounded-full" style={{ width: '92%' }}></div>
+                        </div>
+
                         <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">التخزين</span>
-                            <span className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm text-green-600 dark:text-green-400">متاح</span>
-              </span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">كفاءة المصنع</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">78%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div className="bg-primary-500 h-2 rounded-full" style={{ width: '78%' }}></div>
                         </div>
                     </div>
                 </div>

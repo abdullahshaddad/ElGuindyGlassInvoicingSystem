@@ -278,4 +278,46 @@ export const printJobService = {
             throw error;
         }
     },
+
+    // Replace these methods in printJobService:
+
+    async getQueuedJobs() {
+        try {
+            // Backend uses /queue, not /pending
+            const response = await get('/print-jobs/queue');
+            return response;
+        } catch (error) {
+            console.error('Get queued jobs error:', error);
+            throw error;
+        }
+    },
+
+    async markAsPrinting(id) {
+        try {
+            // Use backend's specific endpoint
+            const response = await put(`/print-jobs/${id}/printing`);
+            return response;
+        } catch (error) {
+            console.error('Mark as printing error:', error);
+            throw error;
+        }
+    },
+
+    async markAsPrinted(id) {
+        try {
+            // Use backend's specific endpoint
+            const response = await put(`/print-jobs/${id}/printed`);
+            return response;
+        } catch (error) {
+            console.error('Mark as printed error:', error);
+            throw error;
+        }
+    },
+
+// Remove these methods as they don't exist in backend:
+// - listPrintJobs (no backend pagination endpoint)
+// - createPrintJob (not in backend controller)
+// - updatePrintJob (not in backend controller)
+// - deletePrintJob (not in backend controller)
+// - getPrintJob (not in backend controller)
 };

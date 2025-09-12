@@ -48,7 +48,6 @@ export const invoiceService = {
     async listInvoices(params = {}) {
         try {
             const queryParams = new URLSearchParams();
-
             if (params.page !== undefined) queryParams.append('page', params.page);
             if (params.size !== undefined) queryParams.append('size', params.size);
             if (params.startDate) queryParams.append('startDate', params.startDate);
@@ -56,7 +55,17 @@ export const invoiceService = {
             if (params.customerName) queryParams.append('customerName', params.customerName);
 
             const response = await get(`/invoices?${queryParams.toString()}`);
-            return response;
+
+            // Handle paginated response from Spring Boot
+            return {
+                content: response.content || response, // Fallback for non-paginated
+                totalElements: response.totalElements || response.length || 0,
+                totalPages: response.totalPages || 1,
+                number: response.number || 0,
+                size: response.size || (response.length || 20),
+                first: response.first !== undefined ? response.first : true,
+                last: response.last !== undefined ? response.last : true
+            };
         } catch (error) {
             console.error('List invoices error:', error);
             throw error;
