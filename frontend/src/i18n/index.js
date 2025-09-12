@@ -58,7 +58,7 @@ i18n
         },
 
         // Remove backend configuration
-        debug: import.meta.env.DEV,
+        debug: false
     });
 
 // Language direction helper

@@ -14,22 +14,23 @@ export const authService = {
      */
     async login(credentials) {
         try {
-            const response = await post('/auth/login', {
+            const response = await post('/auth/authenticate', {
                 username: credentials.username || credentials.email,
                 password: credentials.password,
             });
 
+            // Backend returns user data at root level, not nested in response.user
             return {
                 token: response.token,
                 refreshToken: response.refreshToken,
                 user: {
-                    id: response.user.id,
-                    username: response.user.username,
-                    displayName: `${response.user.firstName} ${response.user.lastName}`,
-                    firstName: response.user.firstName,
-                    lastName: response.user.lastName,
-                    role: response.user.role,
-                    isActive: response.user.isActive,
+                    id: response.id || response.username, // Use username as fallback if id not present
+                    username: response.username,
+                    displayName: `${response.firstName} ${response.lastName}`,
+                    firstName: response.firstName,
+                    lastName: response.lastName,
+                    role: response.role,
+                    isActive: response.isActive !== undefined ? response.isActive : true, // Default to true if not provided
                 },
             };
         } catch (error) {
@@ -90,13 +91,13 @@ export const authService = {
         try {
             const response = await get('/auth/me');
             return {
-                id: response.id,
+                id: response.id || response.username, // Use username as fallback if id not present
                 username: response.username,
                 displayName: `${response.firstName} ${response.lastName}`,
                 firstName: response.firstName,
                 lastName: response.lastName,
                 role: response.role,
-                isActive: response.isActive,
+                isActive: response.isActive !== undefined ? response.isActive : true,
             };
         } catch (error) {
             console.error('Get me error:', error);
@@ -144,13 +145,13 @@ export const authService = {
         try {
             const response = await post('/auth/profile', profileData);
             return {
-                id: response.id,
+                id: response.id || response.username,
                 username: response.username,
                 displayName: `${response.firstName} ${response.lastName}`,
                 firstName: response.firstName,
                 lastName: response.lastName,
                 role: response.role,
-                isActive: response.isActive,
+                isActive: response.isActive !== undefined ? response.isActive : true,
             };
         } catch (error) {
             console.error('Update profile error:', error);
@@ -185,13 +186,13 @@ export const authService = {
         try {
             const response = await get('/auth/users');
             return response.map(user => ({
-                id: user.id,
+                id: user.id || user.username,
                 username: user.username,
                 displayName: `${user.firstName} ${user.lastName}`,
                 firstName: user.firstName,
                 lastName: user.lastName,
                 role: user.role,
-                isActive: user.isActive,
+                isActive: user.isActive !== undefined ? user.isActive : true,
             }));
         } catch (error) {
             console.error('Get users error:', error);

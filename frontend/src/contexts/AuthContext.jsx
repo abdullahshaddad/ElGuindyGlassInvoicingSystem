@@ -280,5 +280,26 @@ export const useAuth = () => {
     return context;
 };
 
-export class usePermissions {
-}
+// Custom hook for permission-based functionality
+export const usePermissions = () => {
+    const { user, hasRole, hasAnyRole, canAccess } = useAuth();
+
+    return {
+        user,
+        hasRole,
+        hasAnyRole,
+        canAccess,
+        // Convenience methods for common checks
+        isOwner: () => hasRole('OWNER'),
+        isCashier: () => hasRole('CASHIER'),
+        isWorker: () => hasRole('WORKER'),
+        canManageInvoices: () => canAccess('invoices', 'write'),
+        canDeleteInvoices: () => canAccess('invoices', 'delete'),
+        canManageCustomers: () => canAccess('customers', 'write'),
+        canAccessFactory: () => canAccess('factory', 'read'),
+        canManageFactory: () => canAccess('factory', 'write'),
+        canAccessAdmin: () => canAccess('admin', 'read'),
+        canManageGlassTypes: () => canAccess('glass-types', 'write'),
+        canViewReports: () => canAccess('reports', 'read'),
+    };
+};
