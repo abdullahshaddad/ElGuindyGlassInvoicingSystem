@@ -4,13 +4,13 @@ export default {
         "./index.html",
         "./src/**/*.{js,ts,jsx,tsx}",
     ],
-    darkMode: 'class',
+    darkMode: 'class', // Use class-based dark mode
     theme: {
         extend: {
             fontFamily: {
                 'tajawal': ['Tajawal', 'sans-serif'],
                 'cairo': ['Cairo', 'sans-serif'],
-                'sans': ['Tajawal', 'Cairo', 'sans-serif'],
+                'sans': ['Tajawal', 'Cairo', 'ui-sans-serif', 'system-ui', 'sans-serif'],
             },
             colors: {
                 primary: {
@@ -104,7 +104,7 @@ export default {
         },
     },
     plugins: [
-        // RTL support
+        // RTL support plugin
         function({ addUtilities }) {
             const newUtilities = {
                 '.rtl': {
@@ -113,8 +113,21 @@ export default {
                 '.ltr': {
                     direction: 'ltr',
                 },
+                // Add some RTL-specific utilities
+                '.rtl .text-left': {
+                    textAlign: 'right',
+                },
+                '.rtl .text-right': {
+                    textAlign: 'left',
+                },
+                '.rtl .float-left': {
+                    float: 'right',
+                },
+                '.rtl .float-right': {
+                    float: 'left',
+                },
             }
-            addUtilities(newUtilities)
+            addUtilities(newUtilities, ['responsive', 'hover'])
         }
     ],
 }

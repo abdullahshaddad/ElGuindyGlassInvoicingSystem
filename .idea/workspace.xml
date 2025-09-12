@@ -4,42 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0b609ddb-2dbd-441e-9c1d-a9e2a89cd7df" name="Changes" comment="frontnend init">
-      <change afterPath="$PROJECT_DIR$/frontend/.env.example" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/jest.config.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/api/axios.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/AppRouter.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/ErrorBoundary.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/ProtectedRoute.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/layout/Header.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/layout/Layout.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/LoadingSpinner.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/contexts/AuthContext.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/i18n/index.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/i18n/locales/ar/auth.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/i18n/locales/ar/common.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/i18n/locales/ar/validation.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/i18n/locales/en/auth.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/i18n/locales/en/common.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/i18n/locales/en/validation.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/DashboardPage.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/auth/LoginPage.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/errors/NotFoundPage.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/errors/UnauthorizedPage.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/services/authService.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/styles/globals.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/styles/variables.scss" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/tests/setup.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/types/index.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/tailwind.config.js" afterDir="false" />
+    <list default="true" id="0b609ddb-2dbd-441e-9c1d-a9e2a89cd7df" name="Changes" comment="feat: implement routing, authentication, and service layer&#10;&#10;- Add comprehensive AuthContext with role-based permissions (OWNER/CASHIER/WORKER)&#10;- Implement protected routing with automatic role-based redirects&#10;- Create axios instance with JWT token management and auto-refresh&#10;- Build complete service layer for auth, invoices, customers, glass types, print jobs&#10;- Add RTL-first layout system with Arabic navigation and theme switching&#10;- Implement login page with Arabic-first design and error handling&#10;- Create role-specific dashboard with stats and quick actions&#10;- Add error boundaries and 404/unauthorized pages&#10;- Set up JSDoc type definitions for all DTOs and API responses&#10;- Configure React Query, i18n, and dayjs with Arabic locale support&#10;&#10;Ready for Step 5: Component and page implementation">
+      <change afterPath="$PROJECT_DIR$/frontend/.eslintrc.cjs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/main.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/main.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/vite.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/vite.config.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/tailwind.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/tailwind.config.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -130,7 +101,7 @@
       <option name="presentableId" value="Default" />
       <updated>1757612214161</updated>
       <workItem from="1757612215333" duration="2716000" />
-      <workItem from="1757614957928" duration="6204000" />
+      <workItem from="1757614957928" duration="7258000" />
     </task>
     <task id="LOCAL-00001" summary="init">
       <option name="closed" value="true" />
@@ -164,7 +135,15 @@
       <option name="project" value="LOCAL" />
       <updated>1757636358606</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="feat: implement routing, authentication, and service layer&#10;&#10;- Add comprehensive AuthContext with role-based permissions (OWNER/CASHIER/WORKER)&#10;- Implement protected routing with automatic role-based redirects&#10;- Create axios instance with JWT token management and auto-refresh&#10;- Build complete service layer for auth, invoices, customers, glass types, print jobs&#10;- Add RTL-first layout system with Arabic navigation and theme switching&#10;- Implement login page with Arabic-first design and error handling&#10;- Create role-specific dashboard with stats and quick actions&#10;- Add error boundaries and 404/unauthorized pages&#10;- Set up JSDoc type definitions for all DTOs and API responses&#10;- Configure React Query, i18n, and dayjs with Arabic locale support&#10;&#10;Ready for Step 5: Component and page implementation">
+      <option name="closed" value="true" />
+      <created>1757646502567</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1757646502567</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -175,6 +154,7 @@
     <MESSAGE value="feat: initialize React frontend with Arabic-first design system&#10;&#10;- Setup Vite + React + TypeScript project structure&#10;- Configure TailwindCSS with RTL support and Arabic fonts (Tajawal, Cairo)&#10;- Implement theme context with light/dark mode toggle&#10;- Add Axios configuration with JWT auth and token refresh&#10;- Create responsive layout with Arabic navigation&#10;- Setup project with proper TypeScript configuration and testing" />
     <MESSAGE value="deleted frontend" />
     <MESSAGE value="frontnend init" />
-    <option name="LAST_COMMIT_MESSAGE" value="frontnend init" />
+    <MESSAGE value="feat: implement routing, authentication, and service layer&#10;&#10;- Add comprehensive AuthContext with role-based permissions (OWNER/CASHIER/WORKER)&#10;- Implement protected routing with automatic role-based redirects&#10;- Create axios instance with JWT token management and auto-refresh&#10;- Build complete service layer for auth, invoices, customers, glass types, print jobs&#10;- Add RTL-first layout system with Arabic navigation and theme switching&#10;- Implement login page with Arabic-first design and error handling&#10;- Create role-specific dashboard with stats and quick actions&#10;- Add error boundaries and 404/unauthorized pages&#10;- Set up JSDoc type definitions for all DTOs and API responses&#10;- Configure React Query, i18n, and dayjs with Arabic locale support&#10;&#10;Ready for Step 5: Component and page implementation" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: implement routing, authentication, and service layer&#10;&#10;- Add comprehensive AuthContext with role-based permissions (OWNER/CASHIER/WORKER)&#10;- Implement protected routing with automatic role-based redirects&#10;- Create axios instance with JWT token management and auto-refresh&#10;- Build complete service layer for auth, invoices, customers, glass types, print jobs&#10;- Add RTL-first layout system with Arabic navigation and theme switching&#10;- Implement login page with Arabic-first design and error handling&#10;- Create role-specific dashboard with stats and quick actions&#10;- Add error boundaries and 404/unauthorized pages&#10;- Set up JSDoc type definitions for all DTOs and API responses&#10;- Configure React Query, i18n, and dayjs with Arabic locale support&#10;&#10;Ready for Step 5: Component and page implementation" />
   </component>
 </project>
