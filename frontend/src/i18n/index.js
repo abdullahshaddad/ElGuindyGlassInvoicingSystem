@@ -1,9 +1,8 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
-import Backend from 'i18next-http-backend';
 
-// Import translation resources
+// Import translation resources directly
 import arCommon from './locales/ar/common.json';
 import arAuth from './locales/ar/auth.json';
 import arValidation from './locales/ar/validation.json';
@@ -25,39 +24,32 @@ const resources = {
 };
 
 i18n
-    .use(Backend)
+    // REMOVE Backend - we're using imported resources
     .use(LanguageDetector)
     .use(initReactI18next)
     .init({
-        // Default language (Arabic-first)
         lng: 'ar',
         fallbackLng: 'ar',
-
-        // Available languages
         supportedLngs: ['ar', 'en'],
 
-        // Namespace settings
         defaultNS: 'common',
         ns: ['common', 'auth', 'validation'],
 
-        // Resources
+        // Use imported resources directly
         resources,
 
-        // Detection options
         detection: {
             order: ['localStorage', 'navigator', 'htmlTag'],
             caches: ['localStorage'],
             lookupLocalStorage: 'i18nextLng',
         },
 
-        // Interpolation options
         interpolation: {
-            escapeValue: false, // React already does escaping
+            escapeValue: false,
         },
 
-        // React specific options
         react: {
-            useSuspense: true,
+            useSuspense: false, // CRITICAL: Set to false
             bindI18n: 'languageChanged',
             bindI18nStore: 'added removed',
             transEmptyNodeValue: '',
@@ -65,13 +57,8 @@ i18n
             transKeepBasicHtmlNodesFor: ['br', 'strong', 'i', 'p'],
         },
 
-        // Backend options (for loading translations from server)
-        backend: {
-            loadPath: '/locales/{{lng}}/{{ns}}.json',
-        },
-
-        // Debug mode
-        debug: import.meta.env.VITE_DEBUG_MODE === 'true',
+        // Remove backend configuration
+        debug: import.meta.env.DEV,
     });
 
 // Language direction helper
@@ -84,11 +71,14 @@ export const updateHtmlAttributes = (language) => {
     const direction = getLanguageDirection(language);
     document.documentElement.setAttribute('dir', direction);
     document.documentElement.setAttribute('lang', language);
-    document.body.className = direction;
+
+    // Fix body class update
+    document.body.className = document.body.className
+        .replace(/\b(rtl|ltr)\b/g, '') + ' ' + direction;
 };
 
 // Initialize with current language
-updateHtmlAttributes(i18n.language);
+updateHtmlAttributes(i18n.language || 'ar');
 
 // Listen for language changes
 i18n.on('languageChanged', updateHtmlAttributes);
