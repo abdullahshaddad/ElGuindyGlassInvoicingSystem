@@ -1,0 +1,74 @@
+{
+  "app": {
+    "name": "النظام العربي",
+    "welcome": "مرحباً بك",
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ",
+    "success": "تم بنجاح",
+    "retry": "إعادة المحاولة"
+  },
+  "navigation": {
+    "home": "الرئيسية",
+    "dashboard": "لوحة التحكم",
+    "profile": "الملف الشخصي",
+    "settings": "الإعدادات",
+    "logout": "تسجيل الخروج",
+    "menu": "القائمة"
+  },
+  "actions": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "create": "إنشاء",
+    "update": "تحديث",
+    "view": "عرض",
+    "search": "بحث",
+    "filter": "فلترة",
+    "reset": "إعادة تعيين",
+    "submit": "إرسال",
+    "confirm": "تأكيد",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "close": "إغلاق"
+  },
+  "forms": {
+    "required": "مطلوب",
+    "optional": "اختياري",
+    "placeholder": "أدخل {{field}}",
+    "select": "اختر {{field}}",
+    "upload": "رفع ملف",
+    "drop_files": "اسحب الملفات هنا أو اضغط للاختيار"
+  },
+  "status": {
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "pending": "في الانتظار",
+    "approved": "موافق عليه",
+    "rejected": "مرفوض",
+    "completed": "مكتمل",
+    "in_progress": "قيد التنفيذ"
+  },
+  "time": {
+    "now": "الآن",
+    "today": "اليوم",
+    "yesterday": "أمس",
+    "tomorrow": "غداً",
+    "this_week": "هذا الأسبوع",
+    "last_week": "الأسبوع الماضي",
+    "this_month": "هذا الشهر",
+    "last_month": "الشهر الماضي"
+  },
+  "theme": {
+    "light": "فاتح",
+    "dark": "داكن",
+    "system": "النظام",
+    "toggle": "تغيير المظهر"
+  },
+  "language": {
+    "ar": "العربية",
+    "en": "English",
+    "toggle": "تغيير اللغة"
+  }
+}

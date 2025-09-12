@@ -1,0 +1,214 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&family=Cairo:wght@300;400;500;600;700;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Variables for Theme Support */
+:root {
+    /* Light Mode Colors */
+    --color-primary: 0 119 182; /* #0077B6 */
+    --color-secondary: 63 167 150; /* #3FA796 */
+    --color-accent: 169 113 66; /* #A97142 */
+    --color-accent2: 28 28 28; /* #1C1C1C */
+    --color-neutral: 245 245 245; /* #F5F5F5 */
+    --color-border: 176 176 176; /* #B0B0B0 */
+
+    /* Background Colors */
+    --bg-primary: 255 255 255;
+    --bg-secondary: 245 245 245;
+    --bg-accent: 249 250 251;
+
+    /* Text Colors */
+    --text-primary: 28 28 28;
+    --text-secondary: 107 114 128;
+    --text-muted: 156 163 175;
+
+    /* Border Colors */
+    --border-light: 229 231 235;
+    --border-medium: 209 213 219;
+    --border-dark: 156 163 175;
+}
+
+[data-theme="dark"] {
+    /* Dark Mode Colors */
+    --bg-primary: 17 24 39;
+    --bg-secondary: 31 41 55;
+    --bg-accent: 55 65 81;
+
+    --text-primary: 249 250 251;
+    --text-secondary: 209 213 219;
+    --text-muted: 156 163 175;
+
+    --border-light: 75 85 99;
+    --border-medium: 107 114 128;
+    --border-dark: 156 163 175;
+}
+
+/* Base Styles */
+* {
+    box-sizing: border-box;
+}
+
+html {
+    /* Arabic-first: RTL by default */
+    direction: rtl;
+    font-family: 'Tajawal', 'Cairo', sans-serif;
+}
+
+[lang="en"] {
+    direction: ltr;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: rgb(var(--bg-primary));
+    color: rgb(var(--text-primary));
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom Utility Classes */
+.bg-glass {
+    background-color: rgba(var(--color-primary), 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(var(--color-border), 0.2);
+}
+
+.text-gradient {
+    background: linear-gradient(
+            135deg,
+            rgb(var(--color-primary)),
+            rgb(var(--color-secondary))
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.shadow-glass {
+    box-shadow:
+            0 8px 32px rgba(var(--color-primary), 0.1),
+            0 2px 16px rgba(var(--color-secondary), 0.05);
+}
+
+.border-gradient {
+    border: 2px solid transparent;
+    background: linear-gradient(white, white) padding-box,
+    linear-gradient(135deg, rgb(var(--color-primary)), rgb(var(--color-secondary))) border-box;
+}
+
+/* RTL-specific adjustments */
+.rtl .text-left { text-align: right; }
+.rtl .text-right { text-align: left; }
+.rtl .float-left { float: right; }
+.rtl .float-right { float: left; }
+.rtl .ml-auto { margin-right: auto; margin-left: initial; }
+.rtl .mr-auto { margin-left: auto; margin-right: initial; }
+
+/* Form Styles */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+textarea,
+select {
+    background-color: rgb(var(--bg-primary));
+    border: 1px solid rgb(var(--border-light));
+    color: rgb(var(--text-primary));
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: rgb(var(--color-primary));
+    box-shadow: 0 0 0 3px rgba(var(--color-primary), 0.1);
+}
+
+/* Button Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background-color: rgb(var(--color-primary));
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: rgb(var(--color-primary) / 0.9);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: rgb(var(--color-secondary));
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: rgb(var(--color-secondary) / 0.9);
+    transform: translateY(-1px);
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 1px solid rgb(var(--border-medium));
+    color: rgb(var(--text-primary));
+}
+
+.btn-outline:hover {
+    background-color: rgb(var(--bg-accent));
+    border-color: rgb(var(--color-primary));
+}
+
+/* Loading Animation */
+.loading {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgb(var(--bg-secondary));
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgb(var(--border-medium));
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--border-dark));
+}
+
+/* Print Styles */
+@media print {
+    body { background: white !important; color: black !important; }
+    .no-print { display: none !important; }
+}
