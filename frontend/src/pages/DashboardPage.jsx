@@ -176,19 +176,19 @@ const DashboardPage = () => {
                 {
                     title: 'عرض التقارير',
                     IconComponent: FiBarChart,
-                    href: '/admin/reports',
+                    href: '/reports',
                     color: 'bg-primary-500'
                 },
                 {
                     title: 'إدارة أنواع الزجاج',
                     IconComponent: FiTool,
-                    href: '/admin/glass-types',
+                    href: '/glass-types',
                     color: 'bg-secondary-500'
                 },
                 {
                     title: 'إدارة المستخدمين',
                     IconComponent: FiUsers,
-                    href: '/admin/users',
+                    href: '/users',
                     color: 'bg-accent-500'
                 },
                 {

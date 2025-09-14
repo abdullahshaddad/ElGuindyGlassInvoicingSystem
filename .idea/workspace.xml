@@ -5,21 +5,22 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0b609ddb-2dbd-441e-9c1d-a9e2a89cd7df" name="Changes" comment="feat: Replace emojis with professional React Icons across all components&#10;&#10;- Add react-icons dependency for consistent iconography&#10;- Update Sidebar with professional Feather icons (FiHome, FiFileText, etc.)&#10;- Replace emoji-based Header elements with FiMenu, FiGlobe, FiSun/FiMoon&#10;- Modernize Dashboard with role-based icons (FiCrown, FiBriefcase, FiTool)&#10;- Create professional UI component library (Button, Card, Form components)&#10;- Add comprehensive ThemeContext with light/dark/system modes&#10;- Update Error Boundary and error pages with FiAlertTriangle&#10;- Maintain all existing functionality and RTL support&#10;- Improve accessibility with proper ARIA labels and semantic icons&#10;&#10;BREAKING CHANGE: All emoji-based UI elements replaced with React Icons">
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/Button.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/Card.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/Form.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/contexts/ThemeContext.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/services/factoryService.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/index.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/Badge.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/DataTable.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/Icon.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/Input.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/Modal.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/PageHeader.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/Select.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/Sidebar.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/Topbar.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/GlassTypesPage.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/ErrorBoundary.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/ErrorBoundary.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/layout/Header.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/layout/Header.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/AppRouter.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/AppRouter.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/ui/Button.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/ui/Button.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/DashboardPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/DashboardPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/services/invoiceService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/invoiceService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/services/printJobService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/printJobService.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -116,7 +117,9 @@
       <workItem from="1757614957928" duration="11213000" />
       <workItem from="1757681821140" duration="2563000" />
       <workItem from="1757689371624" duration="5825000" />
-      <workItem from="1757703928217" duration="2722000" />
+      <workItem from="1757703928217" duration="5380000" />
+      <workItem from="1757766281489" duration="2477000" />
+      <workItem from="1757833007926" duration="325000" />
     </task>
     <task id="LOCAL-00001" summary="init">
       <option name="closed" value="true" />
@@ -190,7 +193,15 @@
       <option name="project" value="LOCAL" />
       <updated>1757704277920</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="feat: Replace emojis with professional React Icons across all components&#10;&#10;- Add react-icons dependency for consistent iconography&#10;- Update Sidebar with professional Feather icons (FiHome, FiFileText, etc.)&#10;- Replace emoji-based Header elements with FiMenu, FiGlobe, FiSun/FiMoon&#10;- Modernize Dashboard with role-based icons (FiCrown, FiBriefcase, FiTool)&#10;- Create professional UI component library (Button, Card, Form components)&#10;- Add comprehensive ThemeContext with light/dark/system modes&#10;- Update Error Boundary and error pages with FiAlertTriangle&#10;- Maintain all existing functionality and RTL support&#10;- Improve accessibility with proper ARIA labels and semantic icons&#10;&#10;BREAKING CHANGE: All emoji-based UI elements replaced with React Icons">
+      <option name="closed" value="true" />
+      <created>1757706912372</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1757706912372</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -212,7 +223,6 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/frontend/src/pages/DashboardPage.jsx</url>
-          <properties lambdaOrdinal="-1" />
           <option name="timeStamp" value="4" />
         </line-breakpoint>
       </breakpoints>

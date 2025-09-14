@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import GlassTypesPage from "@pages/GlassTypesPage.jsx";
 
 // Lazy load pages for better performance
 const LoginPage = React.lazy(() => import('@/pages/auth/LoginPage'));
@@ -171,10 +172,10 @@ const AppRouter = () => {
 
                         {/* Admin Routes - Owner only */}
                         <Route
-                            path="/admin/glass-types"
+                            path="/glass-types"
                             element={
                                 <RoleRoute allowedRoles={MANAGEMENT_ROLES}>
-                                    <AdminGlassTypesPage />
+                                    <GlassTypesPage />
                                 </RoleRoute>
                             }
                         />

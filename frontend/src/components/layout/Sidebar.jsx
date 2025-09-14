@@ -159,14 +159,14 @@ const Sidebar = ({ isOpen, onClose }) => {
                     {isOwner && (
                         <NavGroup title={t('navigation.admin', 'الإدارة')}>
                             <NavItem
-                                to="/admin/glass-types"
+                                to="/glass-types"
                                 icon={icons.glassTypes}
                                 label={t('navigation.glassTypes', 'أنواع الزجاج')}
                                 isActive={isActive('/admin/glass-types')}
                                 onClick={onClose}
                             />
                             <NavItem
-                                to="/admin/reports"
+                                to="/reports"
                                 icon={icons.reports}
                                 label={t('navigation.reports', 'التقارير')}
                                 isActive={isActive('/admin/reports')}

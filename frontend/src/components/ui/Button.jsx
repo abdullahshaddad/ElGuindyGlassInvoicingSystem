@@ -1,137 +1,75 @@
+// src/components/Button.jsx
 import React from 'react';
 import clsx from 'clsx';
-import { FiLoader } from 'react-icons/fi';
 
-/**
- * Professional Button Component
- */
 const Button = ({
                     children,
                     variant = 'primary',
                     size = 'md',
                     disabled = false,
                     loading = false,
-                    leftIcon: LeftIcon,
-                    rightIcon: RightIcon,
-                    className,
+                    className = '',
+                    dir,
                     type = 'button',
+                    onClick,
                     ...props
                 }) => {
-    const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+    const baseClasses = clsx(
+        'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200',
+        'focus:outline-none focus:ring-2 focus:ring-offset-2',
+        'disabled:opacity-50 disabled:cursor-not-allowed',
+        {
+            // Sizes
+            'px-3 py-1.5 text-sm': size === 'sm',
+            'px-4 py-2 text-base': size === 'md',
+            'px-6 py-3 text-lg': size === 'lg',
 
-    const variantClasses = {
-        primary: 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500',
-        secondary: 'bg-secondary-600 text-white hover:bg-secondary-700 focus:ring-secondary-500',
-        outline: 'border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-primary-500',
-        ghost: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:ring-primary-500',
-        danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-        success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
-        warning: 'bg-yellow-600 text-white hover:bg-yellow-700 focus:ring-yellow-500',
-    };
-
-    const sizeClasses = {
-        xs: 'px-2.5 py-1.5 text-xs',
-        sm: 'px-3 py-2 text-sm',
-        md: 'px-4 py-2.5 text-sm',
-        lg: 'px-6 py-3 text-base',
-        xl: 'px-8 py-4 text-lg',
-    };
-
-    const iconSizeClasses = {
-        xs: 'w-3 h-3',
-        sm: 'w-4 h-4',
-        md: 'w-4 h-4',
-        lg: 'w-5 h-5',
-        xl: 'w-6 h-6',
-    };
+            // Variants
+            'bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-500': variant === 'primary',
+            'bg-secondary-500 text-white hover:bg-secondary-600 focus:ring-secondary-500': variant === 'secondary',
+            'bg-white text-primary-500 border border-primary-500 hover:bg-primary-50 focus:ring-primary-500': variant === 'outline',
+            'bg-transparent text-primary-500 hover:bg-primary-50 focus:ring-primary-500': variant === 'ghost',
+            'bg-red-500 text-white hover:bg-red-600 focus:ring-red-500': variant === 'danger',
+            'bg-green-500 text-white hover:bg-green-600 focus:ring-green-500': variant === 'success',
+        }
+    );
 
     return (
         <button
             type={type}
+            className={clsx(baseClasses, className)}
             disabled={disabled || loading}
-            className={clsx(
-                baseClasses,
-                variantClasses[variant],
-                sizeClasses[size],
-                className
-            )}
+            onClick={onClick}
+            dir={dir}
+            aria-busy={loading}
+            aria-disabled={disabled}
             {...props}
         >
             {loading && (
-                <FiLoader className={clsx('animate-spin', iconSizeClasses[size], 'mr-2')} />
+                <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                    />
+                    <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                </svg>
             )}
-
-            {!loading && LeftIcon && (
-                <LeftIcon className={clsx(iconSizeClasses[size], children ? 'mr-2' : '')} />
-            )}
-
             {children}
-
-            {!loading && RightIcon && (
-                <RightIcon className={clsx(iconSizeClasses[size], children ? 'ml-2' : '')} />
-            )}
         </button>
-    );
-};
-
-/**
- * Icon Button Component for icon-only buttons
- */
-export const IconButton = ({
-                               icon: IconComponent,
-                               size = 'md',
-                               variant = 'ghost',
-                               className,
-                               'aria-label': ariaLabel,
-                               title,
-                               ...props
-                           }) => {
-    const sizeClasses = {
-        xs: 'p-1',
-        sm: 'p-1.5',
-        md: 'p-2',
-        lg: 'p-3',
-        xl: 'p-4',
-    };
-
-    const iconSizeClasses = {
-        xs: 'w-3 h-3',
-        sm: 'w-4 h-4',
-        md: 'w-5 h-5',
-        lg: 'w-6 h-6',
-        xl: 'w-8 h-8',
-    };
-
-    return (
-        <Button
-            variant={variant}
-            className={clsx(sizeClasses[size], 'rounded-full', className)}
-            aria-label={ariaLabel}
-            title={title}
-            {...props}
-        >
-            <IconComponent className={iconSizeClasses[size]} />
-        </Button>
-    );
-};
-
-/**
- * Button Group Component
- */
-export const ButtonGroup = ({ children, className, ...props }) => {
-    return (
-        <div
-            className={clsx(
-                'inline-flex rounded-lg shadow-sm',
-                '[&>button:not(:first-child)]:rounded-l-none',
-                '[&>button:not(:last-child)]:rounded-r-none',
-                '[&>button:not(:first-child)]:border-l-0',
-                className
-            )}
-            {...props}
-        >
-            {children}
-        </div>
     );
 };
 
