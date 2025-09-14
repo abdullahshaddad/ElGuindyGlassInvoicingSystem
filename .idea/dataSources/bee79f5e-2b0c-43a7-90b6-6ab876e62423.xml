@@ -3,17 +3,9 @@
   <database-model serializer="dbm" dbms="POSTGRES" family-id="POSTGRES" format-version="4.53">
     <root id="1">
       <DateStyle>mdy</DateStyle>
-      <Grants>1||-9223372036854775808|c|G
-1||10|c|G
-1||10|C|G
-1||10|T|G
-4||-9223372036854775808|c|G
-4||10|c|G
-4||10|C|G
-4||10|T|G</Grants>
-      <IntrospectionStateNumber>770</IntrospectionStateNumber>
+      <IntrospectionStateNumber>786</IntrospectionStateNumber>
       <ServerVersion>17.4</ServerVersion>
-      <StartupTime>1757612889</StartupTime>
+      <StartupTime>1757834658</StartupTime>
       <TimeZones>true ACDT
 true ACSST
 false ACST
@@ -1407,7 +1399,7 @@ true posixrules
 13219||10|C|G
 13219||-9223372036854775808|U|G
 13219||10|U|G</Grants>
-      <IntrospectionStateNumber>770</IntrospectionStateNumber>
+      <IntrospectionStateNumber>786</IntrospectionStateNumber>
       <ObjectId>16384</ObjectId>
       <OwnerName>postgres</OwnerName>
     </database>
@@ -4834,8 +4826,8 @@ true posixrules
     <schema id="265" parent="2" name="public">
       <Comment>standard public schema</Comment>
       <Current>1</Current>
-      <IntrospectionStateNumber>770</IntrospectionStateNumber>
-      <LastIntrospectionLocalTimestamp>2025-09-11.17:51:51</LastIntrospectionLocalTimestamp>
+      <IntrospectionStateNumber>786</IntrospectionStateNumber>
+      <LastIntrospectionLocalTimestamp>2025-09-14.08:59:18</LastIntrospectionLocalTimestamp>
       <ObjectId>2200</ObjectId>
       <StateNumber>532</StateNumber>
       <OwnerName>pg_database_owner</OwnerName>
@@ -4932,25 +4924,13 @@ true posixrules
       <AccessMethodId>2</AccessMethodId>
       <OwnerName>postgres</OwnerName>
     </table>
-    <table id="279" parent="265" name="notifications">
-      <ObjectId>16430</ObjectId>
-      <StateNumber>757</StateNumber>
-      <AccessMethodId>2</AccessMethodId>
-      <OwnerName>postgres</OwnerName>
-    </table>
-    <table id="280" parent="265" name="print_job">
+    <table id="279" parent="265" name="print_job">
       <ObjectId>16439</ObjectId>
       <StateNumber>758</StateNumber>
       <AccessMethodId>2</AccessMethodId>
       <OwnerName>postgres</OwnerName>
     </table>
-    <table id="281" parent="265" name="users">
-      <ObjectId>16448</ObjectId>
-      <StateNumber>757</StateNumber>
-      <AccessMethodId>2</AccessMethodId>
-      <OwnerName>postgres</OwnerName>
-    </table>
-    <column id="282" parent="273" name="id">
+    <column id="280" parent="273" name="id">
       <IdentityKind>by-default</IdentityKind>
       <NotNull>1</NotNull>
       <Position>1</Position>
@@ -4959,32 +4939,32 @@ true posixrules
       <SequenceId>16385</SequenceId>
       <TypeId>20</TypeId>
     </column>
-    <column id="283" parent="273" name="address">
+    <column id="281" parent="273" name="address">
       <Position>2</Position>
       <StateNumber>740</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="284" parent="273" name="created_at">
+    <column id="282" parent="273" name="created_at">
       <Position>3</Position>
       <StateNumber>740</StateNumber>
       <StoredType>timestamp(6)|0s</StoredType>
       <TypeId>1114</TypeId>
     </column>
-    <column id="285" parent="273" name="name">
+    <column id="283" parent="273" name="name">
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StateNumber>740</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="286" parent="273" name="phone">
+    <column id="284" parent="273" name="phone">
       <Position>5</Position>
       <StateNumber>740</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <index id="287" parent="273" name="customer_pkey">
+    <index id="285" parent="273" name="customer_pkey">
       <ColNames>id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16391</ObjectId>
@@ -4993,7 +4973,7 @@ true posixrules
       <Unique>1</Unique>
       <AccessMethodId>403</AccessMethodId>
     </index>
-    <index id="288" parent="273" name="uko3uty20c6csmx5y4uk2tc5r4m">
+    <index id="286" parent="273" name="uko3uty20c6csmx5y4uk2tc5r4m">
       <ColNames>phone</ColNames>
       <ObjectId>16456</ObjectId>
       <StateNumber>750</StateNumber>
@@ -5003,25 +4983,25 @@ true posixrules
       <CollationIds>100</CollationIds>
       <CollationParentNames>pg_catalog</CollationParentNames>
     </index>
-    <key id="289" parent="273" name="customer_pkey">
+    <key id="287" parent="273" name="customer_pkey">
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16392</ObjectId>
       <Primary>1</Primary>
       <StateNumber>740</StateNumber>
       <UnderlyingIndexId>16391</UnderlyingIndexId>
     </key>
-    <key id="290" parent="273" name="uko3uty20c6csmx5y4uk2tc5r4m">
+    <key id="288" parent="273" name="uko3uty20c6csmx5y4uk2tc5r4m">
       <ObjectId>16457</ObjectId>
       <StateNumber>750</StateNumber>
       <UnderlyingIndexId>16456</UnderlyingIndexId>
     </key>
-    <check id="291" parent="274" name="cutting_detail_method_check">
+    <check id="289" parent="274" name="cutting_detail_method_check">
       <ColNames>method</ColNames>
       <ObjectId>16404</ObjectId>
       <Predicate>(method)::text = ANY ((ARRAY[&apos;SHATF&apos;::character varying, &apos;LASER&apos;::character varying])::text[])</Predicate>
       <StateNumber>742</StateNumber>
     </check>
-    <column id="292" parent="274" name="id">
+    <column id="290" parent="274" name="id">
       <IdentityKind>by-default</IdentityKind>
       <NotNull>1</NotNull>
       <Position>1</Position>
@@ -5030,49 +5010,49 @@ true posixrules
       <SequenceId>16400</SequenceId>
       <TypeId>20</TypeId>
     </column>
-    <column id="293" parent="274" name="meters_cut">
+    <column id="291" parent="274" name="meters_cut">
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StateNumber>742</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <column id="294" parent="274" name="method">
+    <column id="292" parent="274" name="method">
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StateNumber>742</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="295" parent="274" name="price">
+    <column id="293" parent="274" name="price">
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StateNumber>742</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <column id="296" parent="274" name="thickness">
+    <column id="294" parent="274" name="thickness">
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StateNumber>742</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <column id="297" parent="274" name="invoice_line_id">
+    <column id="295" parent="274" name="invoice_line_id">
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StateNumber>742</StateNumber>
       <StoredType>bigint|0s</StoredType>
       <TypeId>20</TypeId>
     </column>
-    <foreign-key id="298" parent="274" name="fkl2g8kiqloqc27amfs0xgbct4l">
+    <foreign-key id="296" parent="274" name="fkl2g8kiqloqc27amfs0xgbct4l">
       <ColNames>invoice_line_id</ColNames>
       <ObjectId>16460</ObjectId>
       <StateNumber>753</StateNumber>
       <RefKeyColPositions>1</RefKeyColPositions>
       <RefTableId>16424</RefTableId>
     </foreign-key>
-    <index id="299" parent="274" name="cutting_detail_pkey">
+    <index id="297" parent="274" name="cutting_detail_pkey">
       <ColNames>id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16405</ObjectId>
@@ -5081,20 +5061,20 @@ true posixrules
       <Unique>1</Unique>
       <AccessMethodId>403</AccessMethodId>
     </index>
-    <key id="300" parent="274" name="cutting_detail_pkey">
+    <key id="298" parent="274" name="cutting_detail_pkey">
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16406</ObjectId>
       <Primary>1</Primary>
       <StateNumber>742</StateNumber>
       <UnderlyingIndexId>16405</UnderlyingIndexId>
     </key>
-    <check id="301" parent="275" name="cutting_rates_cutting_type_check">
+    <check id="299" parent="275" name="cutting_rates_cutting_type_check">
       <ColNames>cutting_type</ColNames>
       <ObjectId>16397</ObjectId>
       <Predicate>(cutting_type)::text = ANY ((ARRAY[&apos;SHATF&apos;::character varying, &apos;LASER&apos;::character varying])::text[])</Predicate>
       <StateNumber>741</StateNumber>
     </check>
-    <column id="302" parent="275" name="id">
+    <column id="300" parent="275" name="id">
       <IdentityKind>by-default</IdentityKind>
       <NotNull>1</NotNull>
       <Position>1</Position>
@@ -5103,42 +5083,42 @@ true posixrules
       <SequenceId>16393</SequenceId>
       <TypeId>20</TypeId>
     </column>
-    <column id="303" parent="275" name="active">
+    <column id="301" parent="275" name="active">
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StateNumber>741</StateNumber>
       <StoredType>boolean|0s</StoredType>
       <TypeId>16</TypeId>
     </column>
-    <column id="304" parent="275" name="cutting_type">
+    <column id="302" parent="275" name="cutting_type">
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StateNumber>741</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="305" parent="275" name="max_thickness">
+    <column id="303" parent="275" name="max_thickness">
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StateNumber>741</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <column id="306" parent="275" name="min_thickness">
+    <column id="304" parent="275" name="min_thickness">
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StateNumber>741</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <column id="307" parent="275" name="rate_per_meter">
+    <column id="305" parent="275" name="rate_per_meter">
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StateNumber>741</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <index id="308" parent="275" name="cutting_rates_pkey">
+    <index id="306" parent="275" name="cutting_rates_pkey">
       <ColNames>id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16398</ObjectId>
@@ -5147,20 +5127,20 @@ true posixrules
       <Unique>1</Unique>
       <AccessMethodId>403</AccessMethodId>
     </index>
-    <key id="309" parent="275" name="cutting_rates_pkey">
+    <key id="307" parent="275" name="cutting_rates_pkey">
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16399</ObjectId>
       <Primary>1</Primary>
       <StateNumber>741</StateNumber>
       <UnderlyingIndexId>16398</UnderlyingIndexId>
     </key>
-    <check id="310" parent="276" name="glass_type_calculation_method_check">
+    <check id="308" parent="276" name="glass_type_calculation_method_check">
       <ColNames>calculation_method</ColNames>
       <ObjectId>16411</ObjectId>
       <Predicate>(calculation_method)::text = ANY ((ARRAY[&apos;AREA&apos;::character varying, &apos;LENGTH&apos;::character varying])::text[])</Predicate>
       <StateNumber>743</StateNumber>
     </check>
-    <column id="311" parent="276" name="id">
+    <column id="309" parent="276" name="id">
       <IdentityKind>by-default</IdentityKind>
       <NotNull>1</NotNull>
       <Position>1</Position>
@@ -5169,41 +5149,41 @@ true posixrules
       <SequenceId>16407</SequenceId>
       <TypeId>20</TypeId>
     </column>
-    <column id="312" parent="276" name="calculation_method">
+    <column id="310" parent="276" name="calculation_method">
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StateNumber>743</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="313" parent="276" name="color">
+    <column id="311" parent="276" name="color">
       <Position>3</Position>
       <StateNumber>743</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="314" parent="276" name="name">
+    <column id="312" parent="276" name="name">
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StateNumber>743</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="315" parent="276" name="price_per_meter">
+    <column id="313" parent="276" name="price_per_meter">
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StateNumber>743</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <column id="316" parent="276" name="thickness">
+    <column id="314" parent="276" name="thickness">
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StateNumber>743</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <index id="317" parent="276" name="glass_type_pkey">
+    <index id="315" parent="276" name="glass_type_pkey">
       <ColNames>id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16414</ObjectId>
@@ -5212,20 +5192,20 @@ true posixrules
       <Unique>1</Unique>
       <AccessMethodId>403</AccessMethodId>
     </index>
-    <key id="318" parent="276" name="glass_type_pkey">
+    <key id="316" parent="276" name="glass_type_pkey">
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16415</ObjectId>
       <Primary>1</Primary>
       <StateNumber>743</StateNumber>
       <UnderlyingIndexId>16414</UnderlyingIndexId>
     </key>
-    <check id="319" parent="277" name="invoice_status_check">
+    <check id="317" parent="277" name="invoice_status_check">
       <ColNames>status</ColNames>
       <ObjectId>16420</ObjectId>
       <Predicate>(status)::text = ANY ((ARRAY[&apos;PENDING&apos;::character varying, &apos;PAID&apos;::character varying, &apos;CANCELLED&apos;::character varying])::text[])</Predicate>
       <StateNumber>744</StateNumber>
     </check>
-    <column id="320" parent="277" name="id">
+    <column id="318" parent="277" name="id">
       <IdentityKind>by-default</IdentityKind>
       <NotNull>1</NotNull>
       <Position>1</Position>
@@ -5234,47 +5214,47 @@ true posixrules
       <SequenceId>16416</SequenceId>
       <TypeId>20</TypeId>
     </column>
-    <column id="321" parent="277" name="issue_date">
+    <column id="319" parent="277" name="issue_date">
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StateNumber>744</StateNumber>
       <StoredType>timestamp(6)|0s</StoredType>
       <TypeId>1114</TypeId>
     </column>
-    <column id="322" parent="277" name="payment_date">
+    <column id="320" parent="277" name="payment_date">
       <Position>3</Position>
       <StateNumber>744</StateNumber>
       <StoredType>timestamp(6)|0s</StoredType>
       <TypeId>1114</TypeId>
     </column>
-    <column id="323" parent="277" name="status">
+    <column id="321" parent="277" name="status">
       <Position>4</Position>
       <StateNumber>744</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="324" parent="277" name="total_price">
+    <column id="322" parent="277" name="total_price">
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StateNumber>744</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <column id="325" parent="277" name="customer_id">
+    <column id="323" parent="277" name="customer_id">
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StateNumber>744</StateNumber>
       <StoredType>bigint|0s</StoredType>
       <TypeId>20</TypeId>
     </column>
-    <foreign-key id="326" parent="277" name="fk5e32ukwo9uknwhylogvta4po6">
+    <foreign-key id="324" parent="277" name="fk5e32ukwo9uknwhylogvta4po6">
       <ColNames>customer_id</ColNames>
       <ObjectId>16465</ObjectId>
       <StateNumber>754</StateNumber>
       <RefKeyColPositions>1</RefKeyColPositions>
       <RefTableId>16386</RefTableId>
     </foreign-key>
-    <index id="327" parent="277" name="invoice_pkey">
+    <index id="325" parent="277" name="invoice_pkey">
       <ColNames>id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16421</ObjectId>
@@ -5283,20 +5263,20 @@ true posixrules
       <Unique>1</Unique>
       <AccessMethodId>403</AccessMethodId>
     </index>
-    <key id="328" parent="277" name="invoice_pkey">
+    <key id="326" parent="277" name="invoice_pkey">
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16422</ObjectId>
       <Primary>1</Primary>
       <StateNumber>744</StateNumber>
       <UnderlyingIndexId>16421</UnderlyingIndexId>
     </key>
-    <check id="329" parent="278" name="invoice_line_cutting_type_check">
+    <check id="327" parent="278" name="invoice_line_cutting_type_check">
       <ColNames>cutting_type</ColNames>
       <ObjectId>16427</ObjectId>
       <Predicate>(cutting_type)::text = ANY ((ARRAY[&apos;SHATF&apos;::character varying, &apos;LASER&apos;::character varying])::text[])</Predicate>
       <StateNumber>745</StateNumber>
     </check>
-    <column id="330" parent="278" name="id">
+    <column id="328" parent="278" name="id">
       <IdentityKind>by-default</IdentityKind>
       <NotNull>1</NotNull>
       <Position>1</Position>
@@ -5305,89 +5285,89 @@ true posixrules
       <SequenceId>16423</SequenceId>
       <TypeId>20</TypeId>
     </column>
-    <column id="331" parent="278" name="area_m2">
+    <column id="329" parent="278" name="area_m2">
       <Position>2</Position>
       <StateNumber>745</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <column id="332" parent="278" name="calculated_quantity">
+    <column id="330" parent="278" name="calculated_quantity">
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StateNumber>745</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <column id="333" parent="278" name="cutting_price">
+    <column id="331" parent="278" name="cutting_price">
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StateNumber>745</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <column id="334" parent="278" name="cutting_type">
+    <column id="332" parent="278" name="cutting_type">
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StateNumber>745</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="335" parent="278" name="height">
+    <column id="333" parent="278" name="height">
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StateNumber>745</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <column id="336" parent="278" name="length_m">
+    <column id="334" parent="278" name="length_m">
       <Position>7</Position>
       <StateNumber>745</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <column id="337" parent="278" name="line_total">
+    <column id="335" parent="278" name="line_total">
       <NotNull>1</NotNull>
       <Position>8</Position>
       <StateNumber>745</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <column id="338" parent="278" name="width">
+    <column id="336" parent="278" name="width">
       <NotNull>1</NotNull>
       <Position>9</Position>
       <StateNumber>745</StateNumber>
       <StoredType>double precision|0s</StoredType>
       <TypeId>701</TypeId>
     </column>
-    <column id="339" parent="278" name="glass_type_id">
+    <column id="337" parent="278" name="glass_type_id">
       <NotNull>1</NotNull>
       <Position>10</Position>
       <StateNumber>745</StateNumber>
       <StoredType>bigint|0s</StoredType>
       <TypeId>20</TypeId>
     </column>
-    <column id="340" parent="278" name="invoice_id">
+    <column id="338" parent="278" name="invoice_id">
       <NotNull>1</NotNull>
       <Position>11</Position>
       <StateNumber>745</StateNumber>
       <StoredType>bigint|0s</StoredType>
       <TypeId>20</TypeId>
     </column>
-    <foreign-key id="341" parent="278" name="fkfd6anmxvcmi5j6iroot9jkr0j">
+    <foreign-key id="339" parent="278" name="fkfd6anmxvcmi5j6iroot9jkr0j">
       <ColNames>glass_type_id</ColNames>
       <ObjectId>16470</ObjectId>
       <StateNumber>755</StateNumber>
       <RefKeyColPositions>1</RefKeyColPositions>
       <RefTableId>16408</RefTableId>
     </foreign-key>
-    <foreign-key id="342" parent="278" name="fkfnwks1ouvwbttl0fklxsem7ik">
+    <foreign-key id="340" parent="278" name="fkfnwks1ouvwbttl0fklxsem7ik">
       <ColNames>invoice_id</ColNames>
       <ObjectId>16475</ObjectId>
       <StateNumber>756</StateNumber>
       <RefKeyColPositions>1</RefKeyColPositions>
       <RefTableId>16417</RefTableId>
     </foreign-key>
-    <index id="343" parent="278" name="invoice_line_pkey">
+    <index id="341" parent="278" name="invoice_line_pkey">
       <ColNames>id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16428</ObjectId>
@@ -5396,127 +5376,26 @@ true posixrules
       <Unique>1</Unique>
       <AccessMethodId>403</AccessMethodId>
     </index>
-    <key id="344" parent="278" name="invoice_line_pkey">
+    <key id="342" parent="278" name="invoice_line_pkey">
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16429</ObjectId>
       <Primary>1</Primary>
       <StateNumber>745</StateNumber>
       <UnderlyingIndexId>16428</UnderlyingIndexId>
     </key>
-    <check id="345" parent="279" name="notifications_type_check">
-      <ColNames>type</ColNames>
-      <ObjectId>16433</ObjectId>
-      <Predicate>(type)::text = ANY ((ARRAY[&apos;SUCCESS&apos;::character varying, &apos;ERROR&apos;::character varying, &apos;WARNING&apos;::character varying, &apos;INFO&apos;::character varying])::text[])</Predicate>
-      <StateNumber>746</StateNumber>
-    </check>
-    <column id="346" parent="279" name="id">
-      <NotNull>1</NotNull>
-      <Position>1</Position>
-      <StateNumber>746</StateNumber>
-      <StoredType>uuid|0s</StoredType>
-      <TypeId>2950</TypeId>
-    </column>
-    <column id="347" parent="279" name="action_url">
-      <Position>2</Position>
-      <StateNumber>746</StateNumber>
-      <StoredType>varchar(255)|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <column id="348" parent="279" name="created_at">
-      <NotNull>1</NotNull>
-      <Position>3</Position>
-      <StateNumber>746</StateNumber>
-      <StoredType>timestamp(6)|0s</StoredType>
-      <TypeId>1114</TypeId>
-    </column>
-    <column id="349" parent="279" name="hidden_by_users">
-      <Position>4</Position>
-      <StateNumber>746</StateNumber>
-      <StoredType>text|0s</StoredType>
-      <TypeId>25</TypeId>
-    </column>
-    <column id="350" parent="279" name="message">
-      <NotNull>1</NotNull>
-      <Position>5</Position>
-      <StateNumber>746</StateNumber>
-      <StoredType>varchar(500)|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <column id="351" parent="279" name="is_read">
-      <NotNull>1</NotNull>
-      <Position>6</Position>
-      <StateNumber>746</StateNumber>
-      <StoredType>boolean|0s</StoredType>
-      <TypeId>16</TypeId>
-    </column>
-    <column id="352" parent="279" name="read_by_users">
-      <Position>7</Position>
-      <StateNumber>746</StateNumber>
-      <StoredType>text|0s</StoredType>
-      <TypeId>25</TypeId>
-    </column>
-    <column id="353" parent="279" name="related_entity">
-      <Position>8</Position>
-      <StateNumber>746</StateNumber>
-      <StoredType>varchar(255)|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <column id="354" parent="279" name="title">
-      <NotNull>1</NotNull>
-      <Position>9</Position>
-      <StateNumber>746</StateNumber>
-      <StoredType>varchar(255)|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <column id="355" parent="279" name="type">
-      <NotNull>1</NotNull>
-      <Position>10</Position>
-      <StateNumber>746</StateNumber>
-      <StoredType>varchar(255)|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <column id="356" parent="279" name="user_id">
-      <Position>11</Position>
-      <StateNumber>746</StateNumber>
-      <StoredType>uuid|0s</StoredType>
-      <TypeId>2950</TypeId>
-    </column>
-    <foreign-key id="357" parent="279" name="fk9y21adhxn0ayjhfocscqox7bh">
-      <ColNames>user_id</ColNames>
-      <ObjectId>16480</ObjectId>
-      <StateNumber>757</StateNumber>
-      <RefKeyColPositions>1</RefKeyColPositions>
-      <RefTableId>16448</RefTableId>
-    </foreign-key>
-    <index id="358" parent="279" name="notifications_pkey">
-      <ColNames>id</ColNames>
-      <NameSurrogate>1</NameSurrogate>
-      <ObjectId>16436</ObjectId>
-      <Primary>1</Primary>
-      <StateNumber>746</StateNumber>
-      <Unique>1</Unique>
-      <AccessMethodId>403</AccessMethodId>
-    </index>
-    <key id="359" parent="279" name="notifications_pkey">
-      <NameSurrogate>1</NameSurrogate>
-      <ObjectId>16437</ObjectId>
-      <Primary>1</Primary>
-      <StateNumber>746</StateNumber>
-      <UnderlyingIndexId>16436</UnderlyingIndexId>
-    </key>
-    <check id="360" parent="280" name="print_job_status_check">
+    <check id="343" parent="279" name="print_job_status_check">
       <ColNames>status</ColNames>
       <ObjectId>16442</ObjectId>
       <Predicate>(status)::text = ANY ((ARRAY[&apos;QUEUED&apos;::character varying, &apos;PRINTING&apos;::character varying, &apos;PRINTED&apos;::character varying, &apos;FAILED&apos;::character varying])::text[])</Predicate>
       <StateNumber>747</StateNumber>
     </check>
-    <check id="361" parent="280" name="print_job_type_check">
+    <check id="344" parent="279" name="print_job_type_check">
       <ColNames>type</ColNames>
       <ObjectId>16443</ObjectId>
       <Predicate>(type)::text = ANY ((ARRAY[&apos;CLIENT&apos;::character varying, &apos;OWNER&apos;::character varying, &apos;STICKER&apos;::character varying])::text[])</Predicate>
       <StateNumber>747</StateNumber>
     </check>
-    <column id="362" parent="280" name="id">
+    <column id="345" parent="279" name="id">
       <IdentityKind>by-default</IdentityKind>
       <NotNull>1</NotNull>
       <Position>1</Position>
@@ -5525,59 +5404,59 @@ true posixrules
       <SequenceId>16438</SequenceId>
       <TypeId>20</TypeId>
     </column>
-    <column id="363" parent="280" name="created_at">
+    <column id="346" parent="279" name="created_at">
       <Position>2</Position>
       <StateNumber>747</StateNumber>
       <StoredType>timestamp(6)|0s</StoredType>
       <TypeId>1114</TypeId>
     </column>
-    <column id="364" parent="280" name="error_message">
+    <column id="347" parent="279" name="error_message">
       <Position>3</Position>
       <StateNumber>747</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="365" parent="280" name="pdf_path">
+    <column id="348" parent="279" name="pdf_path">
       <Position>4</Position>
       <StateNumber>747</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="366" parent="280" name="printed_at">
+    <column id="349" parent="279" name="printed_at">
       <Position>5</Position>
       <StateNumber>747</StateNumber>
       <StoredType>timestamp(6)|0s</StoredType>
       <TypeId>1114</TypeId>
     </column>
-    <column id="367" parent="280" name="status">
+    <column id="350" parent="279" name="status">
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StateNumber>747</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="368" parent="280" name="type">
+    <column id="351" parent="279" name="type">
       <NotNull>1</NotNull>
       <Position>7</Position>
       <StateNumber>747</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="369" parent="280" name="invoice_id">
+    <column id="352" parent="279" name="invoice_id">
       <NotNull>1</NotNull>
       <Position>8</Position>
       <StateNumber>747</StateNumber>
       <StoredType>bigint|0s</StoredType>
       <TypeId>20</TypeId>
     </column>
-    <foreign-key id="370" parent="280" name="fkgubasapiofxys1s9ly9clf564">
+    <foreign-key id="353" parent="279" name="fkgubasapiofxys1s9ly9clf564">
       <ColNames>invoice_id</ColNames>
       <ObjectId>16485</ObjectId>
       <StateNumber>758</StateNumber>
       <RefKeyColPositions>1</RefKeyColPositions>
       <RefTableId>16417</RefTableId>
     </foreign-key>
-    <index id="371" parent="280" name="print_job_pkey">
+    <index id="354" parent="279" name="print_job_pkey">
       <ColNames>id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16446</ObjectId>
@@ -5586,97 +5465,12 @@ true posixrules
       <Unique>1</Unique>
       <AccessMethodId>403</AccessMethodId>
     </index>
-    <key id="372" parent="280" name="print_job_pkey">
+    <key id="355" parent="279" name="print_job_pkey">
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16447</ObjectId>
       <Primary>1</Primary>
       <StateNumber>747</StateNumber>
       <UnderlyingIndexId>16446</UnderlyingIndexId>
-    </key>
-    <check id="373" parent="281" name="users_role_check">
-      <ColNames>role</ColNames>
-      <ObjectId>16451</ObjectId>
-      <Predicate>(role)::text = ANY ((ARRAY[&apos;CASHIER&apos;::character varying, &apos;OWNER&apos;::character varying, &apos;WORKER&apos;::character varying])::text[])</Predicate>
-      <StateNumber>748</StateNumber>
-    </check>
-    <column id="374" parent="281" name="id">
-      <NotNull>1</NotNull>
-      <Position>1</Position>
-      <StateNumber>748</StateNumber>
-      <StoredType>uuid|0s</StoredType>
-      <TypeId>2950</TypeId>
-    </column>
-    <column id="375" parent="281" name="first_name">
-      <NotNull>1</NotNull>
-      <Position>2</Position>
-      <StateNumber>748</StateNumber>
-      <StoredType>varchar(255)|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <column id="376" parent="281" name="is_active">
-      <NotNull>1</NotNull>
-      <Position>3</Position>
-      <StateNumber>748</StateNumber>
-      <StoredType>boolean|0s</StoredType>
-      <TypeId>16</TypeId>
-    </column>
-    <column id="377" parent="281" name="last_name">
-      <NotNull>1</NotNull>
-      <Position>4</Position>
-      <StateNumber>748</StateNumber>
-      <StoredType>varchar(255)|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <column id="378" parent="281" name="password">
-      <NotNull>1</NotNull>
-      <Position>5</Position>
-      <StateNumber>748</StateNumber>
-      <StoredType>varchar(255)|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <column id="379" parent="281" name="role">
-      <Position>6</Position>
-      <StateNumber>748</StateNumber>
-      <StoredType>varchar(255)|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <column id="380" parent="281" name="username">
-      <NotNull>1</NotNull>
-      <Position>7</Position>
-      <StateNumber>748</StateNumber>
-      <StoredType>varchar(255)|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <index id="381" parent="281" name="users_pkey">
-      <ColNames>id</ColNames>
-      <NameSurrogate>1</NameSurrogate>
-      <ObjectId>16454</ObjectId>
-      <Primary>1</Primary>
-      <StateNumber>748</StateNumber>
-      <Unique>1</Unique>
-      <AccessMethodId>403</AccessMethodId>
-    </index>
-    <index id="382" parent="281" name="ukr43af9ap4edm43mmtq01oddj6">
-      <ColNames>username</ColNames>
-      <ObjectId>16458</ObjectId>
-      <StateNumber>752</StateNumber>
-      <Unique>1</Unique>
-      <AccessMethodId>403</AccessMethodId>
-      <CollationNames>default</CollationNames>
-      <CollationIds>100</CollationIds>
-      <CollationParentNames>pg_catalog</CollationParentNames>
-    </index>
-    <key id="383" parent="281" name="users_pkey">
-      <NameSurrogate>1</NameSurrogate>
-      <ObjectId>16455</ObjectId>
-      <Primary>1</Primary>
-      <StateNumber>748</StateNumber>
-      <UnderlyingIndexId>16454</UnderlyingIndexId>
-    </key>
-    <key id="384" parent="281" name="ukr43af9ap4edm43mmtq01oddj6">
-      <ObjectId>16459</ObjectId>
-      <StateNumber>752</StateNumber>
-      <UnderlyingIndexId>16458</UnderlyingIndexId>
     </key>
   </database-model>
 </dataSource>

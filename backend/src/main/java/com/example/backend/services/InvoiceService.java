@@ -75,6 +75,10 @@ public class InvoiceService {
         invoice.setTotalPrice(totalPrice);
         invoice = invoiceRepository.save(invoice);
 
+        // RELOAD invoice with lines and glass types before creating print jobs
+        invoice = invoiceRepository.findByIdWithLines(invoice.getId())
+                .orElseThrow(() -> new RuntimeException("Invoice not found after creation"));
+
         // Create print jobs for all 3 copies
         printJobService.createPrintJobs(invoice);
 

@@ -70,5 +70,138 @@
     "ar": "العربية",
     "en": "English",
     "toggle": "Toggle Language"
+  },
+  "users": {
+    "title": "User Management",
+    "subtitle": "Manage system users and permissions",
+    "add_user": "Add User",
+    "create_user": "Create New User",
+    "user_list": "User List",
+    "search_placeholder": "Search users...",
+    "no_users_found": "No users found",
+    "get_started": "Get started by creating a new user",
+
+    "fields": {
+      "username": "Username",
+      "first_name": "First Name",
+      "last_name": "Last Name",
+      "password": "Password",
+      "role": "Role",
+      "status": "Status"
+    },
+
+    "roles": {
+      "OWNER": "Owner",
+      "ADMIN": "Admin",
+      "CASHIER": "Cashier",
+      "WORKER": "Worker",
+      "descriptions": {
+        "OWNER": "Full system access and user management",
+        "ADMIN": "User management, no system settings",
+        "CASHIER": "Invoice and customer management",
+        "WORKER": "Factory and production tasks only"
+      }
+    },
+
+    "actions": {
+      "set_inactive": "Set Inactive",
+      "set_active": "Set Active",
+      "creating": "Creating..."
+    },
+
+    "messages": {
+      "create_success": "User created successfully",
+      "create_error": "Failed to create user",
+      "update_success": "User status updated successfully",
+      "update_error": "Failed to update user status",
+      "username_required": "Username is required and must be at least 3 characters",
+      "first_name_required": "First name is required and must be at least 2 characters",
+      "last_name_required": "Last name is required and must be at least 2 characters",
+      "password_required": "Password is required and must be at least 6 characters",
+      "role_required": "Please select a valid role",
+      "username_exists": "Username already exists",
+      "loading": "Loading..."
+    }
+  },
+
+  "toast": {
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info"
+  },
+  "invoices": {
+    "title": "Cashier Invoices",
+    "subtitle": "Create and manage invoices",
+    "createNew": "Create New Invoice",
+    "customer": "Customer",
+    "selectCustomer": "Select Customer",
+    "addCustomer": "Add New Customer",
+    "customerName": "Customer Name",
+    "customerPhone": "Phone Number",
+    "customerAddress": "Address",
+    "glassItems": "Glass Items",
+    "addGlassItem": "Add Glass Item",
+    "glassType": "Glass Type",
+    "dimensions": "Dimensions",
+    "width": "Width",
+    "height": "Height",
+    "widthCm": "Width (cm)",
+    "heightCm": "Height (cm)",
+    "area": "Area",
+    "cuttingType": "Cutting Type",
+    "shatf": "Shatf",
+    "laser": "Laser",
+    "shatfAuto": "Shatf (Auto)",
+    "laserManual": "Laser (Manual)",
+    "manualCuttingPrice": "Manual Cutting Price",
+    "glassPrice": "Glass Price",
+    "cuttingPrice": "Cutting Price",
+    "lineTotal": "Line Total",
+    "invoiceTotal": "Invoice Total",
+    "createAndPrint": "Create Invoice & Print",
+    "invoicesList": "Invoices List",
+    "invoiceNumber": "Invoice Number",
+    "total": "Total",
+    "date": "Date",
+    "status": "Status",
+    "actions": "Actions",
+    "paid": "Paid",
+    "pending": "Pending",
+    "cancelled": "Cancelled",
+    "markAsPaid": "Mark as Paid",
+    "viewDetails": "View Details",
+    "exportCsv": "Export CSV",
+    "invoiceDetails": "Invoice Details",
+    "customerInfo": "Customer Information",
+    "issueDate": "Issue Date",
+    "paymentDate": "Payment Date",
+    "notPaid": "Not Paid",
+    "print": "Print",
+    "close": "Close",
+    "cancel": "Cancel",
+    "add": "Add",
+    "remove": "Remove",
+    "confirm": "Confirm",
+    "success": "Success",
+    "error": "Error",
+    "loading": "Loading...",
+    "noData": "No Data",
+    "required": "Required",
+    "optional": "Optional"
+  },
+  "messages": {
+    "invoiceCreatedSuccess": "Invoice created successfully and sent for printing",
+    "invoiceCreationError": "Error occurred while creating invoice",
+    "customerCreatedSuccess": "Customer added successfully",
+    "markAsPaidConfirm": "Confirm marking invoice as paid?",
+    "selectCustomerError": "Please select a customer",
+    "fillGlassItemsError": "Please fill all glass item details",
+    "loadingData": "Loading data...",
+    "loadingInvoices": "Loading invoices...",
+    "noInvoices": "No invoices found",
+    "noGlassItems": "No items found",
+    "unauthorized": "Access Denied",
+    "cashierOnly": "This page is for cashiers and management only"
   }
 }

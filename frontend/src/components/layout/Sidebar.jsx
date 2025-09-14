@@ -12,7 +12,8 @@ import {
     FiBarChart,
     FiTool,
     FiLogOut,
-    FiX
+    FiX,
+    FiUserCheck  // Add this for User Management
 } from 'react-icons/fi';
 
 // Professional icon mapping using React Icons
@@ -25,6 +26,7 @@ const icons = {
     glassTypes: FiTool,
     reports: FiBarChart,
     settings: FiSettings,
+    userManagement: FiUserCheck,  // Add user management icon
 };
 
 const NavItem = ({ to, icon: IconComponent, label, isActive, onClick, badge }) => (
@@ -62,10 +64,13 @@ const NavGroup = ({ title, children }) => (
 const Sidebar = ({ isOpen, onClose }) => {
     const { t } = useTranslation();
     const { user, logout } = useAuth();
-    const { isOwner, isCashier, isWorker, canAccess } = usePermissions();
+    const { isOwner, isCashier, isWorker, canAccess, isAdmin } = usePermissions();
     const location = useLocation();
 
     const isActive = (path) => location.pathname === path;
+
+    // Helper function to check if user can manage users (OWNER or ADMIN)
+    const canManageUsers = () => isOwner() || isAdmin();
 
     const handleLogout = async () => {
         await logout();
@@ -122,8 +127,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                         />
                     </NavGroup>
 
-                    {/* Sales Navigation - Visible to Owner and Cashier */}
-                    {canAccess(['OWNER', 'CASHIER']) && (
+                    {/* Sales Navigation - Visible to Owner, Admin, and Cashier */}
+                    {(isOwner() || isAdmin() || isCashier()) && (
                         <NavGroup title={t('navigation.sales', 'المبيعات')}>
                             <NavItem
                                 to="/invoices"
@@ -142,8 +147,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                         </NavGroup>
                     )}
 
-                    {/* Factory Navigation - Visible to Owner and Worker */}
-                    {canAccess(['OWNER', 'WORKER']) && (
+                    {/* Factory Navigation - Visible to Owner, Admin, and Worker */}
+                    {(isOwner() || isAdmin() || isWorker()) && (
                         <NavGroup title={t('navigation.factory', 'المصنع')}>
                             <NavItem
                                 to="/factory"
@@ -155,23 +160,38 @@ const Sidebar = ({ isOpen, onClose }) => {
                         </NavGroup>
                     )}
 
-                    {/* Admin Navigation - Owner only */}
-                    {isOwner && (
+                    {/* Admin Navigation - Visible to Owner and Admin */}
+                    {(isOwner() || isAdmin()) && (
                         <NavGroup title={t('navigation.admin', 'الإدارة')}>
+                            {/* User Management - OWNER and ADMIN only */}
+                            {canManageUsers() && (
+                                <NavItem
+                                    to="/admin/users"
+                                    icon={icons.userManagement}
+                                    label={t('users.title', 'إدارة المستخدمين')}
+                                    isActive={isActive('/admin/users')}
+                                    onClick={onClose}
+                                />
+                            )}
+
                             <NavItem
-                                to="/glass-types"
+                                to="/admin/glass-types"
                                 icon={icons.glassTypes}
                                 label={t('navigation.glassTypes', 'أنواع الزجاج')}
                                 isActive={isActive('/admin/glass-types')}
                                 onClick={onClose}
                             />
-                            <NavItem
-                                to="/reports"
-                                icon={icons.reports}
-                                label={t('navigation.reports', 'التقارير')}
-                                isActive={isActive('/admin/reports')}
-                                onClick={onClose}
-                            />
+
+                            {/* Reports - Owner only */}
+                            {isOwner() && (
+                                <NavItem
+                                    to="/admin/reports"
+                                    icon={icons.reports}
+                                    label={t('navigation.reports', 'التقارير')}
+                                    isActive={isActive('/admin/reports')}
+                                    onClick={onClose}
+                                />
+                            )}
                         </NavGroup>
                     )}
 

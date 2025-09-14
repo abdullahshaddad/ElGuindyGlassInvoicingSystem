@@ -4,6 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import GlassTypesPage from "@pages/GlassTypesPage.jsx";
+import UserManagementPage from "@pages/admin/UserManagementPage.jsx";
+import CashierInvoicesPage from "@pages/CashierInvoicePage.jsx";
+import {CashierAndUp} from "@components/ProtectedRoute.jsx";
 
 // Lazy load pages for better performance
 const LoginPage = React.lazy(() => import('@/pages/auth/LoginPage'));
@@ -26,13 +29,15 @@ const PageLoader = () => (
 
 // Role definitions
 const OWNER = 'OWNER';
+const ADMIN = 'ADMIN';  // Add ADMIN role
 const CASHIER = 'CASHIER';
 const WORKER = 'WORKER';
 
-const ALL_ROLES = [OWNER, CASHIER, WORKER];
-const MANAGEMENT_ROLES = [OWNER];
-const SALES_ROLES = [OWNER, CASHIER];
-const FACTORY_ROLES = [OWNER, WORKER];
+const ALL_ROLES = [OWNER, ADMIN, CASHIER, WORKER];  // Include ADMIN
+const MANAGEMENT_ROLES = [OWNER, ADMIN];  // ADMIN can access management features
+const SALES_ROLES = [OWNER, ADMIN, CASHIER];  // ADMIN can access sales features
+const FACTORY_ROLES = [OWNER, ADMIN, WORKER];  // ADMIN can access factory features
+const USER_MANAGEMENT_ROLES = [OWNER, ADMIN]
 
 // Auth redirect component for handling root route
 const AuthRedirect = () => {
@@ -44,9 +49,11 @@ const AuthRedirect = () => {
         return <Navigate to="/login" replace />;
     }
 
-    // Redirect based on user role
+    // Redirect based on user role - Updated to include ADMIN
     switch (user?.role) {
         case OWNER:
+            return <Navigate to="/dashboard" replace />;
+        case ADMIN:  // Add ADMIN case
             return <Navigate to="/dashboard" replace />;
         case CASHIER:
             return <Navigate to="/invoices" replace />;
@@ -58,7 +65,7 @@ const AuthRedirect = () => {
 };
 
 // Role-based route protection component
-const RoleRoute = ({ allowedRoles, children, redirectPath = '/unauthorized' }) => {
+const RoleRoute = ({ allowedRoles, children, redirectPath = AuthRedirect }) => {
     const { user, isAuthenticated, isLoading } = useAuth();
 
     if (isLoading) return <PageLoader />;
@@ -118,9 +125,17 @@ const AppRouter = () => {
                         <Route
                             path="/dashboard"
                             element={
-                                <RoleRoute allowedRoles={ALL_ROLES}>
+                                <RoleRoute allowedRoles={OWNER}>
                                     <DashboardPage />
                                 </RoleRoute>
+                            }
+                        />
+                        <Route
+                            path="/cashier/invoices"
+                            element={
+                                <CashierAndUp>
+                                    <CashierInvoicesPage />
+                                </CashierAndUp>
                             }
                         />
 
@@ -171,15 +186,27 @@ const AppRouter = () => {
                         />
 
                         {/* Admin Routes - Owner only */}
-                        <Route
-                            path="/glass-types"
-                            element={
-                                <RoleRoute allowedRoles={MANAGEMENT_ROLES}>
-                                    <GlassTypesPage />
-                                </RoleRoute>
-                            }
-                        />
+                        <Route path="admin">
+                            {/* User Management - OWNER and ADMIN only */}
+                            <Route
+                                path="users"
+                                element={
+                                    <RoleRoute allowedRoles={USER_MANAGEMENT_ROLES}>
+                                        <UserManagementPage />
+                                    </RoleRoute>
+                                }
+                            />
 
+                            {/* Glass Types Management - Management roles */}
+                            <Route
+                                path="glass-types"
+                                element={
+                                    <RoleRoute allowedRoles={MANAGEMENT_ROLES}>
+                                        <GlassTypesPage />
+                                    </RoleRoute>
+                                }
+                            />
+                        </Route>
                     </Route>
 
                     {/* Error Pages - Public routes, no authentication required */}

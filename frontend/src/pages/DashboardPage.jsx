@@ -182,7 +182,7 @@ const DashboardPage = () => {
                 {
                     title: 'إدارة أنواع الزجاج',
                     IconComponent: FiTool,
-                    href: '/glass-types',
+                    href: 'admin/glass-types',
                     color: 'bg-secondary-500'
                 },
                 {
@@ -241,7 +241,7 @@ const DashboardPage = () => {
                 },
                 {
                     title: 'تقرير الإنتاج',
-                    IconComponent: FiBarChart3,
+                    IconComponent: FiBarChart,
                     href: '/factory/production',
                     color: 'bg-accent-500'
                 },

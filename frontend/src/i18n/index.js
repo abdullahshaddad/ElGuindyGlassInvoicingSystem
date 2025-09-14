@@ -9,6 +9,10 @@ import arValidation from './locales/ar/validation.json';
 import enCommon from './locales/en/common.json';
 import enAuth from './locales/en/auth.json';
 import enValidation from './locales/en/validation.json';
+import arNavigation from './locales/ar/navigation.json';
+import enNavigation from './locales/en/navigation.json';
+
+
 
 const resources = {
     ar: {

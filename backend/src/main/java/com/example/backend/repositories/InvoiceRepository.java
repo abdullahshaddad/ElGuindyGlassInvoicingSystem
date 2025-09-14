@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
@@ -31,4 +32,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     Double getTotalRevenueByStatusAndDateRange(@Param("status") InvoiceStatus status,
                                                @Param("startDate") LocalDateTime startDate,
                                                @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT i FROM Invoice i LEFT JOIN FETCH i.invoiceLines il LEFT JOIN FETCH il.glassType WHERE i.id = :id")
+    Optional<Invoice> findByIdWithLines(@Param("id") Long id);
 }

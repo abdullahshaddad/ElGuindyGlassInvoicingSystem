@@ -246,6 +246,7 @@ export const usePermissions = () => {
         isOwner: () => hasRole('OWNER'),
         isCashier: () => hasRole('CASHIER'),
         isWorker: () => hasRole('WORKER'),
+        isAdmin: () => hasRole('ADMIN'),
         canManageInvoices: () => canAccess('invoices', 'write'),
         canDeleteInvoices: () => canAccess('invoices', 'delete'),
         canManageCustomers: () => canAccess('customers', 'write'),
