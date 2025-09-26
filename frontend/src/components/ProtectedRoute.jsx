@@ -87,7 +87,7 @@ export const AdminOnly = ({ children, fallback = null }) => (
  * CashierAndUp component - for cashier and owner access
  */
 export const CashierAndUp = ({ children, fallback = null }) => (
-    <RoleGuard allowedRoles={['CASHIER', 'OWNER']} fallback={fallback}>
+    <RoleGuard allowedRoles={['CASHIER', 'OWNER', 'ADMIN']} fallback={fallback}>
         {children}
     </RoleGuard>
 );

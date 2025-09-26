@@ -13,7 +13,9 @@ import {
     FiTool,
     FiLogOut,
     FiX,
-    FiUserCheck  // Add this for User Management
+    FiUserCheck,
+    FiDollarSign,
+    FiLayers
 } from 'react-icons/fi';
 
 // Professional icon mapping using React Icons
@@ -23,11 +25,114 @@ const icons = {
     customers: FiUsers,
     factory: FiBox,
     admin: FiSettings,
-    glassTypes: FiTool,
+    glassTypes: FiLayers,
     reports: FiBarChart,
     settings: FiSettings,
-    userManagement: FiUserCheck,  // Add user management icon
+    userManagement: FiUserCheck,
+    cuttingPrices: FiDollarSign,
+    tools: FiTool
 };
+
+// Sidebar configuration - centralized navigation structure
+const getSidebarItems = (t) => [
+    {
+        id: 'main',
+        title: t('navigation.main', 'الرئيسية'),
+        items: [
+            {
+                id: 'dashboard',
+                to: '/dashboard',
+                icon: icons.dashboard,
+                label: t('navigation.dashboard', 'لوحة التحكم'),
+                roles: ['OWNER', 'ADMIN']
+            }
+        ]
+    },
+    {
+        id: 'sales',
+        title: t('navigation.sales', 'المبيعات'),
+        roles: ['OWNER', 'ADMIN', 'CASHIER'],
+        items: [
+            {
+                id: 'invoices',
+                to: '/invoices',
+                icon: icons.invoices,
+                label: t('navigation.invoices', 'الفواتير'),
+                roles: ['OWNER', 'ADMIN', 'CASHIER']
+            },
+            {
+                id: 'customers',
+                to: '/customers',
+                icon: icons.customers,
+                label: t('navigation.customers', 'العملاء'),
+                roles: ['OWNER', 'ADMIN', 'CASHIER']
+            }
+        ]
+    },
+    {
+        id: 'factory',
+        title: t('navigation.factory', 'المصنع'),
+        roles: ['OWNER', 'ADMIN', 'WORKER'],
+        items: [
+            {
+                id: 'factory-tasks',
+                to: '/factory',
+                icon: icons.factory,
+                label: t('navigation.factory', 'مهام المصنع'),
+                roles: ['OWNER', 'ADMIN', 'WORKER']
+            }
+        ]
+    },
+    {
+        id: 'admin',
+        title: t('navigation.admin', 'الإدارة'),
+        roles: ['OWNER', 'ADMIN'],
+        items: [
+            {
+                id: 'user-management',
+                to: '/admin/users',
+                icon: icons.userManagement,
+                label: t('users.title', 'إدارة المستخدمين'),
+                roles: ['OWNER', 'ADMIN']
+            },
+            {
+                id: 'glass-types',
+                to: '/admin/glass-types',
+                icon: icons.glassTypes,
+                label: t('navigation.glassTypes', 'أنواع الزجاج'),
+                roles: ['OWNER', 'ADMIN']
+            },
+            {
+                id: 'cutting-prices',
+                to: '/admin/cutting-prices',
+                icon: icons.cuttingPrices,
+                label: t('navigation.cuttingPrices', 'أسعار القطع'),
+                roles: ['OWNER'], // Only OWNER can access
+                badge: 'جديد'
+            },
+            {
+                id: 'reports',
+                to: '/admin/reports',
+                icon: icons.reports,
+                label: t('navigation.reports', 'التقارير'),
+                roles: ['OWNER'] // Owner only
+            }
+        ]
+    },
+    {
+        id: 'account',
+        title: t('navigation.account', 'الحساب'),
+        items: [
+            {
+                id: 'settings',
+                to: '/settings',
+                icon: icons.settings,
+                label: t('navigation.settings', 'الإعدادات'),
+                roles: ['OWNER', 'ADMIN', 'CASHIER', 'WORKER']
+            }
+        ]
+    }
+];
 
 const NavItem = ({ to, icon: IconComponent, label, isActive, onClick, badge }) => (
     <Link
@@ -64,18 +169,38 @@ const NavGroup = ({ title, children }) => (
 const Sidebar = ({ isOpen, onClose }) => {
     const { t } = useTranslation();
     const { user, logout } = useAuth();
-    const { isOwner, isCashier, isWorker, canAccess, isAdmin } = usePermissions();
+    const { isOwner, isCashier, isWorker, isAdmin } = usePermissions();
     const location = useLocation();
 
     const isActive = (path) => location.pathname === path;
 
-    // Helper function to check if user can manage users (OWNER or ADMIN)
-    const canManageUsers = () => isOwner() || isAdmin();
+    // Helper function to check if user has access to a specific role
+    const hasRole = (requiredRoles) => {
+        if (!requiredRoles || requiredRoles.length === 0) return true;
+
+        const userRole = user?.role;
+        return requiredRoles.includes(userRole);
+    };
+
+    // Helper function to check if group should be visible
+    const shouldShowGroup = (group) => {
+        if (!group.roles) return true;
+        return hasRole(group.roles);
+    };
+
+    // Helper function to check if item should be visible
+    const shouldShowItem = (item) => {
+        if (!item.roles) return true;
+        return hasRole(item.roles);
+    };
 
     const handleLogout = async () => {
         await logout();
         onClose();
     };
+
+    // Get sidebar configuration
+    const sidebarItems = getSidebarItems(t);
 
     return (
         <>
@@ -96,7 +221,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                         </div>
                         <div>
                             <h1 className="text-lg font-bold text-gray-900 dark:text-white">
-                                {t('app.name', 'النظام العربي')}
+                                {t('app.name', 'نظام إدارة الزجاج')}
                             </h1>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
                                 {user?.displayName}
@@ -116,95 +241,32 @@ const Sidebar = ({ isOpen, onClose }) => {
 
                 {/* Navigation */}
                 <div className="flex-1 px-2 py-4 overflow-y-auto">
-                    {/* Main Navigation */}
-                    <NavGroup title={t('navigation.main', 'الرئيسية')}>
-                        <NavItem
-                            to="/dashboard"
-                            icon={icons.dashboard}
-                            label={t('navigation.dashboard', 'لوحة التحكم')}
-                            isActive={isActive('/dashboard')}
-                            onClick={onClose}
-                        />
-                    </NavGroup>
+                    {sidebarItems.map((group) => {
+                        // Check if group should be visible based on user roles
+                        if (!shouldShowGroup(group)) return null;
 
-                    {/* Sales Navigation - Visible to Owner, Admin, and Cashier */}
-                    {(isOwner() || isAdmin() || isCashier()) && (
-                        <NavGroup title={t('navigation.sales', 'المبيعات')}>
-                            <NavItem
-                                to="/invoices"
-                                icon={icons.invoices}
-                                label={t('navigation.invoices', 'الفواتير')}
-                                isActive={isActive('/invoices')}
-                                onClick={onClose}
-                            />
-                            <NavItem
-                                to="/customers"
-                                icon={icons.customers}
-                                label={t('navigation.customers', 'العملاء')}
-                                isActive={isActive('/customers')}
-                                onClick={onClose}
-                            />
-                        </NavGroup>
-                    )}
+                        // Filter items based on user roles
+                        const visibleItems = group.items.filter(shouldShowItem);
 
-                    {/* Factory Navigation - Visible to Owner, Admin, and Worker */}
-                    {(isOwner() || isAdmin() || isWorker()) && (
-                        <NavGroup title={t('navigation.factory', 'المصنع')}>
-                            <NavItem
-                                to="/factory"
-                                icon={icons.factory}
-                                label={t('navigation.factory', 'مهام المصنع')}
-                                isActive={isActive('/factory')}
-                                onClick={onClose}
-                            />
-                        </NavGroup>
-                    )}
+                        // Don't render group if no items are visible
+                        if (visibleItems.length === 0) return null;
 
-                    {/* Admin Navigation - Visible to Owner and Admin */}
-                    {(isOwner() || isAdmin()) && (
-                        <NavGroup title={t('navigation.admin', 'الإدارة')}>
-                            {/* User Management - OWNER and ADMIN only */}
-                            {canManageUsers() && (
-                                <NavItem
-                                    to="/admin/users"
-                                    icon={icons.userManagement}
-                                    label={t('users.title', 'إدارة المستخدمين')}
-                                    isActive={isActive('/admin/users')}
-                                    onClick={onClose}
-                                />
-                            )}
-
-                            <NavItem
-                                to="/admin/glass-types"
-                                icon={icons.glassTypes}
-                                label={t('navigation.glassTypes', 'أنواع الزجاج')}
-                                isActive={isActive('/admin/glass-types')}
-                                onClick={onClose}
-                            />
-
-                            {/* Reports - Owner only */}
-                            {isOwner() && (
-                                <NavItem
-                                    to="/admin/reports"
-                                    icon={icons.reports}
-                                    label={t('navigation.reports', 'التقارير')}
-                                    isActive={isActive('/admin/reports')}
-                                    onClick={onClose}
-                                />
-                            )}
-                        </NavGroup>
-                    )}
-
-                    {/* Settings */}
-                    <NavGroup title={t('navigation.account', 'الحساب')}>
-                        <NavItem
-                            to="/settings"
-                            icon={icons.settings}
-                            label={t('navigation.settings', 'الإعدادات')}
-                            isActive={isActive('/settings')}
-                            onClick={onClose}
-                        />
-                    </NavGroup>
+                        return (
+                            <NavGroup key={group.id} title={group.title}>
+                                {visibleItems.map((item) => (
+                                    <NavItem
+                                        key={item.id}
+                                        to={item.to}
+                                        icon={item.icon}
+                                        label={item.label}
+                                        isActive={isActive(item.to)}
+                                        onClick={onClose}
+                                        badge={item.badge}
+                                    />
+                                ))}
+                            </NavGroup>
+                        );
+                    })}
                 </div>
 
                 {/* Footer with logout */}

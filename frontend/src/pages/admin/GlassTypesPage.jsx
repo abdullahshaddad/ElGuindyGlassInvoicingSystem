@@ -1,7 +1,7 @@
 // src/pages/GlassTypesPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { glassTypeService } from '@/services/glassTypeService';
+import { glassTypeService } from '@services/glassTypeService.js';
 import {
     Button,
     Input,
@@ -10,8 +10,8 @@ import {
     PageHeader,
     Badge,
     Icon
-} from '@/components';
-import { useAuth } from '@/contexts/AuthContext';
+} from '@components';
+import { useAuth } from '@contexts/AuthContext.jsx';
 
 const GlassTypesPage = () => {
     const { t } = useTranslation();

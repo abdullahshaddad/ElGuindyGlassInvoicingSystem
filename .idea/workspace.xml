@@ -4,37 +4,31 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0b609ddb-2dbd-441e-9c1d-a9e2a89cd7df" name="Changes" comment="feat: add Glass Types CRUD page with backend model alignment&#10;&#10;- Implement complete glass types management interface&#10;- Fix field mapping (pricePerMeter) to match backend GlassType model&#10;- Add form validation, search, and role-based permissions&#10;- Include comprehensive tests and RTL support">
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/UserController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/AccessDeniedException.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/UserService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/LanguageSwitcher.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/hooks/useAuthorized.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/i18n/locales/ar/navigation.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/i18n/locales/en/navigation.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/CashierInvoicePage.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/CashierInvoicesPage.scss" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/admin/UserManagementPage.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/services/userService.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/utils/cuttingUtils.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/utils/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/bee79f5e-2b0c-43a7-90b6-6ab876e62423.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/bee79f5e-2b0c-43a7-90b6-6ab876e62423.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/bee79f5e-2b0c-43a7-90b6-6ab876e62423/storage_v2/_src_/database/elguindyDB.jc4UoA/schema/public.abK9xQ.meta" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/bee79f5e-2b0c-43a7-90b6-6ab876e62423/storage_v2/_src_/database/elguindyDB.jc4UoA/schema/public.abK9xQ.meta" afterDir="false" />
+    <list default="true" id="0b609ddb-2dbd-441e-9c1d-a9e2a89cd7df" name="Changes" comment="invoice page created">
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/layout/CashierLayout.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/admin/CuttingPricesConfigPage.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicePage.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/CustomerSelection.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/EnhancedOrderSummary.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceList.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceViewModal.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/NewCustomerForm.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/PricingBreakdown.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/ProductEntry.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/ShoppingCart.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/services/cuttingRateService.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/utils/invoiceUtils.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/config/DataInitializer.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/config/DataInitializer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/config/security/SecurityConfiguration.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/config/security/SecurityConfiguration.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/user/Role.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/user/Role.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/InvoiceRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/InvoiceRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/UserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/UserRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/components/AppRouter.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/AppRouter.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/ProtectedRoute.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/ProtectedRoute.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/index.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/contexts/AuthContext.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/contexts/AuthContext.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/i18n/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/i18n/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/i18n/locales/ar/common.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/i18n/locales/ar/common.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/i18n/locales/en/common.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/i18n/locales/en/common.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/DashboardPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/DashboardPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/CashierInvoicePage.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/CashierInvoicesPage.scss" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicesPage.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/GlassTypesPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/GlassTypesPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/auth/LoginPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/auth/LoginPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/printJobService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/printJobService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/utils/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/utils/index.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -56,10 +50,10 @@
     &quot;accountId&quot;: &quot;af309460-3127-4ed4-b77a-170d879aba03&quot;
   }
 }</component>
-  <component name="KubernetesApiPersistence"><![CDATA[{}]]></component>
-  <component name="KubernetesApiProvider"><![CDATA[{
-  "isMigrated": true
-}]]></component>
+  <component name="KubernetesApiPersistence">{}</component>
+  <component name="KubernetesApiProvider">{
+  &quot;isMigrated&quot;: true
+}</component>
   <component name="ProjectCodeStyleSettingsMigration">
     <option name="version" value="2" />
   </component>
@@ -99,11 +93,11 @@
 }</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Abdullah Shaddad\Desktop\ElGuindyGlassInvoicingSystem\frontend\src\pages\cashier" />
       <recent name="C:\Users\Abdullah Shaddad\Desktop\ElGuindyGlassInvoicingSystem\frontend\src\pages\admin" />
       <recent name="C:\Users\Abdullah Shaddad\Desktop\ElGuindyGlassInvoicingSystem\frontend\src\i18n\locales" />
       <recent name="C:\Users\Abdullah Shaddad\Desktop\ElGuindyGlassInvoicingSystem\frontend\src\i18n" />
       <recent name="C:\Users\Abdullah Shaddad\Desktop\ElGuindyGlassInvoicingSystem\frontend\public\locales" />
-      <recent name="C:\Users\Abdullah Shaddad\Desktop\ElGuindyGlassInvoicingSystem\frontend\public" />
     </key>
   </component>
   <component name="RunManager">
@@ -137,7 +131,19 @@
       <workItem from="1757689371624" duration="5825000" />
       <workItem from="1757703928217" duration="5380000" />
       <workItem from="1757766281489" duration="2477000" />
-      <workItem from="1757833007926" duration="18562000" />
+      <workItem from="1757833007926" duration="26688000" />
+      <workItem from="1758106702588" duration="1158000" />
+      <workItem from="1758117108300" duration="593000" />
+      <workItem from="1758468403264" duration="590000" />
+      <workItem from="1758541189695" duration="598000" />
+      <workItem from="1758554484926" duration="595000" />
+      <workItem from="1758558671879" duration="591000" />
+      <workItem from="1758672574987" duration="132000" />
+      <workItem from="1758726870673" duration="1217000" />
+      <workItem from="1758759218637" duration="326000" />
+      <workItem from="1758770118437" duration="1125000" />
+      <workItem from="1758803154217" duration="2463000" />
+      <workItem from="1758892998300" duration="7204000" />
     </task>
     <task id="LOCAL-00001" summary="init">
       <option name="closed" value="true" />
@@ -227,7 +233,15 @@
       <option name="project" value="LOCAL" />
       <updated>1757833483224</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="invoice page created">
+      <option name="closed" value="true" />
+      <created>1757870514307</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1757870514307</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -243,7 +257,8 @@
     <MESSAGE value="auth fixed" />
     <MESSAGE value="feat: Replace emojis with professional React Icons across all components&#10;&#10;- Add react-icons dependency for consistent iconography&#10;- Update Sidebar with professional Feather icons (FiHome, FiFileText, etc.)&#10;- Replace emoji-based Header elements with FiMenu, FiGlobe, FiSun/FiMoon&#10;- Modernize Dashboard with role-based icons (FiCrown, FiBriefcase, FiTool)&#10;- Create professional UI component library (Button, Card, Form components)&#10;- Add comprehensive ThemeContext with light/dark/system modes&#10;- Update Error Boundary and error pages with FiAlertTriangle&#10;- Maintain all existing functionality and RTL support&#10;- Improve accessibility with proper ARIA labels and semantic icons&#10;&#10;BREAKING CHANGE: All emoji-based UI elements replaced with React Icons" />
     <MESSAGE value="feat: add Glass Types CRUD page with backend model alignment&#10;&#10;- Implement complete glass types management interface&#10;- Fix field mapping (pricePerMeter) to match backend GlassType model&#10;- Add form validation, search, and role-based permissions&#10;- Include comprehensive tests and RTL support" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: add Glass Types CRUD page with backend model alignment&#10;&#10;- Implement complete glass types management interface&#10;- Fix field mapping (pricePerMeter) to match backend GlassType model&#10;- Add form validation, search, and role-based permissions&#10;- Include comprehensive tests and RTL support" />
+    <MESSAGE value="invoice page created" />
+    <option name="LAST_COMMIT_MESSAGE" value="invoice page created" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

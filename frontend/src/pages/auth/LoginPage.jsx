@@ -29,7 +29,7 @@ const LoginPage = () => {
             case 'OWNER':
                 return '/dashboard';
             case 'CASHIER':
-                return '/invoices';
+                return '/cashier';
             case 'WORKER':
                 return '/factory';
             default:

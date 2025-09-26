@@ -1,289 +1,16 @@
 import { get, post, put, del } from '@/api/axios';
 
 /**
- * Print Job Service
+ * Print Job Service - Aligned with Backend Implementation
  * Handles all print job management for factory workers
  */
 export const printJobService = {
     /**
-     * Create new print job
-     * @param {Object} printJobData - Print job data
-     * @param {string|number} printJobData.invoiceId - Related invoice ID
-     * @param {string} printJobData.glassType - Glass type
-     * @param {number} printJobData.width - Width dimension
-     * @param {number} printJobData.height - Height dimension
-     * @param {number} printJobData.quantity - Quantity to print
-     * @param {string} [printJobData.notes] - Special instructions
-     * @returns {Promise<PrintJob>}
-     */
-    async createPrintJob(printJobData) {
-        try {
-            const response = await post('/print-jobs', printJobData);
-            return response;
-        } catch (error) {
-            console.error('Create print job error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Get all print jobs
-     * @param {Object} params - Query parameters
-     * @param {number} [params.page=0] - Page number
-     * @param {number} [params.size=20] - Page size
-     * @param {string} [params.status] - Filter by status
-     * @param {string} [params.startDate] - Start date filter
-     * @param {string} [params.endDate] - End date filter
-     * @returns {Promise<PagedResponse<PrintJob>>}
-     */
-    async listPrintJobs(params = {}) {
-        try {
-            const queryParams = new URLSearchParams();
-            if (params.page !== undefined) queryParams.append('page', params.page);
-            if (params.size !== undefined) queryParams.append('size', params.size);
-            if (params.status) queryParams.append('status', params.status);
-            if (params.startDate) queryParams.append('startDate', params.startDate);
-            if (params.endDate) queryParams.append('endDate', params.endDate);
-
-            const response = await get(`/print-jobs?${queryParams.toString()}`);
-            return response;
-        } catch (error) {
-            console.error('List print jobs error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Get print job by ID
-     * @param {string|number} id - Print job ID
-     * @returns {Promise<PrintJob>}
-     */
-    async getPrintJob(id) {
-        try {
-            const response = await get(`/print-jobs/${id}`);
-            return response;
-        } catch (error) {
-            console.error('Get print job error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Update print job
-     * @param {string|number} id - Print job ID
-     * @param {Object} printJobData - Updated data
-     * @returns {Promise<PrintJob>}
-     */
-    async updatePrintJob(id, printJobData) {
-        try {
-            const response = await put(`/print-jobs/${id}`, printJobData);
-            return response;
-        } catch (error) {
-            console.error('Update print job error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Delete print job
-     * @param {string|number} id - Print job ID
-     * @returns {Promise<void>}
-     */
-    async deletePrintJob(id) {
-        try {
-            await del(`/print-jobs/${id}`);
-        } catch (error) {
-            console.error('Delete print job error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Start print job (mark as in progress)
-     * @param {string|number} id - Print job ID
-     * @returns {Promise<PrintJob>}
-     */
-    async startPrintJob(id) {
-        try {
-            const response = await put(`/print-jobs/${id}/start`);
-            return response;
-        } catch (error) {
-            console.error('Start print job error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Complete print job
-     * @param {string|number} id - Print job ID
-     * @param {Object} completionData
-     * @param {number} [completionData.actualQuantity] - Actual quantity printed
-     * @param {string} [completionData.notes] - Completion notes
-     * @returns {Promise<PrintJob>}
-     */
-    async completePrintJob(id, completionData = {}) {
-        try {
-            const response = await put(`/print-jobs/${id}/complete`, completionData);
-            return response;
-        } catch (error) {
-            console.error('Complete print job error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Cancel print job
-     * @param {string|number} id - Print job ID
-     * @param {string} reason - Cancellation reason
-     * @returns {Promise<PrintJob>}
-     */
-    async cancelPrintJob(id, reason) {
-        try {
-            const response = await put(`/print-jobs/${id}/cancel`, { reason });
-            return response;
-        } catch (error) {
-            console.error('Cancel print job error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Get pending print jobs (for workers)
+     * Get queued print jobs (backend endpoint: /print-jobs/queue)
      * @returns {Promise<PrintJob[]>}
      */
-    async getPendingJobs() {
-        try {
-            const response = await get('/print-jobs/pending');
-            return response;
-        } catch (error) {
-            console.error('Get pending jobs error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Get print jobs by invoice
-     * @param {string|number} invoiceId - Invoice ID
-     * @returns {Promise<PrintJob[]>}
-     */
-    async getJobsByInvoice(invoiceId) {
-        try {
-            const response = await get(`/print-jobs/invoice/${invoiceId}`);
-            return response;
-        } catch (error) {
-            console.error('Get jobs by invoice error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Get print job statistics
-     * @param {Object} params - Query parameters
-     * @param {string} [params.startDate] - Start date
-     * @param {string} [params.endDate] - End date
-     * @returns {Promise<PrintJobStats>}
-     */
-    async getStats(params = {}) {
-        try {
-            const queryParams = new URLSearchParams();
-            if (params.startDate) queryParams.append('startDate', params.startDate);
-            if (params.endDate) queryParams.append('endDate', params.endDate);
-
-            const response = await get(`/print-jobs/stats?${queryParams.toString()}`);
-            return response;
-        } catch (error) {
-            console.error('Get print job stats error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Assign print job to worker
-     * @param {string|number} id - Print job ID
-     * @param {string|number} workerId - Worker ID
-     * @returns {Promise<PrintJob>}
-     */
-    async assignToWorker(id, workerId) {
-        try {
-            const response = await put(`/print-jobs/${id}/assign`, { workerId });
-            return response;
-        } catch (error) {
-            console.error('Assign to worker error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Get worker's assigned jobs
-     * @param {string|number} workerId - Worker ID
-     * @returns {Promise<PrintJob[]>}
-     */
-    async getWorkerJobs(workerId) {
-        try {
-            const response = await get(`/print-jobs/worker/${workerId}`);
-            return response;
-        } catch (error) {
-            console.error('Get worker jobs error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Update print job priority
-     * @param {string|number} id - Print job ID
-     * @param {string} priority - Priority level (LOW, NORMAL, HIGH, URGENT)
-     * @returns {Promise<PrintJob>}
-     */
-    async updatePriority(id, priority) {
-        try {
-            const response = await put(`/print-jobs/${id}/priority`, { priority });
-            return response;
-        } catch (error) {
-            console.error('Update priority error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Add notes to print job
-     * @param {string|number} id - Print job ID
-     * @param {string} notes - Additional notes
-     * @returns {Promise<PrintJob>}
-     */
-    async addNotes(id, notes) {
-        try {
-            const response = await put(`/print-jobs/${id}/notes`, { notes });
-            return response;
-        } catch (error) {
-            console.error('Add notes error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Export print jobs to CSV
-     * @param {Object} params - Export parameters
-     * @returns {Promise<Blob>}
-     */
-    async exportPrintJobs(params = {}) {
-        try {
-            const queryParams = new URLSearchParams(params);
-            const response = await get(`/print-jobs/export?${queryParams.toString()}`, {
-                responseType: 'blob',
-            });
-
-            return response;
-        } catch (error) {
-            console.error('Export print jobs error:', error);
-            throw error;
-        }
-    },
-
-    // Replace these methods in printJobService:
-
     async getQueuedJobs() {
         try {
-            // Backend uses /queue, not /pending
             const response = await get('/print-jobs/queue');
             return response;
         } catch (error) {
@@ -292,9 +19,13 @@ export const printJobService = {
         }
     },
 
+    /**
+     * Mark print job as printing (backend endpoint: /print-jobs/{id}/printing)
+     * @param {string|number} id - Print job ID
+     * @returns {Promise<PrintJob>}
+     */
     async markAsPrinting(id) {
         try {
-            // Use backend's specific endpoint
             const response = await put(`/print-jobs/${id}/printing`);
             return response;
         } catch (error) {
@@ -303,9 +34,13 @@ export const printJobService = {
         }
     },
 
+    /**
+     * Mark print job as printed (backend endpoint: /print-jobs/{id}/printed)
+     * @param {string|number} id - Print job ID
+     * @returns {Promise<PrintJob>}
+     */
     async markAsPrinted(id) {
         try {
-            // Use backend's specific endpoint
             const response = await put(`/print-jobs/${id}/printed`);
             return response;
         } catch (error) {
@@ -314,10 +49,104 @@ export const printJobService = {
         }
     },
 
-// Remove these methods as they don't exist in backend:
-// - listPrintJobs (no backend pagination endpoint)
-// - createPrintJob (not in backend controller)
-// - updatePrintJob (not in backend controller)
-// - deletePrintJob (not in backend controller)
-// - getPrintJob (not in backend controller)
+    /**
+     * Mark print job as failed (backend endpoint: /print-jobs/{id}/failed)
+     * @param {string|number} id - Print job ID
+     * @param {string} errorMessage - Error message
+     * @returns {Promise<PrintJob>}
+     */
+    async markAsFailed(id, errorMessage) {
+        try {
+            const response = await put(`/print-jobs/${id}/failed`, errorMessage);
+            return response;
+        } catch (error) {
+            console.error('Mark as failed error:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Create sticker print job (backend endpoint: /factory/print-sticker/{invoiceId})
+     * @param {string|number} invoiceId - Invoice ID
+     * @returns {Promise<PrintJob>}
+     */
+    async createStickerPrintJob(invoiceId) {
+        try {
+            const response = await post(`/factory/print-sticker/${invoiceId}`);
+            return response;
+        } catch (error) {
+            console.error('Create sticker print job error:', error);
+            throw error;
+        }
+    },
+
+    // ===== REMOVED METHODS =====
+    // These methods don't exist in the backend and should not be used:
+    // - createPrintJob (print jobs are auto-created when invoice is created)
+    // - listPrintJobs (no pagination endpoint in backend)
+    // - getPrintJob (no single job endpoint)
+    // - updatePrintJob (no update endpoint)
+    // - deletePrintJob (no delete endpoint)
+    // - startPrintJob (use markAsPrinting instead)
+    // - completePrintJob (use markAsPrinted instead)
+    // - cancelPrintJob (use markAsFailed instead)
+    // - getPendingJobs (use getQueuedJobs instead)
+
+    // ===== UTILITY METHODS =====
+
+    /**
+     * Get print job status display text in Arabic
+     * @param {string} status - Print job status
+     * @returns {string} Arabic status text
+     */
+    getStatusText(status) {
+        const statusMap = {
+            'QUEUED': 'في الانتظار',
+            'PRINTING': 'قيد الطباعة',
+            'PRINTED': 'مطبوع',
+            'FAILED': 'فشل'
+        };
+        return statusMap[status] || status;
+    },
+
+    /**
+     * Get print job type display text in Arabic
+     * @param {string} type - Print job type
+     * @returns {string} Arabic type text
+     */
+    getTypeText(type) {
+        const typeMap = {
+            'CLIENT': 'نسخة العميل',
+            'OWNER': 'نسخة المالك',
+            'STICKER': 'ملصق'
+        };
+        return typeMap[type] || type;
+    },
+
+    /**
+     * Check if print job can be marked as printing
+     * @param {PrintJob} job - Print job object
+     * @returns {boolean}
+     */
+    canMarkAsPrinting(job) {
+        return job && job.status === 'QUEUED';
+    },
+
+    /**
+     * Check if print job can be marked as printed
+     * @param {PrintJob} job - Print job object
+     * @returns {boolean}
+     */
+    canMarkAsPrinted(job) {
+        return job && job.status === 'PRINTING';
+    },
+
+    /**
+     * Check if print job can be marked as failed
+     * @param {PrintJob} job - Print job object
+     * @returns {boolean}
+     */
+    canMarkAsFailed(job) {
+        return job && ['QUEUED', 'PRINTING'].includes(job.status);
+    }
 };

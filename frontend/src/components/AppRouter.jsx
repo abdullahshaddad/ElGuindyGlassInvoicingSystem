@@ -3,10 +3,11 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import GlassTypesPage from "@pages/GlassTypesPage.jsx";
+import GlassTypesPage from "@pages/admin/GlassTypesPage.jsx";
 import UserManagementPage from "@pages/admin/UserManagementPage.jsx";
-import CashierInvoicesPage from "@pages/CashierInvoicePage.jsx";
-import {CashierAndUp} from "@components/ProtectedRoute.jsx";
+import CashierInvoicesPage from "@pages/cashier/CashierInvoicePage.jsx";
+import CashierLayout from "@components/layout/CashierLayout.jsx";
+import CuttingPricesConfigPage from "@pages/admin/CuttingPricesConfigPage.jsx";
 
 // Lazy load pages for better performance
 const LoginPage = React.lazy(() => import('@/pages/auth/LoginPage'));
@@ -29,15 +30,14 @@ const PageLoader = () => (
 
 // Role definitions
 const OWNER = 'OWNER';
-const ADMIN = 'ADMIN';  // Add ADMIN role
+const ADMIN = 'ADMIN';
 const CASHIER = 'CASHIER';
 const WORKER = 'WORKER';
 
-const ALL_ROLES = [OWNER, ADMIN, CASHIER, WORKER];  // Include ADMIN
-const MANAGEMENT_ROLES = [OWNER, ADMIN];  // ADMIN can access management features
-const SALES_ROLES = [OWNER, ADMIN, CASHIER];  // ADMIN can access sales features
-const FACTORY_ROLES = [OWNER, ADMIN, WORKER];  // ADMIN can access factory features
-const USER_MANAGEMENT_ROLES = [OWNER, ADMIN]
+const MANAGEMENT_ROLES = [OWNER, ADMIN];
+const SALES_ROLES = [OWNER, ADMIN, CASHIER];
+const FACTORY_ROLES = [OWNER, ADMIN, WORKER];
+const USER_MANAGEMENT_ROLES = [OWNER, ADMIN];
 
 // Auth redirect component for handling root route
 const AuthRedirect = () => {
@@ -49,14 +49,13 @@ const AuthRedirect = () => {
         return <Navigate to="/login" replace />;
     }
 
-    // Redirect based on user role - Updated to include ADMIN
+    // Redirect based on user role
     switch (user?.role) {
         case OWNER:
-            return <Navigate to="/dashboard" replace />;
-        case ADMIN:  // Add ADMIN case
+        case ADMIN:
             return <Navigate to="/dashboard" replace />;
         case CASHIER:
-            return <Navigate to="/invoices" replace />;
+            return <Navigate to="/cashier" replace />;
         case WORKER:
             return <Navigate to="/factory" replace />;
         default:
@@ -65,7 +64,7 @@ const AuthRedirect = () => {
 };
 
 // Role-based route protection component
-const RoleRoute = ({ allowedRoles, children, redirectPath = AuthRedirect }) => {
+const RoleRoute = ({ allowedRoles, children, redirectPath = "/unauthorized" }) => {
     const { user, isAuthenticated, isLoading } = useAuth();
 
     if (isLoading) return <PageLoader />;
@@ -119,23 +118,28 @@ const AppRouter = () => {
                     {/* Root redirect */}
                     <Route path="/" element={<AuthRedirect />} />
 
-                    {/* Protected Routes with Layout */}
+                    {/* Cashier Routes - Separate Layout (CASHIER only) */}
+                    <Route
+                        path="/cashier"
+                        element={
+                            <RoleRoute allowedRoles={[CASHIER]}>
+                                <CashierLayout />
+                            </RoleRoute>
+                        }
+                    >
+                        {/* Default cashier route goes to invoices */}
+                        <Route index element={<CashierInvoicesPage />} />
+                    </Route>
+
+                    {/* Protected Routes with Main Layout (OWNER, ADMIN, WORKER) */}
                     <Route element={<MainLayout />}>
-                        {/* Dashboard - accessible to all roles */}
+                        {/* Dashboard - accessible to OWNER and ADMIN */}
                         <Route
                             path="/dashboard"
                             element={
-                                <RoleRoute allowedRoles={OWNER}>
+                                <RoleRoute allowedRoles={MANAGEMENT_ROLES}>
                                     <DashboardPage />
                                 </RoleRoute>
-                            }
-                        />
-                        <Route
-                            path="/cashier/invoices"
-                            element={
-                                <CashierAndUp>
-                                    <CashierInvoicesPage />
-                                </CashierAndUp>
                             }
                         />
 
@@ -185,7 +189,7 @@ const AppRouter = () => {
                             }
                         />
 
-                        {/* Admin Routes - Owner only */}
+                        {/* Admin Routes */}
                         <Route path="admin">
                             {/* User Management - OWNER and ADMIN only */}
                             <Route
@@ -206,20 +210,20 @@ const AppRouter = () => {
                                     </RoleRoute>
                                 }
                             />
+                            <Route
+                                path="cutting-prices"
+                                element={
+                                    <RoleRoute allowedRoles={[OWNER]}>
+                                        <CuttingPricesConfigPage />
+                                    </RoleRoute>
+                                }
+                            />
                         </Route>
                     </Route>
 
-                    {/* Error Pages - Public routes, no authentication required */}
-                    <Route
-                        path="/unauthorized"
-                        element={<UnauthorizedPage />}
-                    />
-                    <Route
-                        path="/404"
-                        element={<NotFoundPage />}
-                    />
-
-                    {/* Catch all - redirect to 404 */}
+                    {/* Error Pages */}
+                    <Route path="/unauthorized" element={<UnauthorizedPage />} />
+                    <Route path="/404" element={<NotFoundPage />} />
                     <Route path="*" element={<Navigate to="/404" replace />} />
                 </Routes>
             </Suspense>
