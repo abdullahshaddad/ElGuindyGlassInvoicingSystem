@@ -299,6 +299,7 @@ const CashierInvoicesPage = () => {
                 }))
             };
 
+
             const newInvoice = await invoiceService.createInvoice(invoiceData);
 
             setSuccess(`تم إنشاء الفاتورة رقم ${newInvoice.id} بنجاح! الإجمالي: ${totals.total.toFixed(2)} ج.م`);

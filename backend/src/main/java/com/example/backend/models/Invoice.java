@@ -35,7 +35,7 @@ public class Invoice {
     @Enumerated(EnumType.STRING)
     private InvoiceStatus status = InvoiceStatus.PENDING;
 
-    @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<InvoiceLine> invoiceLines;
 
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL)

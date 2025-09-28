@@ -225,5 +225,104 @@ export const cuttingRateService = {
             throw error;
         }
     },
-};
 
+    /**
+     * Update Shataf rates by thickness ranges
+     * @param {Object} thicknessRates - Object with thickness ranges as keys and rates as values
+     * @returns {Promise<Array>} Updated cutting rates
+     */
+    async updateShatafRatesByThickness(thicknessRates) {
+        try {
+            const updatePromises = [];
+
+            // Map thickness ranges to actual thickness bounds (matching backend structure)
+            const thicknessMapping = {
+                '0-3': { min: 0.0, max: 3.0 },
+                '3.1-4': { min: 3.1, max: 4.0 },
+                '4.1-5': { min: 4.1, max: 5.0 },
+                '5.1-6': { min: 5.1, max: 6.0 },
+                '6.1-8': { min: 6.1, max: 8.0 },
+                '8.1-10': { min: 8.1, max: 10.0 },
+                '10.1-12': { min: 10.1, max: 12.0 },
+                '12+': { min: 12.1, max: 50.0 } // Backend uses 50.0 as max for highest range
+            };
+
+            // Get current Shataf rates
+            const currentRates = await this.getRatesByType('SHATF');
+
+            for (const [range, rate] of Object.entries(thicknessRates)) {
+                const thickness = thicknessMapping[range];
+                if (!thickness) continue;
+
+                // Find existing rate for this thickness range (more flexible matching)
+                const existingRate = currentRates.find(r =>
+                    Math.abs(r.minThickness - thickness.min) < 0.01 &&
+                    Math.abs(r.maxThickness - thickness.max) < 0.01
+                );
+
+                if (existingRate) {
+                    // Update existing rate using backend field names
+                    updatePromises.push(
+                        this.updateRate(existingRate.id, {
+                            id: existingRate.id,
+                            cuttingType: existingRate.cuttingType,
+                            minThickness: thickness.min,
+                            maxThickness: thickness.max,
+                            ratePerMeter: rate, // Backend uses ratePerMeter
+                            active: true
+                        })
+                    );
+                } else {
+                    // Create new rate using backend field names
+                    updatePromises.push(
+                        this.createRate({
+                            cuttingType: 'SHATF',
+                            minThickness: thickness.min,
+                            maxThickness: thickness.max,
+                            ratePerMeter: rate, // Backend uses ratePerMeter
+                            active: true
+                        })
+                    );
+                }
+            }
+
+            const results = await Promise.all(updatePromises);
+            return results;
+        } catch (error) {
+            console.error('Update Shataf rates by thickness error:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Initialize default Shataf rates (calls backend initialization)
+     * @returns {Promise<Array>} Default cutting rates
+     */
+    async initializeShatafDefaults() {
+        try {
+            const response = await post('/cutting-rates/initialize-default');
+            return response;
+        } catch (error) {
+            console.error('Initialize Shataf defaults error:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Get rate for specific thickness (matches backend logic)
+     * @param {string} cuttingType - SHATF or LASER
+     * @param {number} thickness - Glass thickness in mm
+     * @returns {Promise<number>} Rate per meter
+     */
+    async getRateForThickness(cuttingType, thickness) {
+        try {
+            const response = await get('/cutting-rates/rate-for-thickness', {
+                params: { cuttingType, thickness }
+            });
+            return response || 10.0; // Backend default fallback
+        } catch (error) {
+            console.error('Get rate for thickness error:', error);
+            return 10.0; // Backend default fallback
+        }
+    }
+};

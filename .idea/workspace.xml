@@ -4,36 +4,52 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0b609ddb-2dbd-441e-9c1d-a9e2a89cd7df" name="Changes" comment="invoice page created">
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/layout/CashierLayout.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/admin/CuttingPricesConfigPage.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicePage.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/CustomerSelection.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/EnhancedOrderSummary.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceList.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceViewModal.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/NewCustomerForm.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/PricingBreakdown.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/ProductEntry.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/ShoppingCart.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/services/cuttingRateService.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/utils/invoiceUtils.js" afterDir="false" />
+    <list default="true" id="0b609ddb-2dbd-441e-9c1d-a9e2a89cd7df" name="Changes" comment="feat: Add cutting prices configuration system with enhanced POS pricing&#10;&#10;- Add CuttingPricesConfigPage with full dark mode and RTL support&#10;- Implement cuttingRateService for backend API integration&#10;- Create modular cashier invoice components (PricingBreakdown, EnhancedOrderSummary, etc.)&#10;- Add detailed pricing breakdown with glass/cutting cost separation&#10;- Support both area-based and length-based pricing calculations&#10;- Add role-based routing with separate CashierLayout for cashier users&#10;- Refactor Sidebar to use centralized sidebarItems configuration&#10;- Add /admin/cutting-prices route restricted to OWNER role&#10;- Include real-time pricing examples and payment suggestions&#10;- Implement proper error handling and loading states&#10;- Add &quot;جديد&quot; badge for new cutting prices feature in sidebar&#10;&#10;This enables owners to configure SHATF and laser cutting prices dynamically,&#10;provides transparent pricing breakdowns in the POS system, and separates&#10;cashier interface from admin functionality.">
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/config/PrintJobConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PrintJobManagementController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/ErrorResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/invoice/CustomerResolutionException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/invoice/CuttingCalculationException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/invoice/GlassTypeNotFoundException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/invoice/InvalidDimensionsException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/invoice/InvoiceCreationException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/invoice/InvoiceException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/invoice/InvoiceExceptionHandler.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/invoice/InvoiceLineCreationException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/invoice/InvoiceNotFoundException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/invoice/InvoiceReloadException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/invoice/InvoiceUpdateException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/invoice/ValidationException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/printjob/PdfGenerationException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/printjob/PrintJobCreationException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/printjob/PrintJobDatabaseException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/printjob/PrintJobExceptionHandler.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/PrintJobStatus.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/monitoring/PrintJobMonitor.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/AppRouter.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/AppRouter.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/ProtectedRoute.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/ProtectedRoute.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/CashierInvoicePage.jsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/CashierInvoicesPage.scss" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicesPage.scss" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/GlassTypesPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/GlassTypesPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/auth/LoginPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/auth/LoginPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/services/printJobService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/printJobService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/utils/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/utils/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/Invoice.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/Invoice.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/PrintJob.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/PrintJob.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/customer/Customer.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/customer/Customer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PrintJobService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PrintJobService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/layout/CashierLayout.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/layout/CashierLayout.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/CuttingPricesConfigPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/CuttingPricesConfigPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicePage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicePage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/cuttingRateService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/cuttingRateService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/utils/cuttingUtils.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/utils/cuttingUtils.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -65,32 +81,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
-    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
-    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
-    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;Spring Boot.BackendApplication.executor&quot;: &quot;Run&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Abdullah Shaddad/Desktop/ElGuindyGlassInvoicingSystem&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Program Files\\JetBrains\\IntelliJ IDEA 2024.3.4.1\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RequestMappingsPanelOrder0": "0",
+    "RequestMappingsPanelOrder1": "1",
+    "RequestMappingsPanelWidth0": "75",
+    "RequestMappingsPanelWidth1": "75",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "Spring Boot.BackendApplication.executor": "Run",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/Abdullah Shaddad/Desktop/ElGuindyGlassInvoicingSystem",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "ts.external.directory.path": "C:\\Program Files\\JetBrains\\IntelliJ IDEA 2024.3.4.1\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;DatabaseDriversLRU&quot;: [
-      &quot;postgresql&quot;
+  "keyToStringList": {
+    "DatabaseDriversLRU": [
+      "postgresql"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\Abdullah Shaddad\Desktop\ElGuindyGlassInvoicingSystem\frontend\src\pages\cashier" />
@@ -143,7 +159,9 @@
       <workItem from="1758759218637" duration="326000" />
       <workItem from="1758770118437" duration="1125000" />
       <workItem from="1758803154217" duration="2463000" />
-      <workItem from="1758892998300" duration="7204000" />
+      <workItem from="1758892998300" duration="16465000" />
+      <workItem from="1758983603119" duration="918000" />
+      <workItem from="1759067177850" duration="2675000" />
     </task>
     <task id="LOCAL-00001" summary="init">
       <option name="closed" value="true" />
@@ -241,7 +259,15 @@
       <option name="project" value="LOCAL" />
       <updated>1757870514307</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="feat: Add cutting prices configuration system with enhanced POS pricing&#10;&#10;- Add CuttingPricesConfigPage with full dark mode and RTL support&#10;- Implement cuttingRateService for backend API integration&#10;- Create modular cashier invoice components (PricingBreakdown, EnhancedOrderSummary, etc.)&#10;- Add detailed pricing breakdown with glass/cutting cost separation&#10;- Support both area-based and length-based pricing calculations&#10;- Add role-based routing with separate CashierLayout for cashier users&#10;- Refactor Sidebar to use centralized sidebarItems configuration&#10;- Add /admin/cutting-prices route restricted to OWNER role&#10;- Include real-time pricing examples and payment suggestions&#10;- Implement proper error handling and loading states&#10;- Add &quot;جديد&quot; badge for new cutting prices feature in sidebar&#10;&#10;This enables owners to configure SHATF and laser cutting prices dynamically,&#10;provides transparent pricing breakdowns in the POS system, and separates&#10;cashier interface from admin functionality.">
+      <option name="closed" value="true" />
+      <created>1758902446017</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1758902446017</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -258,7 +284,8 @@
     <MESSAGE value="feat: Replace emojis with professional React Icons across all components&#10;&#10;- Add react-icons dependency for consistent iconography&#10;- Update Sidebar with professional Feather icons (FiHome, FiFileText, etc.)&#10;- Replace emoji-based Header elements with FiMenu, FiGlobe, FiSun/FiMoon&#10;- Modernize Dashboard with role-based icons (FiCrown, FiBriefcase, FiTool)&#10;- Create professional UI component library (Button, Card, Form components)&#10;- Add comprehensive ThemeContext with light/dark/system modes&#10;- Update Error Boundary and error pages with FiAlertTriangle&#10;- Maintain all existing functionality and RTL support&#10;- Improve accessibility with proper ARIA labels and semantic icons&#10;&#10;BREAKING CHANGE: All emoji-based UI elements replaced with React Icons" />
     <MESSAGE value="feat: add Glass Types CRUD page with backend model alignment&#10;&#10;- Implement complete glass types management interface&#10;- Fix field mapping (pricePerMeter) to match backend GlassType model&#10;- Add form validation, search, and role-based permissions&#10;- Include comprehensive tests and RTL support" />
     <MESSAGE value="invoice page created" />
-    <option name="LAST_COMMIT_MESSAGE" value="invoice page created" />
+    <MESSAGE value="feat: Add cutting prices configuration system with enhanced POS pricing&#10;&#10;- Add CuttingPricesConfigPage with full dark mode and RTL support&#10;- Implement cuttingRateService for backend API integration&#10;- Create modular cashier invoice components (PricingBreakdown, EnhancedOrderSummary, etc.)&#10;- Add detailed pricing breakdown with glass/cutting cost separation&#10;- Support both area-based and length-based pricing calculations&#10;- Add role-based routing with separate CashierLayout for cashier users&#10;- Refactor Sidebar to use centralized sidebarItems configuration&#10;- Add /admin/cutting-prices route restricted to OWNER role&#10;- Include real-time pricing examples and payment suggestions&#10;- Implement proper error handling and loading states&#10;- Add &quot;جديد&quot; badge for new cutting prices feature in sidebar&#10;&#10;This enables owners to configure SHATF and laser cutting prices dynamically,&#10;provides transparent pricing breakdowns in the POS system, and separates&#10;cashier interface from admin functionality." />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: Add cutting prices configuration system with enhanced POS pricing&#10;&#10;- Add CuttingPricesConfigPage with full dark mode and RTL support&#10;- Implement cuttingRateService for backend API integration&#10;- Create modular cashier invoice components (PricingBreakdown, EnhancedOrderSummary, etc.)&#10;- Add detailed pricing breakdown with glass/cutting cost separation&#10;- Support both area-based and length-based pricing calculations&#10;- Add role-based routing with separate CashierLayout for cashier users&#10;- Refactor Sidebar to use centralized sidebarItems configuration&#10;- Add /admin/cutting-prices route restricted to OWNER role&#10;- Include real-time pricing examples and payment suggestions&#10;- Implement proper error handling and loading states&#10;- Add &quot;جديد&quot; badge for new cutting prices feature in sidebar&#10;&#10;This enables owners to configure SHATF and laser cutting prices dynamically,&#10;provides transparent pricing breakdowns in the POS system, and separates&#10;cashier interface from admin functionality." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

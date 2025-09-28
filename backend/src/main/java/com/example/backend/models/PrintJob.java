@@ -3,10 +3,7 @@ package com.example.backend.models;
 import com.example.backend.models.enums.PrintStatus;
 import com.example.backend.models.enums.PrintType;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -15,6 +12,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
 public class PrintJob {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,4 +48,7 @@ public class PrintJob {
     }
 
 
+    public PrintType getPrintType() {
+        return this.type;
+    }
 }
