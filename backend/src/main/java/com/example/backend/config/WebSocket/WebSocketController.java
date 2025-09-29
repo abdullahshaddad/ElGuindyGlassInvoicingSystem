@@ -159,7 +159,7 @@ public class WebSocketController {
 
             WebSocketResponse response = new WebSocketResponse("SUCCESS",
                     "All notifications marked as read. Updated: " + updated);
-            messagingTemplate.convertAndSendToUser(user.getId().toString(),
+            messagingTemplate.convertAndSendToUser(user.getUsername(),
                     "/queue/responses", response);
 
             // Send updated unread count (should be 0 now)
@@ -171,7 +171,7 @@ public class WebSocketController {
 
             WebSocketResponse response = new WebSocketResponse("ERROR",
                     "Failed to mark all notifications as read: " + e.getMessage());
-            messagingTemplate.convertAndSendToUser(user.getId().toString(),
+            messagingTemplate.convertAndSendToUser(user.getUsername(),
                     "/queue/responses", response);
         }
     }
@@ -195,7 +195,7 @@ public class WebSocketController {
                     .collect(Collectors.toList());
 
             // Send notification history to user
-            messagingTemplate.convertAndSendToUser(user.getId().toString(),
+            messagingTemplate.convertAndSendToUser(user.getUsername(),
                     "/queue/notifications", notificationDTOs);
 
         } catch (Exception e) {
@@ -204,7 +204,7 @@ public class WebSocketController {
 
             WebSocketResponse response = new WebSocketResponse("ERROR",
                     "Failed to fetch notifications: " + e.getMessage());
-            messagingTemplate.convertAndSendToUser(user.getId().toString(),
+            messagingTemplate.convertAndSendToUser(user.getUsername(),
                     "/queue/responses", response);
         }
     }
@@ -231,7 +231,7 @@ public class WebSocketController {
                     .collect(Collectors.toList());
 
             if (!notificationDTOs.isEmpty()) {
-                messagingTemplate.convertAndSendToUser(user.getId().toString(),
+                messagingTemplate.convertAndSendToUser(user.getUsername(),
                         "/queue/notifications", notificationDTOs);
             }
 
@@ -258,7 +258,7 @@ public class WebSocketController {
             WebSocketResponse countResponse = new WebSocketResponse("UNREAD_COUNT",
                     "Unread count updated", unreadCount);
 
-            // ✅ CHANGE THIS: Use USERNAME instead of user.getId().toString()
+            // ✅ CHANGE THIS: Use USERNAME instead of user.getUsername()
             messagingTemplate.convertAndSendToUser(user.getUsername(),
                     "/queue/unread-count", countResponse);
 

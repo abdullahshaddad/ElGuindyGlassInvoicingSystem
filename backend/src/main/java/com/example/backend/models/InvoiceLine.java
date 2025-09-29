@@ -83,28 +83,24 @@ public class InvoiceLine {
             this.areaM2 = width * height;
         }
     }
-          private void calculateQuantities() {
+    private void calculateQuantities() {
         if (width != null && height != null) {
-                          // Always calculate area for display/reference
-                    this.areaM2 = width * height;
-              
-                                  if (glassType != null) {
-                                  if (glassType.getCalculationMethod() == CalculationMethod.LENGTH) {
-                                          // For length-based glass types, use the longer dimension
-                                                  this.lengthM = Math.max(width, height);
-                                          this.calculatedQuantity = this.lengthM;
-                                      } else {
-                                          // Default area-based calculation
-                                                  this.lengthM = null;
-                                          this.calculatedQuantity = this.areaM2;
-                                      }
-                              } else {
-                                  // Fallback to area calculation if glass type not set
-                                          this.calculatedQuantity = this.areaM2;
-                              }
+            this.areaM2 = width * height;
+
+            if (glassType != null && glassType.getCalculationMethod() == CalculationMethod.LENGTH) {
+                this.lengthM = Math.max(width, height);
+                this.calculatedQuantity = this.lengthM;
+            } else {
+                this.lengthM = null;
+                this.calculatedQuantity = this.areaM2; // Always set calculatedQuantity
+            }
+        } else {
+            // Handle null width/height case
+            this.calculatedQuantity = 0.0;
+            this.areaM2 = 0.0;
+            this.lengthM = null;
         }
     }
-  
               /**
         * Get the quantity to use for pricing calculation
         * @return calculated quantity (either area or length based on glass type)

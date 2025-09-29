@@ -285,9 +285,8 @@ const CashierInvoicesPage = () => {
         setIsCreating(true);
         try {
             const invoiceData = {
-                customerName: selectedCustomer.name,
-                customerPhone: selectedCustomer.phone,
-                customerAddress: selectedCustomer.address,
+                customerId: selectedCustomer.id,
+                issuedAt: new Date().toISOString(),
                 invoiceLines: cart.map(item => ({
                     glassTypeId: parseInt(item.glassTypeId),
                     width: parseFloat(item.width),

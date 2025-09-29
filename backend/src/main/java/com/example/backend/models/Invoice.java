@@ -41,6 +41,8 @@ public class Invoice {
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL)
     private List<PrintJob> printJobs;
 
+    private String notes;
+
     public Invoice(Customer customer) {
         this.customer = customer;
     }

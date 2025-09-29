@@ -7,6 +7,7 @@ import com.example.backend.repositories.GlassTypeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +32,7 @@ public class GlassTypeService {
         return glassTypeRepository.findById(id);
     }
 
+    @Cacheable(value = "glassTypes", unless = "#result.isEmpty()")
     public List<GlassType> findAll() {
         return glassTypeRepository.findAll();
     }

@@ -35,4 +35,11 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     @Query("SELECT i FROM Invoice i LEFT JOIN FETCH i.invoiceLines il LEFT JOIN FETCH il.glassType WHERE i.id = :id")
     Optional<Invoice> findByIdWithLines(@Param("id") Long id);
+
+    // In InvoiceRepository.java
+    Page<Invoice> findByCustomerId(Long customerId, Pageable pageable);
+
+    Page<Invoice> findByStatus(InvoiceStatus status, Pageable pageable);
+
+
 }

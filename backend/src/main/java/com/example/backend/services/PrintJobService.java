@@ -391,23 +391,13 @@ private final InvoiceRepository invoiceRepository;
     }
 
     public PrintJob createStickerPrintJob(Long invoiceId) {
-        // This method is called when factory worker clicks "Print Sticker"
-        // We need to fetch the actual invoice
-        Optional<Invoice> invoiceOpt = printJobRepository.findById(invoiceId)
-                .map(PrintJob::getInvoice);
-
-        if (!invoiceOpt.isPresent()) {
-            throw new RuntimeException("Invoice not found for sticker print: " + invoiceId);
-        }
-
-        Invoice invoice = invoiceOpt.get();
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new RuntimeException("Invoice not found: " + invoiceId));
 
         PrintJob stickerJob = new PrintJob(invoice, PrintType.STICKER);
         stickerJob.setPdfPath(pdfGenerationService.generateStickerPdf(invoice));
-
         return printJobRepository.save(stickerJob);
     }
-
     public List<PrintJob> findFailedJobs() {
         return printJobRepository.findByStatus(PrintStatus.FAILED);
     }

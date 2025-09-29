@@ -1,7 +1,12 @@
 package com.example.backend.dto;
 
-import lombok.*;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -11,10 +16,13 @@ import java.util.List;
 @AllArgsConstructor
 public class CreateInvoiceRequest {
     // Getters and Setters
-    private String customerName;
-    private String customerPhone;
-    private String customerAddress;
+    @NotNull(message = "Customer ID is required")
+    private Long customerId;
+
     private List<CreateInvoiceLineRequest> invoiceLines;
+    private String notes;
+    private LocalDateTime issueDate;
+
 
 }
 

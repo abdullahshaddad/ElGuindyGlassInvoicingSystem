@@ -1,6 +1,7 @@
 package com.example.backend.models.customer;
 
 import com.example.backend.models.Invoice;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -29,7 +30,8 @@ public class Customer {
     
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
-    
+
+    @JsonIgnore
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
     private List<Invoice> invoices;
 
