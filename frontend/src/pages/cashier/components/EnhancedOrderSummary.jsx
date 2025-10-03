@@ -5,39 +5,24 @@ import { FaCalculator } from 'react-icons/fa';
 const EnhancedOrderSummary = ({ cart, glassTypes, className = "" }) => {
     const [showBreakdown, setShowBreakdown] = useState(false);
 
-    // Calculate detailed totals
+    // Calculate detailed totals using backend-calculated prices
     const totals = cart.reduce((acc, item) => {
-        const glassType = glassTypes?.find(gt => gt.id == item.glassTypeId) || item.glassType;
-        if (!glassType) return acc;
-
-        const area = (item.width * item.height) / 1000000;
-        const length = Math.max(item.width, item.height) / 1000;
-        const calculationMethod = glassType.calculationMethod || 'AREA';
-        const quantityForPricing = calculationMethod === 'LENGTH' ? length : area;
-
-        const glassUnitPrice = parseFloat(glassType.pricePerMeter || 0);
-        const glassTotal = quantityForPricing * glassUnitPrice;
-
-        let cuttingPrice = 0;
-        if (item.cuttingType === 'LASER' && item.manualCuttingPrice) {
-            cuttingPrice = parseFloat(item.manualCuttingPrice);
-        } else {
-            const basePrice = item.cuttingType === 'LASER' ? 50 : 25;
-            cuttingPrice = quantityForPricing * basePrice;
-        }
+        const glassPrice = item.glassPrice || 0;
+        const cuttingPrice = item.cuttingPrice || 0;
+        const lineTotal = item.lineTotal || 0;
 
         return {
-            glassTotal: acc.glassTotal + glassTotal,
+            glassTotal: acc.glassTotal + glassPrice,
             cuttingTotal: acc.cuttingTotal + cuttingPrice,
-            subtotal: acc.subtotal + glassTotal + cuttingPrice,
-            items: acc.items + 1
+            total: acc.total + lineTotal,
+            itemCount: acc.itemCount + 1
         };
-    }, { glassTotal: 0, cuttingTotal: 0, subtotal: 0, items: 0 });
-
-    // Calculate tax (14% in Egypt)
-    const taxRate = 0.14;
-    const tax = totals.subtotal * taxRate;
-    const total = totals.subtotal + tax;
+    }, {
+        glassTotal: 0,
+        cuttingTotal: 0,
+        total: 0,
+        itemCount: 0
+    });
 
     const formatCurrency = (amount) => `${parseFloat(amount || 0).toFixed(2)} ج.م`;
 
@@ -51,14 +36,14 @@ const EnhancedOrderSummary = ({ cart, glassTypes, className = "" }) => {
                             <FaCalculator className="text-emerald-600" size={20}/>
                         </div>
                         ملخص الطلب
-                        {totals.items > 0 && (
+                        {totals.itemCount > 0 && (
                             <span className="bg-emerald-100 text-emerald-800 text-sm px-3 py-1 rounded-full border border-emerald-200">
-                                {totals.items} عنصر
+                                {totals.itemCount} عنصر
                             </span>
                         )}
                     </h3>
 
-                    {totals.items > 0 && (
+                    {totals.itemCount > 0 && (
                         <button
                             onClick={() => setShowBreakdown(!showBreakdown)}
                             className="text-gray-500 hover:text-gray-700 transition-colors"
@@ -71,7 +56,7 @@ const EnhancedOrderSummary = ({ cart, glassTypes, className = "" }) => {
 
             {/* Totals */}
             <div className="p-4">
-                {totals.items === 0 ? (
+                {totals.itemCount === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                         <div className="p-4 bg-gray-50 rounded-full w-fit mx-auto mb-3">
                             <FaCalculator size={32} className="text-gray-300"/>
@@ -98,7 +83,7 @@ const EnhancedOrderSummary = ({ cart, glassTypes, className = "" }) => {
                                 <div className="border-t border-gray-200 pt-2">
                                     <div className="flex justify-between text-gray-900 font-medium">
                                         <span>المجموع الفرعي:</span>
-                                        <span className="font-mono">{formatCurrency(totals.subtotal)}</span>
+                                        <span className="font-mono">{formatCurrency(totals.total)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -108,26 +93,34 @@ const EnhancedOrderSummary = ({ cart, glassTypes, className = "" }) => {
                         <div className="space-y-2">
                             <div className="flex justify-between text-gray-600">
                                 <span>المجموع الفرعي:</span>
-                                <span className="font-mono">{formatCurrency(totals.subtotal)}</span>
+                                <span className="font-mono">{formatCurrency(totals.total)}</span>
                             </div>
 
                             <div className="flex justify-between text-gray-600">
-                                <span>الضريبة ({(taxRate * 100).toFixed(0)}%):</span>
-                                <span className="font-mono">{formatCurrency(tax)}</span>
+                                <span>الضريبة:</span>
+                                <span className="font-mono">0.00 ج.م</span>
                             </div>
 
                             <div className="border-t border-gray-200 pt-3">
                                 <div className="flex justify-between text-xl font-bold text-gray-900">
                                     <span>الإجمالي:</span>
                                     <span className="text-emerald-600 font-mono bg-emerald-50 px-3 py-1 rounded-lg">
-                                        {formatCurrency(total)}
+                                        {formatCurrency(totals.total)}
                                     </span>
                                 </div>
                             </div>
                         </div>
 
+                        {/* Backend calculation notice */}
+                        <div className="flex items-start gap-2 p-2 bg-blue-50 rounded text-xs text-blue-800">
+                            <FiInfo className="mt-0.5 flex-shrink-0" size={14} />
+                            <span>
+                                جميع الأسعار محسوبة من الخادم وتطابق الفاتورة النهائية
+                            </span>
+                        </div>
+
                         {/* Payment breakdown suggestion */}
-                        {total > 500 && (
+                        {totals.total > 500 && (
                             <div className="bg-blue-50 rounded-lg p-3 mt-4">
                                 <div className="text-sm text-blue-700">
                                     <div className="font-medium mb-1 flex items-center gap-1">
@@ -135,9 +128,9 @@ const EnhancedOrderSummary = ({ cart, glassTypes, className = "" }) => {
                                         اقتراحات الدفع:
                                     </div>
                                     <div className="space-y-1 text-xs">
-                                        <div>• دفع نقدي: {formatCurrency(total)}</div>
-                                        <div>• دفع مقدم 50%: {formatCurrency(total * 0.5)}</div>
-                                        <div>• دفع على دفعتين: {formatCurrency(total * 0.6)} + {formatCurrency(total * 0.4)}</div>
+                                        <div>• دفع نقدي: {formatCurrency(totals.total)}</div>
+                                        <div>• دفع مقدم 50%: {formatCurrency(totals.total * 0.5)}</div>
+                                        <div>• دفع على دفعتين: {formatCurrency(totals.total * 0.6)} + {formatCurrency(totals.total * 0.4)}</div>
                                     </div>
                                 </div>
                             </div>

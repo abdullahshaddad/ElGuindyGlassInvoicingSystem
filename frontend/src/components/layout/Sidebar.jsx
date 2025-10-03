@@ -30,7 +30,8 @@ const icons = {
     settings: FiSettings,
     userManagement: FiUserCheck,
     cuttingPrices: FiDollarSign,
-    tools: FiTool
+    tools: FiTool,
+    cashierInvoice: FiFileText,
 };
 
 // Sidebar configuration - centralized navigation structure
@@ -65,6 +66,20 @@ const getSidebarItems = (t) => [
                 to: '/customers',
                 icon: icons.customers,
                 label: t('navigation.customers', 'العملاء'),
+                roles: ['OWNER', 'ADMIN', 'CASHIER']
+            }
+        ]
+    },
+    {
+        id: 'cashier',
+        title: t('navigation.cashier', 'الكاشير'),
+        roles: ['OWNER', 'ADMIN', 'CASHIER'],
+        items: [
+            {
+                id: 'cashier-invoice',
+                to: '/sys-cashier',
+                icon: icons.cashierInvoice,
+                label: t('navigation.cashierInvoice', 'فاتورة الكاشير'),
                 roles: ['OWNER', 'ADMIN', 'CASHIER']
             }
         ]
@@ -107,15 +122,8 @@ const getSidebarItems = (t) => [
                 to: '/admin/cutting-prices',
                 icon: icons.cuttingPrices,
                 label: t('navigation.cuttingPrices', 'أسعار القطع'),
-                roles: ['OWNER'], // Only OWNER can access
+                roles: ['OWNER'],
                 badge: 'جديد'
-            },
-            {
-                id: 'reports',
-                to: '/admin/reports',
-                icon: icons.reports,
-                label: t('navigation.reports', 'التقارير'),
-                roles: ['OWNER'] // Owner only
             }
         ]
     },
@@ -209,12 +217,13 @@ const Sidebar = ({ isOpen, onClose }) => {
                 className={clsx(
                     'fixed inset-y-0 right-0 z-50 w-64 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700',
                     'transform transition-transform duration-300 ease-in-out',
+                    'flex flex-col', // ADDED: Make sidebar a flex column
                     'lg:translate-x-0',
                     isOpen ? 'translate-x-0' : 'translate-x-full'
                 )}
             >
-                {/* Sidebar header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                {/* Sidebar header - Fixed at top */}
+                <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center text-white font-bold">
                             G
@@ -239,8 +248,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                     </button>
                 </div>
 
-                {/* Navigation */}
-                <div className="flex-1 px-2 py-4 overflow-y-auto">
+                {/* Navigation - Scrollable section */}
+                <div className="flex-1 px-2 py-4 overflow-y-auto overflow-x-hidden">
+                    {/* ADDED: overflow-y-auto for vertical scrolling, overflow-x-hidden to prevent horizontal scroll */}
                     {sidebarItems.map((group) => {
                         // Check if group should be visible based on user roles
                         if (!shouldShowGroup(group)) return null;
@@ -269,8 +279,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                     })}
                 </div>
 
-                {/* Footer with logout */}
-                <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                {/* Footer with logout - Fixed at bottom */}
+                <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-700">
                     <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-400 rounded-lg transition-all duration-200"

@@ -34,7 +34,7 @@ api.interceptors.request.use(
     }
 );
 
-// Response interceptor - handle responses and token refresh
+// Response interceptor - handle responses and errors
 api.interceptors.response.use(
     (response) => {
         // Log successful responses in development
@@ -52,14 +52,22 @@ api.interceptors.response.use(
 
         // Log errors in development
         if (import.meta.env.DEV) {
-            console.error(`❌ ${originalRequest.method?.toUpperCase()} ${originalRequest.url}`, {
+            console.error(`❌ ${originalRequest?.method?.toUpperCase()} ${originalRequest?.url}`, {
                 status: error.response?.status,
                 data: error.response?.data,
+                message: error.message,
             });
         }
 
-        // Handle 401 Unauthorized
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // Handle 401 Unauthorized - Token expired or invalid
+        if (error.response?.status === 401) {
+            // Prevent infinite retry loops
+            if (originalRequest._retry) {
+                console.error('Token refresh failed, redirecting to login');
+                clearAuthAndRedirect();
+                return Promise.reject(error);
+            }
+
             originalRequest._retry = true;
 
             try {
@@ -70,9 +78,11 @@ api.interceptors.response.use(
                 }
 
                 // Try to refresh token
-                const response = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {
-                    refreshToken,
-                });
+                const response = await axios.post(
+                    `${api.defaults.baseURL}/auth/refresh`,
+                    { refreshToken },
+                    { timeout: 5000 }
+                );
 
                 const { token } = response.data;
                 localStorage.setItem('auth_token', token);
@@ -83,42 +93,70 @@ api.interceptors.response.use(
 
             } catch (refreshError) {
                 console.error('Token refresh failed:', refreshError);
-
-                // Clear tokens and redirect to login
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('refresh_token');
-                localStorage.removeItem('token_expiry');
-
-                // Redirect to login page
-                window.location.href = '/login';
-
+                clearAuthAndRedirect();
                 return Promise.reject(refreshError);
             }
         }
 
-        // Handle 403 Forbidden
+        // Handle 403 Forbidden - Insufficient permissions
         if (error.response?.status === 403) {
-            // User doesn't have permission
             console.error('Access forbidden:', error.response.data);
 
-            // You might want to redirect to unauthorized page
-            // window.location.href = '/unauthorized';
+            // Optionally show a notification to the user
+            if (window.showNotification) {
+                window.showNotification('ليس لديك صلاحية للوصول إلى هذا المورد', 'error');
+            }
+
+            // Don't redirect, let the component handle it
+            error.userMessage = 'ليس لديك صلاحية للوصول إلى هذا المورد';
+        }
+
+        // Handle 404 Not Found
+        if (error.response?.status === 404) {
+            console.error('Resource not found:', originalRequest?.url);
+            error.userMessage = 'المورد المطلوب غير موجود';
+        }
+
+        // Handle 500 Internal Server Error
+        if (error.response?.status === 500) {
+            console.error('Server error:', error.response.data);
+            error.userMessage = 'حدث خطأ في الخادم. يرجى المحاولة مرة أخرى لاحقاً';
         }
 
         // Handle network errors
-        if (error.code === 'NETWORK_ERROR' || !error.response) {
+        if (error.code === 'ERR_NETWORK' || !error.response) {
             console.error('Network error:', error);
-            error.message = 'Network error. Please check your connection.';
+            error.userMessage = 'خطأ في الاتصال بالشبكة. يرجى التحقق من اتصالك بالإنترنت';
         }
 
         // Handle timeout
-        if (error.code === 'ECONNABORTED') {
-            error.message = 'Request timeout. Please try again.';
+        if (error.code === 'ECONNABORTED' || error.code === 'ERR_CANCELED') {
+            console.error('Request timeout:', error);
+            error.userMessage = 'انتهت مهلة الطلب. يرجى المحاولة مرة أخرى';
+        }
+
+        // Handle validation errors (usually 400)
+        if (error.response?.status === 400) {
+            const errorMessage = error.response.data?.message || error.response.data?.details;
+            error.userMessage = errorMessage || 'بيانات غير صحيحة';
         }
 
         return Promise.reject(error);
     }
 );
+
+/**
+ * Clear authentication data and redirect to login
+ */
+function clearAuthAndRedirect() {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('token_expiry');
+    localStorage.removeItem('user');
+
+    // Redirect to login page
+    window.location.href = '/login';
+}
 
 // Helper function to make typed requests
 export const request = async (config) => {
@@ -126,6 +164,7 @@ export const request = async (config) => {
         const response = await api(config);
         return response.data;
     } catch (error) {
+        // Re-throw with enhanced error information
         throw error;
     }
 };
@@ -193,6 +232,43 @@ export const downloadFile = async (url, filename, config = {}) => {
     } catch (error) {
         console.error('Download failed:', error);
         throw error;
+    }
+};
+
+/**
+ * Helper function to get user-friendly error message
+ * @param {Error} error - Axios error object
+ * @returns {string} User-friendly error message in Arabic
+ */
+export const getErrorMessage = (error) => {
+    // Use custom user message if available
+    if (error.userMessage) {
+        return error.userMessage;
+    }
+
+    // Check for response data message
+    if (error.response?.data?.message) {
+        return error.response.data.message;
+    }
+
+    if (error.response?.data?.details) {
+        return error.response.data.details;
+    }
+
+    // Fallback to generic messages based on status
+    switch (error.response?.status) {
+        case 400:
+            return 'بيانات غير صحيحة';
+        case 401:
+            return 'يرجى تسجيل الدخول مرة أخرى';
+        case 403:
+            return 'ليس لديك صلاحية للوصول';
+        case 404:
+            return 'المورد المطلوب غير موجود';
+        case 500:
+            return 'حدث خطأ في الخادم';
+        default:
+            return 'حدث خطأ غير متوقع';
     }
 };
 

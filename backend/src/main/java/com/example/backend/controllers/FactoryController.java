@@ -1,5 +1,6 @@
 package com.example.backend.controllers;
 
+import com.example.backend.dto.PrintJobDTO;
 import com.example.backend.models.Invoice;
 import com.example.backend.models.PrintJob;
 import com.example.backend.services.InvoiceService;
@@ -43,8 +44,12 @@ public class FactoryController {
 
     @PostMapping("/print-sticker/{invoiceId}")
     @PreAuthorize("hasRole('WORKER') or hasRole('OWNER')")
-    public ResponseEntity<PrintJob> printSticker(@PathVariable Long invoiceId) {
+    public ResponseEntity<PrintJobDTO> printSticker(@PathVariable Long invoiceId) {
         PrintJob stickerJob = printJobService.createStickerPrintJob(invoiceId);
-        return ResponseEntity.ok(stickerJob);
+
+        // Convert to DTO to avoid Hibernate lazy loading serialization issues
+        PrintJobDTO dto = PrintJobDTO.fromEntity(stickerJob);
+
+        return ResponseEntity.ok(dto);
     }
 }

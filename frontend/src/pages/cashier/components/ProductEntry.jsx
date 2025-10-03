@@ -1,8 +1,15 @@
+// Updated ProductEntry.jsx with Unit Selection
 import React from 'react';
 import {FiPackage, FiPlus} from 'react-icons/fi';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
+
+const DIMENSION_UNITS = [
+    { value: 'MM', label: 'مليمتر (mm)', conversionToMeters: 0.001 },
+    { value: 'CM', label: 'سنتيمتر (cm)', conversionToMeters: 0.01 },
+    { value: 'M', label: 'متر (m)', conversionToMeters: 1.0 }
+];
 
 const ProductEntry = ({
                           currentLine,
@@ -20,13 +27,13 @@ const ProductEntry = ({
                     <FiPackage className="text-green-600" size={20}/>
                 </div>
                 إضافة منتج
-                <span
-                    className="text-sm font-normal text-gray-500 mr-auto bg-amber-100 px-3 py-1 rounded-full text-amber-700">
+                <span className="text-sm font-normal text-gray-500 mr-auto bg-amber-100 px-3 py-1 rounded-full text-amber-700">
                     Ctrl+Enter للإضافة السريعة
                 </span>
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+                {/* Glass Type */}
                 <Select
                     ref={glassTypeRef}
                     value={currentLine.glassTypeId}
@@ -42,32 +49,52 @@ const ProductEntry = ({
                     }))}
                 />
 
+                {/* Width */}
                 <Input
                     ref={widthRef}
                     type="number"
-                    placeholder="العرض (مم)"
+                    placeholder={`العرض (${currentLine.dimensionUnit || 'MM'})`}
                     value={currentLine.width}
                     onChange={(e) => onCurrentLineChange({
                         ...currentLine,
                         width: e.target.value
                     })}
                     onKeyPress={(e) => e.key === 'Enter' && heightRef.current?.focus()}
+                    step="0.1"
+                    min="0.1"
                     required
                 />
 
+                {/* Height */}
                 <Input
                     ref={heightRef}
                     type="number"
-                    placeholder="الارتفاع (مم)"
+                    placeholder={`الارتفاع (${currentLine.dimensionUnit || 'MM'})`}
                     value={currentLine.height}
                     onChange={(e) => onCurrentLineChange({
                         ...currentLine,
                         height: e.target.value
                     })}
                     onKeyPress={(e) => e.key === 'Enter' && onAddToCart()}
+                    step="0.1"
+                    min="0.1"
                     required
                 />
 
+                {/* Unit Selection */}
+                <Select
+                    value={currentLine.dimensionUnit || 'MM'}
+                    onChange={(e) => onCurrentLineChange({
+                        ...currentLine,
+                        dimensionUnit: e.target.value
+                    })}
+                    options={DIMENSION_UNITS.map(unit => ({
+                        value: unit.value,
+                        label: unit.label
+                    }))}
+                />
+
+                {/* Cutting Type */}
                 <Select
                     value={currentLine.cuttingType}
                     onChange={(e) => onCurrentLineChange({
@@ -81,6 +108,7 @@ const ProductEntry = ({
                 />
             </div>
 
+            {/* Manual Cutting Price for LASER */}
             {currentLine.cuttingType === 'LASER' && (
                 <div className="mb-4">
                     <Input
@@ -91,6 +119,8 @@ const ProductEntry = ({
                             ...currentLine,
                             manualCuttingPrice: e.target.value
                         })}
+                        step="0.01"
+                        min="0"
                     />
                 </div>
             )}

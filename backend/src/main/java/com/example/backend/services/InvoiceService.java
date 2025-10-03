@@ -2,6 +2,8 @@ package com.example.backend.services;
 
 import com.example.backend.dto.CreateInvoiceLineRequest;
 import com.example.backend.dto.CreateInvoiceRequest;
+import com.example.backend.dto.invoice.LinePreviewDTO;
+import com.example.backend.dto.invoice.PreviewLineRequest;
 import com.example.backend.exceptions.customer.CustomerLookupException;
 import com.example.backend.exceptions.customer.CustomerNotFoundException;
 import com.example.backend.exceptions.invoice.*;
@@ -12,12 +14,14 @@ import com.example.backend.models.GlassType;
 import com.example.backend.models.Invoice;
 import com.example.backend.models.InvoiceLine;
 import com.example.backend.models.enums.CuttingType;
+import com.example.backend.models.enums.DimensionUnit;
 import com.example.backend.models.enums.InvoiceStatus;
 import com.example.backend.repositories.InvoiceLineRepository;
 import com.example.backend.repositories.InvoiceRepository;
 import com.example.backend.services.cutting.CuttingContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.validation.ValidationException;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -320,17 +324,23 @@ public class InvoiceService {
      */
     private InvoiceLine createInvoiceLine(Invoice invoice, CreateInvoiceLineRequest request) {
         // Validate glass type exists
-
         GlassType glassType = glassTypeService.findById(request.getGlassTypeId())
-                .orElseThrow();
+                .orElseThrow(() -> new GlassTypeNotFoundException("نوع الزجاج غير موجود: ",  request.getGlassTypeId() ));
 
-        // Validate dimensions
-        validateDimensions(request.getWidth(), request.getHeight());
+        // Validate dimensions based on unit
+        validateDimensions(request.getWidth(), request.getHeight(), request.getDimensionUnit());
 
-        // Create invoice line
-        InvoiceLine line = new InvoiceLine(invoice, glassType, request.getWidth(), request.getHeight(), request.getCuttingType());
+        // Create invoice line with unit
+        InvoiceLine line = new InvoiceLine(
+                invoice,
+                glassType,
+                request.getWidth(),
+                request.getHeight(),
+                request.getDimensionUnit(),
+                request.getCuttingType()
+        );
 
-        // Calculate glass price based on calculation method
+        // Calculate glass price (quantity is already in meters from calculateQuantities)
         double glassPrice = line.getQuantityForPricing() * glassType.getPricePerMeter();
 
         // Calculate cutting price
@@ -341,6 +351,45 @@ public class InvoiceService {
         line.setLineTotal(glassPrice + cuttingPrice);
 
         return invoiceLineRepository.save(line);
+    }
+
+    private void validateDimensions(Double width, Double height, DimensionUnit unit) {
+        if (width == null || height == null) {
+            throw new InvalidDimensionsException("العرض والارتفاع مطلوبان");
+        }
+
+        if (unit == null) {
+            throw new InvalidDimensionsException("وحدة القياس مطلوبة");
+        }
+
+        // Convert to meters for validation
+        double widthInMeters = unit.toMeters(width);
+        double heightInMeters = unit.toMeters(height);
+
+        double minInMeters = 0.001; // 1mm
+        double maxWidthInMeters = 5.0; // 5 meters
+        double maxHeightInMeters = 3.0; // 3 meters
+
+        if (widthInMeters < minInMeters || heightInMeters < minInMeters) {
+            throw new InvalidDimensionsException(
+                    String.format("الأبعاد صغيرة جداً (الحد الأدنى: %.1f %s)",
+                            unit.fromMeters(minInMeters), unit.getArabicName())
+            );
+        }
+
+        if (widthInMeters > maxWidthInMeters) {
+            throw new InvalidDimensionsException(
+                    String.format("العرض كبير جداً (الحد الأقصى: %.1f %s)",
+                            unit.fromMeters(maxWidthInMeters), unit.getArabicName())
+            );
+        }
+
+        if (heightInMeters > maxHeightInMeters) {
+            throw new InvalidDimensionsException(
+                    String.format("الارتفاع كبير جداً (الحد الأقصى: %.1f %s)",
+                            unit.fromMeters(maxHeightInMeters), unit.getArabicName())
+            );
+        }
     }
 
     /**
@@ -569,8 +618,141 @@ public class InvoiceService {
     }
 
     /**
+     * Calculate line preview without creating invoice
+     * This ensures frontend sees exact same calculations as backend
+     *
+     * @param request Preview request with dimensions in original unit
+     * @return LinePreviewDTO with all calculations in meters
+     */
+    public LinePreviewDTO calculateLinePreview(PreviewLineRequest request) {
+        log.debug("Calculating line preview for glass type: {}, width: {}, height: {}, unit: {}, cutting: {}",
+                request.getGlassTypeId(), request.getWidth(), request.getHeight(),
+                request.getDimensionUnit(), request.getCuttingType());
+
+        try {
+            // 1. Validate and get glass type
+            GlassType glassType = glassTypeService.findById(request.getGlassTypeId())
+                    .orElseThrow(() -> new GlassTypeNotFoundException(
+                            "Glass type not found: " + request.getGlassTypeId(),
+                            request.getGlassTypeId()
+                    ));
+
+            // 2. Convert dimensions to meters based on unit
+            Double width = convertToMeters(request.getWidth(), request.getDimensionUnit());
+            Double height = convertToMeters(request.getHeight(), request.getDimensionUnit());
+
+            // 3. Validate converted dimensions (now in meters)
+            validateDimensions(width, height);
+
+            // 4. Calculate quantities (same logic as InvoiceLine)
+            Double areaM2 = width * height;
+            Double lengthM = null;
+            Double quantityForPricing;
+            String quantityUnit;
+            String calculationDescription;
+
+            if (glassType.getCalculationMethod() == com.example.backend.models.enums.CalculationMethod.LENGTH) {
+                lengthM = Math.max(width, height);
+                quantityForPricing = lengthM;
+                quantityUnit = "متر طولي";
+                calculationDescription = String.format("طول: %.2f متر", lengthM);
+            } else {
+                quantityForPricing = areaM2;
+                quantityUnit = "متر مربع";
+                calculationDescription = String.format("مساحة: %.2f متر مربع", areaM2);
+            }
+
+            // 5. Calculate glass price
+            Double glassUnitPrice = glassType.getPricePerMeter();
+            Double glassPrice = quantityForPricing * glassUnitPrice;
+
+            // 6. Calculate cutting price
+            Double perimeter = 2 * (width + height);
+            Double cuttingRate = null;
+            Double cuttingPrice;
+
+            if (request.getCuttingType() == CuttingType.LASER) {
+                if (request.getManualCuttingPrice() == null) {
+                    throw new CuttingCalculationException("سعر القطع اليدوي مطلوب للقطع بالليزر");
+                }
+                if (request.getManualCuttingPrice() < 0) {
+                    throw new CuttingCalculationException("سعر القطع اليدوي لا يمكن أن يكون سالباً");
+                }
+                cuttingPrice = request.getManualCuttingPrice();
+            } else {
+                // SHATF - use the same strategy pattern as actual invoice creation
+                InvoiceLine tempLine = InvoiceLine.builder()
+                        .glassType(glassType)
+                        .width(width)
+                        .height(height)
+                        .cuttingType(request.getCuttingType())
+                        .build();
+
+                cuttingPrice = cuttingContext.calculateCuttingPrice(tempLine);
+                cuttingRate = cuttingPrice / perimeter;
+            }
+
+            // 7. Calculate total
+            Double lineTotal = glassPrice + cuttingPrice;
+
+            // 8. Build and return preview DTO (all dimensions in meters)
+            return LinePreviewDTO.builder()
+                    .width(width)
+                    .height(height)
+                    .glassTypeId(glassType.getId())
+                    .glassTypeName(glassType.getName())
+                    .thickness(glassType.getThickness())
+                    .calculationMethod(glassType.getCalculationMethod().toString())
+                    .areaM2(areaM2)
+                    .lengthM(lengthM)
+                    .quantityForPricing(quantityForPricing)
+                    .glassUnitPrice(glassUnitPrice)
+                    .glassPrice(glassPrice)
+                    .cuttingType(request.getCuttingType().toString())
+                    .cuttingRate(cuttingRate)
+                    .perimeter(perimeter)
+                    .cuttingPrice(cuttingPrice)
+                    .lineTotal(lineTotal)
+                    .quantityUnit(quantityUnit)
+                    .calculationDescription(calculationDescription)
+                    .build();
+
+        } catch (GlassTypeNotFoundException | InvalidDimensionsException | CuttingCalculationException e) {
+            log.error("Error calculating line preview: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error calculating line preview: {}", e.getMessage(), e);
+            throw new CuttingCalculationException("خطأ في حساب معاينة البند: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Convert dimension to meters based on unit
+     * @param value Dimension value in original unit
+     * @param unit Dimension unit (MM, CM, M)
+     * @return Value converted to meters
+     */
+    private Double convertToMeters(Double value, DimensionUnit unit) {
+        if (value == null) {
+            log.warn("Null dimension value provided, returning 0.0");
+            return 0.0;
+        }
+
+        return switch (unit) {
+            case MM -> value / 1000.0;
+            case CM -> value / 100.0;
+            case M -> value;
+            default -> {
+                log.warn("Unknown dimension unit: {}, defaulting to MM", unit);
+                yield value / 1000.0;
+            }
+        };
+    }
+
+    /**
      * Inner class to hold invoice line processing results
      */
+    @Getter
     private static class InvoiceLineProcessingResult {
         private final double totalPrice;
         private final List<String> errors;
@@ -582,8 +764,5 @@ public class InvoiceService {
             this.successfulLines = successfulLines;
         }
 
-        public double getTotalPrice() { return totalPrice; }
-        public List<String> getErrors() { return errors; }
-        public int getSuccessfulLines() { return successfulLines; }
     }
 }

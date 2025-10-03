@@ -202,4 +202,38 @@ export const invoiceService = {
             throw error;
         }
     },
+
+    // New function in invoiceService.js
+    async previewLineTotal(lineData) {
+        return await post('/invoices/preview-line-total', {
+            glassTypeId: lineData.glassTypeId,
+            width: lineData.width,  // Send as entered (cm or mm)
+            height: lineData.height,
+            cuttingType: lineData.cuttingType,
+            manualCuttingPrice: lineData.manualCuttingPrice
+        });
+    },
+    /**
+     * Preview line calculation before creating invoice
+     */
+    /**
+     * Preview line calculation before creating invoice
+     */
+    async previewLineCalculation(lineData) {
+        try {
+            const response = await post('/invoices/preview-line', {
+                glassTypeId: lineData.glassTypeId,
+                width: lineData.width,
+                height: lineData.height,
+                dimensionUnit: lineData.dimensionUnit,
+                cuttingType: lineData.cuttingType,
+                manualCuttingPrice: lineData.manualCuttingPrice || null
+            });
+
+            return response;
+        } catch (error) {
+            console.error('Preview line calculation error:', error);
+            throw error;
+        }
+    }
 };

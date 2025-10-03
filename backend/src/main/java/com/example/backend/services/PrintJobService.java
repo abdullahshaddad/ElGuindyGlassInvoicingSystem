@@ -3,6 +3,7 @@ package com.example.backend.services;
 import com.example.backend.exceptions.printjob.PdfGenerationException;
 import com.example.backend.exceptions.printjob.PrintJobCreationException;
 import com.example.backend.exceptions.printjob.PrintJobDatabaseException;
+import com.example.backend.exceptions.printjob.PrintJobException;
 import com.example.backend.models.Invoice;
 import com.example.backend.models.PrintJob;
 import com.example.backend.models.enums.PrintStatus;
@@ -340,9 +341,38 @@ private final InvoiceRepository invoiceRepository;
         }
     }
 
+    /**
+     * Get all queued print jobs ordered by creation time
+     * @return List of queued print jobs, empty list if none found
+     * @throws PrintJobException if database error occurs
+     */
     public List<PrintJob> getQueuedJobs() {
-        return printJobRepository.findQueuedJobsOrderedByCreation(PrintStatus.QUEUED);
+        try {
+            log.debug("Fetching queued print jobs with status: {}", PrintStatus.QUEUED);
+
+            List<PrintJob> queuedJobs = printJobRepository.findQueuedJobsOrderedByCreation(PrintStatus.QUEUED);
+
+            if (queuedJobs == null) {
+                log.warn("Repository returned null for queued jobs, returning empty list");
+                return new ArrayList<>();
+            }
+
+            log.info("Found {} queued print jobs", queuedJobs.size());
+            return queuedJobs;
+
+        } catch (DataAccessException e) {
+            log.error("Database error while fetching queued print jobs: {}", e.getMessage(), e);
+            throw new PrintJobException("فشل في تحميل قائمة المهام من قاعدة البيانات", e);
+        } catch (Exception e) {
+            log.error("Unexpected error while fetching queued print jobs: {}", e.getMessage(), e);
+            throw new PrintJobException("خطأ غير متوقع في تحميل قائمة المهام", e);
+        }
     }
+
+    /**
+     * Custom exception for print job operations
+     */
+
 
     public PrintJob markAsPrinting(Long jobId) {
         PrintJob job = printJobRepository.findById(jobId)

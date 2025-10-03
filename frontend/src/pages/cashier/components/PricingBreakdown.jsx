@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     FiChevronDown,
     FiChevronUp,
@@ -8,65 +8,61 @@ import {
     FiTrendingUp
 } from 'react-icons/fi';
 import Button from '@/components/ui/Button';
+import { invoiceService } from '@/services/invoiceService';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { convertToMeters, DIMENSION_UNITS } from '@/utils/dimensionUtils';
 
 const PricingBreakdown = ({ item, glassTypes, isDetailed = false, onRemove, onUpdate, className = "" }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [calculations, setCalculations] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     // Find glass type details
     const glassType = glassTypes?.find(gt => gt.id == item.glassTypeId) || item.glassType;
 
-    if (!glassType) return null;
-
-    // Calculate detailed breakdown
-    const calculations = {
-        // Area/Length calculations
-        area: (item.width * item.height) / 1000000, // Convert mm² to m²
-        length: Math.max(item.width, item.height) / 1000, // Convert mm to m for length-based
-
-        // Determine calculation method
-        calculationMethod: glassType.calculationMethod || 'AREA',
-
-        // Get quantity for pricing
-        get quantityForPricing() {
-            return this.calculationMethod === 'LENGTH' ? this.length : this.area;
-        },
-
-        // Glass price calculation
-        get glassUnitPrice() {
-            return parseFloat(glassType.pricePerMeter || 0);
-        },
-
-        get glassTotal() {
-            return this.quantityForPricing * this.glassUnitPrice;
-        },
-
-        // Cutting price calculation
-        get cuttingPrice() {
-            if (item.cuttingType === 'LASER' && item.manualCuttingPrice) {
-                return parseFloat(item.manualCuttingPrice);
+    // Fetch backend preview whenever relevant fields change
+    useEffect(() => {
+        const fetchPreview = async () => {
+            if (!item.glassTypeId || !item.width || !item.height || !item.cuttingType) {
+                setCalculations(null);
+                return;
             }
 
-            // Auto-calculated cutting price based on type
-            const basePrice = item.cuttingType === 'LASER' ? 50 : 25; // Example base prices
-            return this.quantityForPricing * basePrice;
-        },
+            if (item.cuttingType === 'LASER' && !item.manualCuttingPrice) {
+                setCalculations(null);
+                return;
+            }
 
-        // Line total
-        get lineTotal() {
-            return this.glassTotal + this.cuttingPrice;
-        }
-    };
+            setIsLoading(true);
+            setError(null);
+
+            try {
+                const preview = await invoiceService.previewLineCalculation({
+                    glassTypeId: item.glassTypeId,
+                    width: parseFloat(item.width),
+                    height: parseFloat(item.height),
+                    dimensionUnit: item.dimensionUnit || 'MM',
+                    cuttingType: item.cuttingType,
+                    manualCuttingPrice: item.manualCuttingPrice ? parseFloat(item.manualCuttingPrice) : null
+                });
+
+                setCalculations(preview);
+            } catch (err) {
+                console.error('Preview calculation error:', err);
+                setError('فشل في حساب المعاينة');
+                setCalculations(null);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchPreview();
+    }, [item.glassTypeId, item.width, item.height, item.cuttingType, item.manualCuttingPrice, item.dimensionUnit]);
+    if (!glassType) return null;
 
     // Format currency
     const formatCurrency = (amount) => `${parseFloat(amount || 0).toFixed(2)} ج.م`;
-
-    // Format quantity with unit
-    const formatQuantity = (quantity, method) => {
-        if (method === 'LENGTH') {
-            return `${quantity.toFixed(3)} متر طولي`;
-        }
-        return `${quantity.toFixed(3)} متر مربع`;
-    };
 
     return (
         <div className={`bg-white border border-gray-200 rounded-lg ${className}`}>
@@ -75,156 +71,155 @@ const PricingBreakdown = ({ item, glassTypes, isDetailed = false, onRemove, onUp
                 className={`p-3 ${isDetailed ? 'cursor-pointer hover:bg-gray-50' : ''}`}
                 onClick={() => isDetailed && setIsExpanded(!isExpanded)}
             >
-                <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                        <div className="font-medium text-gray-900 text-sm">
-                            {glassType.nameArabic || glassType.name}
-                        </div>
-                        <div className="text-xs text-gray-500 space-x-2 space-x-reverse mt-1">
-                            <span>سمك {glassType.thickness}مم</span>
-                            <span>•</span>
-                            <span className="font-mono">{item.width} × {item.height} مم</span>
-                            <span>•</span>
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                                item.cuttingType === 'SHATF'
-                                    ? 'bg-green-100 text-green-700'
-                                    : 'bg-orange-100 text-orange-700'
-                            }`}>
-                                {item.cuttingType === 'SHATF' ? 'شطف' : 'ليزر'}
-                            </span>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                                <h4 className="font-medium text-gray-900">{glassType.name}</h4>
+                                <span className="text-xs text-gray-500">
+                                    {item.width} × {item.height} م
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                                    {item.cuttingType === 'SHATF' ? 'شطف' : 'ليزر'}
+                                </span>
+                                {glassType.thickness && (
+                                    <span className="text-xs text-gray-500">
+                                        {glassType.thickness} مم
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    <div className="text-left flex items-center gap-2">
-                        <div>
-                            <div className="text-base font-bold text-emerald-600">
-                                {formatCurrency(calculations.lineTotal)}
+                    <div className="flex items-center gap-3">
+                        {isLoading ? (
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <LoadingSpinner size="sm" />
+                                <span>جاري الحساب...</span>
                             </div>
-                            <div className="text-xs text-gray-500">
-                                {formatQuantity(calculations.quantityForPricing, calculations.calculationMethod)}
+                        ) : error ? (
+                            <span className="text-sm text-red-600">{error}</span>
+                        ) : calculations && calculations.lineTotal !== undefined ? (
+                            <div className="text-left">
+                                <div className="font-bold text-gray-900">
+                                    {formatCurrency(calculations.lineTotal)}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                    زجاج: {formatCurrency(calculations.glassPrice)} +
+                                    قطع: {formatCurrency(calculations.cuttingPrice)}
+                                </div>
                             </div>
-                        </div>
-
-                        {onRemove && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onRemove(item.id);
-                                }}
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1"
-                            >
-                                <FiTrash2 size={14}/>
-                            </Button>
+                        ) : (
+                            <span className="text-sm text-gray-400">لم يتم الحساب</span>
                         )}
 
                         {isDetailed && (
-                            <button
-                                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                {isExpanded ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
-                            </button>
+                            <>
+                                {onRemove && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onRemove(item.id);
+                                        }}
+                                        className="text-red-600 hover:text-red-700"
+                                    >
+                                        <FiTrash2 size={16} />
+                                    </Button>
+                                )}
+                                {isExpanded ? <FiChevronUp /> : <FiChevronDown />}
+                            </>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* Detailed breakdown */}
-            {isExpanded && (
-                <div className="border-t border-gray-200 p-3 bg-gray-50">
+            {/* Detailed breakdown - only shown when expanded */}
+            {isDetailed && isExpanded && calculations && calculations.lineTotal !== undefined && (
+                <div className="border-t border-gray-200 p-4 bg-gray-50">
                     <div className="space-y-3">
-                        {/* Calculation Method Info */}
-                        <div className="bg-blue-50 rounded-lg p-3">
+                        {/* Dimensions & Quantity */}
+                        <div className="bg-white rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-2">
-                                <FiInfo className="text-blue-600" size={14} />
-                                <span className="text-xs font-medium text-blue-900">
-                                    طريقة الحساب
-                                </span>
+                                <FiInfo className="text-blue-600" />
+                                <span className="font-medium text-sm">المقاسات والكمية</span>
                             </div>
-                            <div className="text-xs text-blue-700">
-                                {calculations.calculationMethod === 'LENGTH' ? (
-                                    <>
-                                        <div>حساب بالطول: يتم استخدام البعد الأطول</div>
-                                        <div className="font-mono mt-1">
-                                            الطول = max({item.width}, {item.height}) = {(calculations.length * 1000).toFixed(0)} مم = {calculations.length.toFixed(3)} متر
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div>حساب بالمساحة: العرض × الارتفاع</div>
-                                        <div className="font-mono mt-1">
-                                            المساحة = {item.width} × {item.height} = {(calculations.area * 1000000).toFixed(0)} مم² = {calculations.area.toFixed(3)} م²
-                                        </div>
-                                    </>
-                                )}
+                            <div className="space-y-1 text-xs text-gray-600">
+                                <div className="flex justify-between">
+                                    <span>الأبعاد:</span>
+                                    <span className="font-mono">{calculations.width} × {calculations.height} متر</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>المساحة:</span>
+                                    <span className="font-mono">{calculations.areaM2.toFixed(3)} م²</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>المحيط:</span>
+                                    <span className="font-mono">{calculations.perimeter.toFixed(3)} متر</span>
+                                </div>
+                                <div className="flex justify-between font-medium text-gray-900">
+                                    <span>الكمية للتسعير:</span>
+                                    <span className="font-mono">
+                                        {calculations.quantityForPricing.toFixed(3)} {calculations.quantityUnit}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Price Breakdown */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {/* Glass Cost */}
-                            <div className="bg-emerald-50 rounded-lg p-3">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <FiCreditCard className="text-emerald-600" size={14} />
-                                    <span className="text-xs font-medium text-emerald-900">
-                                        تكلفة الزجاج
-                                    </span>
+                        {/* Glass Price */}
+                        <div className="bg-emerald-50 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                                <FiCreditCard className="text-emerald-600" />
+                                <span className="font-medium text-sm">سعر الزجاج</span>
+                            </div>
+                            <div className="space-y-1 text-xs text-gray-600">
+                                <div className="flex justify-between">
+                                    <span>السعر:</span>
+                                    <span className="font-mono">{formatCurrency(calculations.glassUnitPrice)}/وحدة</span>
                                 </div>
-                                <div className="space-y-1 text-xs text-emerald-700">
-                                    <div className="flex justify-between">
-                                        <span>سعر المتر:</span>
-                                        <span className="font-mono">{formatCurrency(calculations.glassUnitPrice)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span>الكمية:</span>
-                                        <span className="font-mono">{calculations.quantityForPricing.toFixed(3)}</span>
-                                    </div>
-                                    <div className="border-t border-emerald-200 pt-1">
-                                        <div className="flex justify-between font-medium">
-                                            <span>الإجمالي:</span>
-                                            <span className="font-mono">{formatCurrency(calculations.glassTotal)}</span>
-                                        </div>
+                                <div className="flex justify-between">
+                                    <span>الكمية:</span>
+                                    <span className="font-mono">{calculations.quantityForPricing.toFixed(3)}</span>
+                                </div>
+                                <div className="border-t border-emerald-200 pt-1">
+                                    <div className="flex justify-between font-medium">
+                                        <span>الإجمالي:</span>
+                                        <span className="font-mono">{formatCurrency(calculations.glassPrice)}</span>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Cutting Cost */}
-                            <div className="bg-orange-50 rounded-lg p-3">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <FiTrendingUp className="text-orange-600" size={14} />
-                                    <span className="text-xs font-medium text-orange-900">
-                                        تكلفة القطع
-                                    </span>
+                        {/* Cutting Price */}
+                        <div className="bg-orange-50 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                                <FiTrendingUp className="text-orange-600" />
+                                <span className="font-medium text-sm">سعر القطع</span>
+                            </div>
+                            <div className="space-y-1 text-xs text-gray-600">
+                                <div className="flex justify-between">
+                                    <span>نوع القطع:</span>
+                                    <span>{calculations.cuttingType === 'SHATF' ? 'شطف' : 'ليزر'}</span>
                                 </div>
-                                <div className="space-y-1 text-xs text-orange-700">
-                                    <div className="flex justify-between">
-                                        <span>نوع القطع:</span>
-                                        <span>{item.cuttingType === 'SHATF' ? 'شطف' : 'ليزر'}</span>
-                                    </div>
-                                    {item.cuttingType === 'LASER' && item.manualCuttingPrice ? (
+                                {calculations.cuttingType === 'SHATF' && calculations.cuttingRate && (
+                                    <>
                                         <div className="flex justify-between">
-                                            <span>سعر يدوي:</span>
-                                            <span className="font-mono">{formatCurrency(item.manualCuttingPrice)}</span>
+                                            <span>السعر:</span>
+                                            <span className="font-mono">{formatCurrency(calculations.cuttingRate)}/متر</span>
                                         </div>
-                                    ) : (
-                                        <>
-                                            <div className="flex justify-between">
-                                                <span>سعر القطع:</span>
-                                                <span className="font-mono">{item.cuttingType === 'LASER' ? '50' : '25'} ج.م/وحدة</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span>الكمية:</span>
-                                                <span className="font-mono">{calculations.quantityForPricing.toFixed(3)}</span>
-                                            </div>
-                                        </>
-                                    )}
-                                    <div className="border-t border-orange-200 pt-1">
-                                        <div className="flex justify-between font-medium">
-                                            <span>الإجمالي:</span>
-                                            <span className="font-mono">{formatCurrency(calculations.cuttingPrice)}</span>
+                                        <div className="flex justify-between">
+                                            <span>المحيط:</span>
+                                            <span className="font-mono">{calculations.perimeter.toFixed(3)} متر</span>
                                         </div>
+                                    </>
+                                )}
+                                <div className="border-t border-orange-200 pt-1">
+                                    <div className="flex justify-between font-medium">
+                                        <span>الإجمالي:</span>
+                                        <span className="font-mono">{formatCurrency(calculations.cuttingPrice)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -236,7 +231,7 @@ const PricingBreakdown = ({ item, glassTypes, isDetailed = false, onRemove, onUp
                                 <div className="text-center">
                                     <div className="text-gray-500">زجاج</div>
                                     <div className="font-mono text-emerald-600 font-medium">
-                                        {formatCurrency(calculations.glassTotal)}
+                                        {formatCurrency(calculations.glassPrice)}
                                     </div>
                                 </div>
                                 <div className="text-center">
@@ -252,6 +247,11 @@ const PricingBreakdown = ({ item, glassTypes, isDetailed = false, onRemove, onUp
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Backend calculation note */}
+                        <div className="text-xs text-gray-500 text-center italic">
+                            الأسعار محسوبة من الخادم وستكون مطابقة للفاتورة النهائية
                         </div>
                     </div>
                 </div>

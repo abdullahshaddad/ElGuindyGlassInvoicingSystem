@@ -14,6 +14,7 @@ import { customerService } from '@services/customerService.js';
 import { glassTypeService } from '@services/glassTypeService.js';
 import { invoiceUtils } from '@utils';
 import { PageHeader } from "@components";
+import { printJobService } from '@services/printJobService';
 
 // Import sub-components
 import PricingBreakdown from './components/PricingBreakdown.jsx';
@@ -24,6 +25,8 @@ import ShoppingCart from './components/ShoppingCart';
 import NewCustomerForm from './components/NewCustomerForm';
 import InvoiceList from './components/InvoiceList';
 import InvoiceViewModal from './components/InvoiceViewModal';
+import {convertToMeters, DIMENSION_UNITS} from "@utils/dimensionUtils.js";
+
 
 const CashierInvoicesPage = () => {
     const { t } = useTranslation();
@@ -46,10 +49,12 @@ const CashierInvoicesPage = () => {
         glassTypeId: '',
         width: '',
         height: '',
+        dimensionUnit: 'MM',
         cuttingType: 'SHATF',
         manualCuttingPrice: ''
     });
-
+    const [isPrinting, setIsPrinting] = useState(false);
+    const [printStatus, setPrintStatus] = useState(null);
     // New customer form states
     const [newCustomer, setNewCustomer] = useState({
         name: '',
@@ -216,7 +221,9 @@ const CashierInvoicesPage = () => {
     };
 
     // Cart/Invoice line management
-    const handleAddLineToCart = () => {
+    // Replace the handleAddLineToCart function in CashierInvoicePage.jsx with this version:
+
+    const handleAddLineToCart = async () => {
         if (!currentLine.glassTypeId || !currentLine.width || !currentLine.height) {
             setError('يرجى ملء جميع البيانات المطلوبة');
             return;
@@ -228,38 +235,83 @@ const CashierInvoicesPage = () => {
             return;
         }
 
-        const newCartItem = {
-            id: Date.now(), // Temp ID for cart
-            ...currentLine,
-            glassType,
-            lineTotal: invoiceUtils.calculateLineTotal(currentLine, glassType)
-        };
+        if (currentLine.cuttingType === 'LASER' && !currentLine.manualCuttingPrice) {
+            setError('يرجى إدخال سعر القطع للقطع بالليزر');
+            return;
+        }
 
-        setCart(prev => [...prev, newCartItem]);
+        try {
+            const preview = await invoiceService.previewLineCalculation({
+                glassTypeId: currentLine.glassTypeId,
+                width: parseFloat(currentLine.width),
+                height: parseFloat(currentLine.height),
+                dimensionUnit: currentLine.dimensionUnit || 'MM',
+                cuttingType: currentLine.cuttingType,
+                manualCuttingPrice: currentLine.manualCuttingPrice ? parseFloat(currentLine.manualCuttingPrice) : null
+            });
 
-        // Reset current line but keep glass type selected for quick entry
-        setCurrentLine({
-            glassTypeId: currentLine.glassTypeId,
-            width: '',
-            height: '',
-            cuttingType: 'SHATF',
-            manualCuttingPrice: ''
-        });
+            const newCartItem = {
+                id: Date.now(),
+                ...currentLine,
+                glassType,
+                lineTotal: preview.lineTotal,
+                glassPrice: preview.glassPrice,
+                cuttingPrice: preview.cuttingPrice,
+                backendPreview: preview
+            };
 
-        // Focus on width for next entry
-        setTimeout(() => widthRef.current?.focus(), 100);
+            setCart(prev => [...prev, newCartItem]);
+
+            setCurrentLine({
+                glassTypeId: currentLine.glassTypeId,
+                width: '',
+                height: '',
+                dimensionUnit: currentLine.dimensionUnit,
+                cuttingType: 'SHATF',
+                manualCuttingPrice: ''
+            });
+
+            setTimeout(() => widthRef.current?.focus(), 100);
+        } catch (err) {
+            console.error('Add to cart error:', err);
+            setError('فشل في حساب سعر البند. يرجى المحاولة مرة أخرى.');
+        }
     };
 
-    const handleRemoveFromCart = (itemId) => {
-        setCart(prev => prev.filter(item => item.id !== itemId));
+    const recalculateCartItem = async (itemId, updatedItem) => {
+        try {
+            const preview = await invoiceService.previewLineCalculation({
+                glassTypeId: updatedItem.glassTypeId,
+                width: parseFloat(updatedItem.width),
+                height: parseFloat(updatedItem.height),
+                dimensionUnit: updatedItem.dimensionUnit || 'MM',
+                cuttingType: updatedItem.cuttingType,
+                manualCuttingPrice: updatedItem.manualCuttingPrice ? parseFloat(updatedItem.manualCuttingPrice) : null
+            });
+
+            setCart(prev => prev.map(item =>
+                item.id === itemId
+                    ? {
+                        ...item,
+                        lineTotal: preview.lineTotal,
+                        glassPrice: preview.glassPrice,
+                        cuttingPrice: preview.cuttingPrice,
+                        backendPreview: preview
+                    }
+                    : item
+            ));
+        } catch (err) {
+            console.error('Recalculate cart item error:', err);
+            setError('فشل في إعادة حساب السعر');
+        }
     };
 
-    const handleUpdateCartItem = (itemId, field, value) => {
+    const handleUpdateCartItem = async (itemId, field, value) => {
         setCart(prev => prev.map(item => {
             if (item.id === itemId) {
                 const updated = { ...item, [field]: value };
                 if (['width', 'height', 'cuttingType', 'manualCuttingPrice'].includes(field)) {
-                    updated.lineTotal = invoiceUtils.calculateLineTotal(updated, item.glassType);
+                    recalculateCartItem(itemId, updated);
                 }
                 return updated;
             }
@@ -267,10 +319,6 @@ const CashierInvoicesPage = () => {
         }));
     };
 
-    // Calculate totals
-    const totals = invoiceUtils.calculateTotals(cart, glassTypes);
-
-    // Invoice operations
     const handleCreateInvoice = async () => {
         if (!selectedCustomer) {
             setError('يرجى اختيار العميل');
@@ -291,6 +339,7 @@ const CashierInvoicesPage = () => {
                     glassTypeId: parseInt(item.glassTypeId),
                     width: parseFloat(item.width),
                     height: parseFloat(item.height),
+                    dimensionUnit: item.dimensionUnit || 'MM',
                     cuttingType: item.cuttingType,
                     ...(item.cuttingType === 'LASER' && item.manualCuttingPrice && {
                         manualCuttingPrice: parseFloat(item.manualCuttingPrice)
@@ -298,28 +347,40 @@ const CashierInvoicesPage = () => {
                 }))
             };
 
-
             const newInvoice = await invoiceService.createInvoice(invoiceData);
-
+            const totals = calculateCartTotals();
             setSuccess(`تم إنشاء الفاتورة رقم ${newInvoice.id} بنجاح! الإجمالي: ${totals.total.toFixed(2)} ج.م`);
+            await handlePrintInvoice(newInvoice);
 
-            // Reset POS
             handleResetPOS();
-
-            // Refresh invoice list
             loadInvoices();
-
         } catch (err) {
             console.error('Create invoice error:', err);
-            if (err.response?.data?.message) {
-                setError(`خطأ في إنشاء الفاتورة: ${err.response.data.message}`);
-            } else {
-                setError('فشل في إنشاء الفاتورة. يرجى المحاولة مرة أخرى.');
-            }
+            setError(err.response?.data?.message || 'فشل في إنشاء الفاتورة');
         } finally {
             setIsCreating(false);
         }
     };
+
+    const calculateCartTotals = () => {
+        const subtotal = cart.reduce((sum, item) => sum + (item.lineTotal || 0), 0);
+        return {
+            subtotal: Math.round(subtotal * 100) / 100,
+            tax: 0,
+            total: Math.round(subtotal * 100) / 100
+        };
+    };
+
+// 3. Update totals calculation
+    const handleRemoveFromCart = (itemId) => {
+        setCart(prev => prev.filter(item => item.id !== itemId));
+    };
+
+
+    // Calculate totals
+    const totals = invoiceUtils.calculateTotals(cart, glassTypes);
+
+    // Invoice operations
 
     const handleResetPOS = () => {
         setCurrentMode('list');
@@ -342,8 +403,95 @@ const CashierInvoicesPage = () => {
         setIsViewModalOpen(true);
     };
 
-    const handlePrintInvoice = (invoice) => {
-        setSuccess(`تم إرسال الفاتورة ${invoice.id} للطباعة`);
+    const handlePrintInvoice = async (invoice) => {
+        if (!invoice || !invoice.id) {
+            setError('معلومات الفاتورة غير صحيحة');
+            return;
+        }
+        try {
+            setIsPrinting(true);
+            setPrintStatus('جاري إرسال الفاتورة للطباعة...');
+            setError('');
+
+            // Note: Print jobs are automatically created when the invoice is created
+            // by the backend InvoiceService. However, we can trigger additional
+            // print jobs if needed, such as reprinting or printing stickers separately.
+
+            // Check if we need to create additional sticker print job
+            // (Usually done for factory workers)
+            if (window.confirm('هل تريد طباعة ملصق للفاتورة؟')) {
+                try {
+                    const stickerJob = await printJobService.createStickerPrintJob(invoice.id);
+                    setPrintStatus('تم إرسال الملصق للطباعة بنجاح');
+                    setSuccess(`تم إرسال الفاتورة ${invoice.id} والملصق للطباعة`);
+                } catch (stickerError) {
+                    console.error('Sticker print error:', stickerError);
+                    // Don't fail the entire process if sticker fails
+                    setSuccess(`تم إرسال الفاتورة ${invoice.id} للطباعة (فشل طباعة الملصق)`);
+                }
+            } else {
+                setSuccess(`تم إرسال الفاتورة ${invoice.id} للطباعة`);
+            }
+
+            // Show print status details
+            setTimeout(() => {
+                setPrintStatus(null);
+            }, 3000);
+
+        } catch (err) {
+            console.error('Print invoice error:', err);
+
+            let errorMessage = 'فشل في إرسال الفاتورة للطباعة';
+
+            if (err.response?.data?.message) {
+                errorMessage = `خطأ في الطباعة: ${err.response.data.message}`;
+            } else if (err.message) {
+                errorMessage = `خطأ في الطباعة: ${err.message}`;
+            }
+
+            setError(errorMessage);
+            setPrintStatus(null);
+        } finally {
+            setIsPrinting(false);
+        }
+    };
+
+    const handleReprintInvoice = async (invoice) => {
+        if (!invoice || !invoice.id) {
+            setError('معلومات الفاتورة غير صحيحة');
+            return;
+        }
+
+        if (!window.confirm(`هل تريد إعادة طباعة الفاتورة ${invoice.id}؟`)) {
+            return;
+        }
+
+        try {
+            setIsPrinting(true);
+            setPrintStatus('جاري إعادة إرسال الفاتورة للطباعة...');
+            setError('');
+
+            // Get queued print jobs to check status
+            const queuedJobs = await printJobService.getQueuedJobs();
+            const invoicePrintJobs = queuedJobs.filter(job => job.invoice?.id === invoice.id);
+
+            if (invoicePrintJobs.length > 0) {
+                setSuccess(`يوجد ${invoicePrintJobs.length} مهام طباعة في قائمة الانتظار للفاتورة ${invoice.id}`);
+            } else {
+                // Create new sticker print job for reprint
+                await printJobService.createStickerPrintJob(invoice.id);
+                setSuccess(`تم إرسال الفاتورة ${invoice.id} للطباعة مجدداً`);
+            }
+
+            setPrintStatus(null);
+
+        } catch (err) {
+            console.error('Reprint invoice error:', err);
+            setError(`فشل في إعادة طباعة الفاتورة: ${err.message || 'خطأ غير معروف'}`);
+            setPrintStatus(null);
+        } finally {
+            setIsPrinting(false);
+        }
     };
 
     const handleMarkAsPaid = async (invoice) => {
@@ -353,6 +501,34 @@ const CashierInvoicesPage = () => {
             loadInvoices(currentPage, searchTerm);
         } catch (err) {
             setError('فشل في تسديد الفاتورة');
+        }
+    };
+
+    const checkPrintJobStatus = async (invoiceId) => {
+        try {
+            const queuedJobs = await printJobService.getQueuedJobs();
+            const invoiceJobs = queuedJobs.filter(job => job.invoice?.id === invoiceId);
+
+            if (invoiceJobs.length > 0) {
+                const statusSummary = invoiceJobs.map(job =>
+                    `${printJobService.getTypeText(job.type)}: ${printJobService.getStatusText(job.status)}`
+                ).join(', ');
+
+                return {
+                    hasPendingJobs: true,
+                    jobCount: invoiceJobs.length,
+                    summary: statusSummary
+                };
+            }
+
+            return {
+                hasPendingJobs: false,
+                jobCount: 0,
+                summary: 'لا توجد مهام طباعة في قائمة الانتظار'
+            };
+        } catch (err) {
+            console.error('Check print status error:', err);
+            return null;
         }
     };
 
@@ -431,6 +607,13 @@ const CashierInvoicesPage = () => {
                     >
                         <FiX size={16}/>
                     </Button>
+                </div>
+            )}
+
+            {printStatus && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 px-4 py-3 rounded-lg flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <span>{printStatus}</span>
                 </div>
             )}
 
@@ -576,6 +759,7 @@ const CashierInvoicesPage = () => {
                 {/* Invoice List */}
                 {currentMode === 'list' && (
                     <InvoiceList
+                        isPrinting={isPrinting}
                         invoices={invoices}
                         loading={loading}
                         searchTerm={searchTerm}

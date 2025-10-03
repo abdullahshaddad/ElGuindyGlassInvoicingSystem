@@ -3,7 +3,12 @@ package com.example.backend.controllers;
 
 import com.example.backend.dto.CreateInvoiceRequest;
 import com.example.backend.dto.invoice.InvoiceDTO;
+import com.example.backend.dto.invoice.LinePreviewDTO;
+import com.example.backend.dto.invoice.PreviewLineRequest;
 import com.example.backend.exceptions.customer.CustomerNotFoundException;
+import com.example.backend.exceptions.invoice.CuttingCalculationException;
+import com.example.backend.exceptions.invoice.GlassTypeNotFoundException;
+import com.example.backend.exceptions.invoice.InvalidDimensionsException;
 import com.example.backend.models.Invoice;
 import com.example.backend.models.enums.InvoiceStatus;
 import com.example.backend.services.ExportService;
@@ -176,6 +181,41 @@ public class InvoiceController {
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=invoices_export.csv")
             .contentType(MediaType.parseMediaType("text/csv"))
             .body(csvData);
+    }
+
+    @PostMapping("/preview-line-total")
+    public ResponseEntity<LinePreviewDTO> previewLineTotal(
+            @RequestBody PreviewLineRequest request
+    ) {
+        LinePreviewDTO preview = invoiceService.calculateLinePreview(request);
+        return ResponseEntity.ok(preview);
+    }
+
+    /**
+     * Preview line calculation before creating invoice
+     */
+    @PostMapping("/preview-line")
+    @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER')")
+    public ResponseEntity<LinePreviewDTO> previewLineCalculation(@Valid @RequestBody PreviewLineRequest request) {
+        log.info("Previewing line calculation for glass type: {}, dimensions: {}x{}, cutting: {}",
+                request.getGlassTypeId(), request.getWidth(), request.getHeight(), request.getCuttingType());
+
+        try {
+            LinePreviewDTO preview = invoiceService.calculateLinePreview(request);
+            return ResponseEntity.ok(preview);
+        } catch (GlassTypeNotFoundException e) {
+            log.error("Glass type not found: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (InvalidDimensionsException e) {
+            log.error("Invalid dimensions: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (CuttingCalculationException e) {
+            log.error("Cutting calculation error: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            log.error("Error previewing line calculation: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }
 
