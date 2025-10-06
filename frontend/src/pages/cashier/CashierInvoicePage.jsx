@@ -25,7 +25,7 @@ import ShoppingCart from './components/ShoppingCart';
 import NewCustomerForm from './components/NewCustomerForm';
 import InvoiceList from './components/InvoiceList';
 import InvoiceViewModal from './components/InvoiceViewModal';
-import {convertToMeters, DIMENSION_UNITS} from "@utils/dimensionUtils.js";
+import PrintJobStatusModal from './components/PrintJobStatusModal';
 
 
 const CashierInvoicesPage = () => {
@@ -55,6 +55,10 @@ const CashierInvoicesPage = () => {
     });
     const [isPrinting, setIsPrinting] = useState(false);
     const [printStatus, setPrintStatus] = useState(null);
+    const [printJobStatus, setPrintJobStatus] = useState(null);
+    const [showPrintJobStatusModal, setShowPrintJobStatusModal] = useState(false);
+    const [isCheckingPrintJobs, setIsCheckingPrintJobs] = useState(false);
+    const [isRetryingPrintJob, setIsRetryingPrintJob] = useState(false);
     // New customer form states
     const [newCustomer, setNewCustomer] = useState({
         name: '',
@@ -331,6 +335,8 @@ const CashierInvoicesPage = () => {
         }
 
         setIsCreating(true);
+        setError(null);
+
         try {
             const invoiceData = {
                 customerId: selectedCustomer.id,
@@ -349,11 +355,15 @@ const CashierInvoicesPage = () => {
 
             const newInvoice = await invoiceService.createInvoice(invoiceData);
             const totals = calculateCartTotals();
+
             setSuccess(`تم إنشاء الفاتورة رقم ${newInvoice.id} بنجاح! الإجمالي: ${totals.total.toFixed(2)} ج.م`);
-            await handlePrintInvoice(newInvoice);
+
+            // التحقق من حالة مهام الطباعة
+            await checkPrintJobStatus(newInvoice.id);
 
             handleResetPOS();
             loadInvoices();
+
         } catch (err) {
             console.error('Create invoice error:', err);
             setError(err.response?.data?.message || 'فشل في إنشاء الفاتورة');
@@ -376,7 +386,26 @@ const CashierInvoicesPage = () => {
         setCart(prev => prev.filter(item => item.id !== itemId));
     };
 
+    const checkPrintJobStatus = async (invoiceId) => {
+        setIsCheckingPrintJobs(true);
+        try {
+            // الانتظار قليلاً للسماح للنظام الخلفي بإنشاء مهام الطباعة
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
+            const status = await printJobService.getPrintJobStatus(invoiceId);
+            setPrintJobStatus(status);
+            setShowPrintJobStatusModal(true);
+
+            console.log('Print job status:', status);
+
+        } catch (err) {
+            console.error('Check print job status error:', err);
+            // لا نعرض خطأ هنا لأن مهام الطباعة غير حرجة
+            console.warn('Failed to check print job status, but invoice was created successfully');
+        } finally {
+            setIsCheckingPrintJobs(false);
+        }
+    };
     // Calculate totals
     const totals = invoiceUtils.calculateTotals(cart, glassTypes);
 
@@ -504,31 +533,35 @@ const CashierInvoicesPage = () => {
         }
     };
 
-    const checkPrintJobStatus = async (invoiceId) => {
+    const handleRetryPrintJob = async (printType) => {
+        if (!printJobStatus?.invoiceId) {
+            console.error('No invoice ID available for retry');
+            return;
+        }
+
+        setIsRetryingPrintJob(true);
+        setError(null);
+
         try {
-            const queuedJobs = await printJobService.getQueuedJobs();
-            const invoiceJobs = queuedJobs.filter(job => job.invoice?.id === invoiceId);
+            await printJobService.retryPrintJob(printJobStatus.invoiceId, printType);
 
-            if (invoiceJobs.length > 0) {
-                const statusSummary = invoiceJobs.map(job =>
-                    `${printJobService.getTypeText(job.type)}: ${printJobService.getStatusText(job.status)}`
-                ).join(', ');
+            const typeName = {
+                CLIENT: 'نسخة العميل',
+                OWNER: 'نسخة المالك',
+                STICKER: 'ملصق المصنع'
+            }[printType] || printType;
 
-                return {
-                    hasPendingJobs: true,
-                    jobCount: invoiceJobs.length,
-                    summary: statusSummary
-                };
-            }
+            setSuccess(`تم إعادة محاولة طباعة ${typeName} بنجاح`);
 
-            return {
-                hasPendingJobs: false,
-                jobCount: 0,
-                summary: 'لا توجد مهام طباعة في قائمة الانتظار'
-            };
+            // تحديث الحالة بعد إعادة المحاولة
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await checkPrintJobStatus(printJobStatus.invoiceId);
+
         } catch (err) {
-            console.error('Check print status error:', err);
-            return null;
+            console.error('Retry print job error:', err);
+            setError(err.response?.data?.message || 'فشل في إعادة محاولة الطباعة');
+        } finally {
+            setIsRetryingPrintJob(false);
         }
     };
 
@@ -785,6 +818,14 @@ const CashierInvoicesPage = () => {
                 glassTypes={glassTypes}
                 onPrint={handlePrintInvoice}
                 onMarkAsPaid={handleMarkAsPaid}
+            />
+
+            <PrintJobStatusModal
+                isOpen={showPrintJobStatusModal}
+                onClose={() => setShowPrintJobStatusModal(false)}
+                printJobStatus={printJobStatus}
+                onRetry={handleRetryPrintJob}
+                isRetrying={isRetryingPrintJob}
             />
         </div>
     );

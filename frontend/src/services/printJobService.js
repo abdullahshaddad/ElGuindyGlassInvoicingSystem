@@ -148,5 +148,38 @@ export const printJobService = {
      */
     canMarkAsFailed(job) {
         return job && ['QUEUED', 'PRINTING'].includes(job.status);
+    },
+
+    // أضف هذه الدوال في printJobService.js في نهاية الكائن
+
+    /**
+     * الحصول على حالة مهام الطباعة لفاتورة معينة
+     * @param {string|number} invoiceId - معرف الفاتورة
+     * @returns {Promise<PrintJobStatus>}
+     */
+    async getPrintJobStatus(invoiceId) {
+        try {
+            const response = await get(`/print-jobs/invoice/${invoiceId}/status`);
+            return response;
+        } catch (error) {
+            console.error('Get print job status error:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * إعادة محاولة إنشاء مهمة طباعة فاشلة
+     * @param {string|number} invoiceId - معرف الفاتورة
+     * @param {string} printType - نوع الطباعة (CLIENT, OWNER, STICKER)
+     * @returns {Promise<PrintJob>}
+     */
+    async retryPrintJob(invoiceId, printType) {
+        try {
+            const response = await post(`/print-jobs/invoice/${invoiceId}/retry/${printType}`);
+            return response;
+        } catch (error) {
+            console.error('Retry print job error:', error);
+            throw error;
+        }
     }
 };

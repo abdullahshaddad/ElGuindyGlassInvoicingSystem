@@ -1,6 +1,7 @@
 package com.example.backend.monitoring;
 
 import com.example.backend.config.PrintJobConfig;
+import com.example.backend.models.PrintJobStatus;
 import com.example.backend.services.PrintJobService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +39,7 @@ public class PrintJobMonitor {
 
             for (Long invoiceId : recentInvoiceIds) {
                 try {
-                    PrintJobService.PrintJobStatus status = printJobService.checkPrintJobStatus(invoiceId);
+                    PrintJobStatus status = printJobService.checkPrintJobStatus(invoiceId);
 
                     if (!status.isAllJobsComplete() && status.getMissingJobTypes() != null) {
                         log.info("Found invoice {} with missing print jobs: {}",

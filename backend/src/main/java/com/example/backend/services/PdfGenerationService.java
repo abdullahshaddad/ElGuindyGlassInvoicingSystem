@@ -1,5 +1,4 @@
 // ====== PDF GENERATION SERVICE ======
-
 package com.example.backend.services;
 
 import com.example.backend.models.Invoice;
@@ -8,10 +7,12 @@ import com.example.backend.models.enums.PrintType;
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.*;
 import com.itextpdf.text.pdf.draw.LineSeparator;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,6 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class PdfGenerationService {
 
     @Value("${app.pdf.output.path:/tmp/pdfs}")
@@ -28,21 +30,19 @@ public class PdfGenerationService {
     @Value("${app.assets.path:/app/assets}")
     private String assetsPath;
 
+    @Autowired
+    private StorageService storageService;
+
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
 
     public String generateInvoicePdf(Invoice invoice, PrintType printType) {
         try {
-            // Create output directory if not exists
-            Path outputDir = Paths.get(pdfOutputPath);
-            Files.createDirectories(outputDir);
+            log.info("Generating PDF for invoice {} with type {}", invoice.getId(), printType);
 
-            String fileName = String.format("invoice_%d_%s_%s.pdf",
-                invoice.getId(), printType.name().toLowerCase(), UUID.randomUUID().toString());
-
-            String filePath = outputDir.resolve(fileName).toString();
-
+            // Generate PDF content in memory
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
             Document document = new Document(PageSize.A4);
-            PdfWriter writer = PdfWriter.getInstance(document, new FileOutputStream(filePath));
+            PdfWriter writer = PdfWriter.getInstance(document, baos);
 
             document.open();
 
@@ -77,27 +77,32 @@ public class PdfGenerationService {
 
             document.close();
 
-            return filePath;
+            // Store PDF in MinIO/S3
+            String fileName = String.format("invoice_%d_%s.pdf",
+                invoice.getId(), printType.name().toLowerCase());
+            
+            String publicUrl = storageService.storePdf(baos.toByteArray(), fileName, "invoices");
+            
+            log.info("PDF generated and stored successfully: {}", publicUrl);
+            return publicUrl;
 
         } catch (Exception e) {
+            log.error("Error generating invoice PDF: {}", e.getMessage(), e);
             throw new RuntimeException("Error generating invoice PDF: " + e.getMessage(), e);
         }
     }
 
     public String generateStickerPdf(Invoice invoice) {
         try {
-            Path outputDir = Paths.get(pdfOutputPath);
-            Files.createDirectories(outputDir);
+            log.info("Generating sticker PDF for invoice {}", invoice.getId());
 
-            String fileName = String.format("sticker_%d_%s.pdf",
-                invoice.getId(), UUID.randomUUID().toString());
-
-            String filePath = outputDir.resolve(fileName).toString();
+            // Generate PDF content in memory
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
             // Small sticker size (10cm x 5cm)
             Rectangle stickerSize = new Rectangle(283, 142); // 10cm x 5cm at 72 DPI
             Document document = new Document(stickerSize, 10, 10, 10, 10);
-            PdfWriter writer = PdfWriter.getInstance(document, new FileOutputStream(filePath));
+            PdfWriter writer = PdfWriter.getInstance(document, baos);
 
             document.open();
 
@@ -137,9 +142,15 @@ public class PdfGenerationService {
 
             document.close();
 
-            return filePath;
+            // Store PDF in MinIO/S3
+            String fileName = String.format("sticker_%d.pdf", invoice.getId());
+            String publicUrl = storageService.storePdf(baos.toByteArray(), fileName, "stickers");
+            
+            log.info("Sticker PDF generated and stored successfully: {}", publicUrl);
+            return publicUrl;
 
         } catch (Exception e) {
+            log.error("Error generating sticker PDF: {}", e.getMessage(), e);
             throw new RuntimeException("Error generating sticker PDF: " + e.getMessage(), e);
         }
     }

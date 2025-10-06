@@ -405,7 +405,7 @@ const FactoryWorkerPage = () => {
     }
 
     return (
-        <div className="space-y-6 p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div className="space-y-6 p-6  dark:bg-gray-900 min-h-screen">
             <PageHeader
                 title={t('factory.title', 'قائمة الطباعة - المصنع')}
                 subtitle={t('factory.subtitle', 'إدارة طباعة الملصقات والفواتير')}

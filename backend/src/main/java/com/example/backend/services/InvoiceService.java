@@ -302,7 +302,6 @@ public class InvoiceService {
             notifyPrintJobFailure(invoice.getId(), "خطأ غير متوقع في إنشاء مهام الطباعة", e);
         }
     }
-
     /**
      * Handle factory notification (non-critical)
      */
