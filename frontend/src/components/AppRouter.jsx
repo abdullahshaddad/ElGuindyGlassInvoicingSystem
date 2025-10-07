@@ -120,6 +120,7 @@ const AppRouter = () => {
                     <Route path="/" element={<AuthRedirect/>}/>
 
                     {/* Cashier Routes - Separate Layout (CASHIER only) */}
+
                     <Route
                         path="/cashier"
                         element={

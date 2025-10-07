@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
@@ -96,62 +97,32 @@ public class PdfGenerationService {
         try {
             log.info("Generating sticker PDF for invoice {}", invoice.getId());
 
-            // Generate PDF content in memory
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-            // Small sticker size (10cm x 5cm)
-            Rectangle stickerSize = new Rectangle(283, 142); // 10cm x 5cm at 72 DPI
-            Document document = new Document(stickerSize, 10, 10, 10, 10);
+            Document document = new Document(PageSize.A5);
             PdfWriter writer = PdfWriter.getInstance(document, baos);
-
+            writer.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
             document.open();
 
             BaseFont arabicFont = getArabicFont();
-            Font titleFont = new Font(arabicFont, 14, Font.BOLD);
-            Font normalFont = new Font(arabicFont, 10, Font.NORMAL);
-            Font smallFont = new Font(arabicFont, 8, Font.NORMAL);
+            Font titleFont = new Font(arabicFont, 16, Font.BOLD);
+            Font headerFont = new Font(arabicFont, 13, Font.BOLD);
+            Font normalFont = new Font(arabicFont, 11, Font.NORMAL);
+            Font boldFont = new Font(arabicFont, 11, Font.BOLD);
 
-            writer.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
-
-            // Company name
-            Paragraph company = new Paragraph("مجموعة الجندي للزجاج", titleFont);
-            company.setAlignment(Element.ALIGN_CENTER);
-            document.add(company);
-
-            // Invoice number
-            Paragraph invoiceNum = new Paragraph("فاتورة #" + invoice.getId(), normalFont);
-            invoiceNum.setAlignment(Element.ALIGN_CENTER);
-            document.add(invoiceNum);
-
-            // Customer name
-            Paragraph customer = new Paragraph(invoice.getCustomer().getName(), normalFont);
-            customer.setAlignment(Element.ALIGN_CENTER);
-            document.add(customer);
-
-            // Date
-            Paragraph date = new Paragraph(
-                invoice.getIssueDate().format(DateTimeFormatter.ofPattern("yyyy/MM/dd")), smallFont);
-            date.setAlignment(Element.ALIGN_CENTER);
-            document.add(date);
-
-            // Total amount
-            Paragraph total = new Paragraph(
-                String.format("%.2f ج.م", invoice.getTotalPrice()), normalFont);
-            total.setAlignment(Element.ALIGN_CENTER);
-            document.add(total);
+            // Build the new sticker layout
+            buildStickerPdf(document, invoice, titleFont, headerFont, normalFont, boldFont);
 
             document.close();
 
-            // Store PDF in MinIO/S3
             String fileName = String.format("sticker_%d.pdf", invoice.getId());
             String publicUrl = storageService.storePdf(baos.toByteArray(), fileName, "stickers");
-            
-            log.info("Sticker PDF generated and stored successfully: {}", publicUrl);
+
+            log.info("Sticker PDF generated successfully: {}", publicUrl);
             return publicUrl;
 
         } catch (Exception e) {
             log.error("Error generating sticker PDF: {}", e.getMessage(), e);
-            throw new RuntimeException("Error generating sticker PDF: " + e.getMessage(), e);
+            throw new RuntimeException("Error generating sticker PDF", e);
         }
     }
 
@@ -371,4 +342,247 @@ public class PdfGenerationService {
         timestamp.setSpacingBefore(10);
         document.add(timestamp);
     }
+
+    private void buildStickerPdf(Document document, Invoice invoice,
+                                 Font titleFont, Font headerFont,
+                                 Font normalFont, Font boldFont) throws DocumentException {
+
+        // حجم صغير للملصق (A5 أو A6)
+        document.setPageSize(PageSize.A5);
+        document.setMargins(20, 20, 20, 20);
+
+        // ===== رأس الشركة مع Logo =====
+        PdfPTable headerTable = new PdfPTable(2);
+        headerTable.setWidthPercentage(100);
+        headerTable.setWidths(new float[]{1, 3});
+        headerTable.setSpacingAfter(10);
+
+        // Logo placeholder (يمكن إضافة صورة لاحقاً)
+        PdfPCell logoCell = new PdfPCell();
+        logoCell.setBackgroundColor(new BaseColor(66, 133, 244)); // أزرق
+        logoCell.setFixedHeight(50);
+        logoCell.setBorder(Rectangle.BOX);
+        logoCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        logoCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        Paragraph logoText = new Paragraph("EG", new Font(boldFont.getBaseFont(), 20, Font.BOLD, BaseColor.WHITE));
+        logoText.setAlignment(Element.ALIGN_CENTER);
+        logoCell.addElement(logoText);
+        headerTable.addCell(logoCell);
+
+        // اسم الشركة
+        PdfPCell companyCell = new PdfPCell();
+        companyCell.setBorder(Rectangle.BOX);
+        companyCell.setPadding(5);
+        Paragraph companyName = new Paragraph("شركة الجندي للزجاج",
+                new Font(boldFont.getBaseFont(), 16, Font.BOLD));
+        companyName.setAlignment(Element.ALIGN_RIGHT);
+        companyCell.addElement(companyName);
+        Paragraph companySubtitle = new Paragraph("ELGUINDY GLASS",
+                new Font(normalFont.getBaseFont(), 10, Font.NORMAL, BaseColor.GRAY));
+        companySubtitle.setAlignment(Element.ALIGN_RIGHT);
+        companyCell.addElement(companySubtitle);
+        Paragraph companyDesc = new Paragraph("شركة دولية لصناعة الزجاج",
+                new Font(normalFont.getBaseFont(), 8, Font.NORMAL, BaseColor.GRAY));
+        companyDesc.setAlignment(Element.ALIGN_RIGHT);
+        companyCell.addElement(companyDesc);
+        headerTable.addCell(companyCell);
+
+        document.add(headerTable);
+
+        // خط فاصل
+        document.add(new LineSeparator(1, 100, BaseColor.BLACK, Element.ALIGN_CENTER, -2));
+        document.add(Chunk.NEWLINE);
+
+        // ===== جدول المعلومات الرئيسي =====
+        PdfPTable mainTable = new PdfPTable(2);
+        mainTable.setWidthPercentage(100);
+        mainTable.setWidths(new float[]{1, 2});
+        mainTable.setSpacingAfter(10);
+
+        Font labelFont = new Font(boldFont.getBaseFont(), 11, Font.BOLD);
+        Font valueFont = new Font(normalFont.getBaseFont(), 11, Font.NORMAL);
+        Font largeValueFont = new Font(boldFont.getBaseFont(), 14, Font.BOLD);
+
+        // الحصول على أول بند من الفاتورة
+        InvoiceLine firstLine = invoice.getInvoiceLines().get(0);
+        String glassTypeName = firstLine.getGlassType().getName();
+
+        // Product (نوع الزجاج)
+        addStickerRow(mainTable, "المنتج", glassTypeName, labelFont, valueFont, true);
+
+        // Thickness (السماكة)
+        String thickness = String.format("%.0f مم", firstLine.getGlassType().getThickness());
+        addStickerRow(mainTable, "السماكة", thickness, labelFont, largeValueFont, false);
+
+        // Size (المقاس)
+        String size = String.format("%.0f × %.0f %s",
+                firstLine.getWidth(),
+                firstLine.getHeight(),
+                firstLine.getDimensionUnit());
+
+        addStickerRow(mainTable, "المقاس", size, labelFont, largeValueFont, true);
+
+        // Color (اللون) - من خصائص الزجاج
+        String color = "شفاف"; // يمكن تعديله حسب نوع الزجاج
+        PdfPCell colorLabelCell = new PdfPCell(new Phrase("اللون", labelFont));
+        colorLabelCell.setBorder(Rectangle.BOX);
+        colorLabelCell.setPadding(8);
+        colorLabelCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        mainTable.addCell(colorLabelCell);
+
+        PdfPCell colorValueCell = new PdfPCell();
+        colorValueCell.setBorder(Rectangle.BOX);
+        colorValueCell.setPadding(8);
+
+        // Checkbox style
+        Chunk checkClear = new Chunk("☑ شفاف    ", valueFont);
+        Chunk checkColored = new Chunk("☐ ملون", valueFont);
+        Paragraph colorPara = new Paragraph();
+        colorPara.add(checkClear);
+        colorPara.add(checkColored);
+        colorPara.setAlignment(Element.ALIGN_RIGHT);
+        colorValueCell.addElement(colorPara);
+        mainTable.addCell(colorValueCell);
+
+        // Unit (الوحدة)
+        addStickerRow(mainTable, "الوحدة", "لوح", labelFont, valueFont, false);
+
+        // Quantity (الكمية)
+        String quantity = String.valueOf(invoice.getInvoiceLines().size());
+        addStickerRow(mainTable, "الكمية", quantity, labelFont, largeValueFont, true);
+
+        // Packing Date (تاريخ التعبئة)
+        String packingDate = invoice.getIssueDate().format(
+                DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        addStickerRow(mainTable, "تاريخ التعبئة", packingDate, labelFont, valueFont, false);
+
+        // Customer (العميل)
+        PdfPCell customerLabelCell = new PdfPCell(new Phrase("العميل", labelFont));
+        customerLabelCell.setBorder(Rectangle.BOX);
+        customerLabelCell.setPadding(8);
+        customerLabelCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        mainTable.addCell(customerLabelCell);
+
+        PdfPCell customerValueCell = new PdfPCell();
+        customerValueCell.setBorder(Rectangle.BOX);
+        customerValueCell.setPadding(8);
+
+        Chunk checkLocal = new Chunk("☑ محلي    ", valueFont);
+        Chunk checkExport = new Chunk("☐ تصدير", valueFont);
+        Paragraph customerPara = new Paragraph();
+        customerPara.add(checkLocal);
+        customerPara.add(checkExport);
+        customerPara.setAlignment(Element.ALIGN_RIGHT);
+        customerValueCell.addElement(customerPara);
+        mainTable.addCell(customerValueCell);
+
+        // QC (مراقبة الجودة)
+        PdfPCell qcLabelCell = new PdfPCell(new Phrase("مراقبة الجودة", labelFont));
+        qcLabelCell.setBorder(Rectangle.BOX);
+        qcLabelCell.setPadding(8);
+        qcLabelCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        mainTable.addCell(qcLabelCell);
+
+        PdfPCell qcValueCell = new PdfPCell(new Phrase("OK ✓",
+                new Font(boldFont.getBaseFont(), 12, Font.BOLD, new BaseColor(76, 175, 80))));
+        qcValueCell.setBorder(Rectangle.BOX);
+        qcValueCell.setPadding(8);
+        qcValueCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        qcValueCell.setBackgroundColor(new BaseColor(232, 245, 233));
+        mainTable.addCell(qcValueCell);
+
+        document.add(mainTable);
+
+        // ===== معلومات إضافية في الأسفل =====
+        document.add(new LineSeparator(1, 100, BaseColor.LIGHT_GRAY, Element.ALIGN_CENTER, -2));
+        document.add(Chunk.NEWLINE);
+
+        // اسم العميل
+        Paragraph customerName = new Paragraph(
+                "العميل: " + invoice.getCustomer().getName(),
+                new Font(boldFont.getBaseFont(), 10, Font.BOLD));
+        customerName.setAlignment(Element.ALIGN_RIGHT);
+        document.add(customerName);
+
+        // رقم الفاتورة
+        Paragraph invoiceNum = new Paragraph(
+                "رقم الفاتورة: #" + invoice.getId(),
+                new Font(normalFont.getBaseFont(), 9, Font.NORMAL, BaseColor.GRAY));
+        invoiceNum.setAlignment(Element.ALIGN_RIGHT);
+        invoiceNum.setSpacingAfter(5);
+        document.add(invoiceNum);
+
+        // ملاحظات إن وجدت
+        if (invoice.getNotes() != null && !invoice.getNotes().trim().isEmpty()) {
+            Paragraph notes = new Paragraph(
+                    "ملاحظات: " + invoice.getNotes(),
+                    new Font(normalFont.getBaseFont(), 8, Font.ITALIC));
+            notes.setAlignment(Element.ALIGN_RIGHT);
+            notes.setSpacingAfter(10);
+            document.add(notes);
+        }
+
+        // ===== Footer =====
+        PdfPTable footerTable = new PdfPTable(2);
+        footerTable.setWidthPercentage(100);
+        footerTable.setWidths(new float[]{1, 1});
+
+        // Contact info
+        PdfPCell contactCell = new PdfPCell();
+        contactCell.setBorder(Rectangle.NO_BORDER);
+        Paragraph hotline = new Paragraph("الخط الساخن: 19864",
+                new Font(normalFont.getBaseFont(), 7, Font.NORMAL));
+        hotline.setAlignment(Element.ALIGN_LEFT);
+        contactCell.addElement(hotline);
+        Paragraph website = new Paragraph("www.elguindyglass.com",
+                new Font(normalFont.getBaseFont(), 7, Font.NORMAL, BaseColor.BLUE));
+        website.setAlignment(Element.ALIGN_LEFT);
+        contactCell.addElement(website);
+        Paragraph email = new Paragraph("info@elguindyglass.com",
+                new Font(normalFont.getBaseFont(), 7, Font.NORMAL));
+        email.setAlignment(Element.ALIGN_LEFT);
+        contactCell.addElement(email);
+        footerTable.addCell(contactCell);
+
+        // Document number and version
+        PdfPCell docCell = new PdfPCell();
+        docCell.setBorder(Rectangle.NO_BORDER);
+        Paragraph docNum = new Paragraph("GMF-70950-09",
+                new Font(normalFont.getBaseFont(), 7, Font.NORMAL));
+        docNum.setAlignment(Element.ALIGN_RIGHT);
+        docCell.addElement(docNum);
+        Paragraph version = new Paragraph(
+                "VER 3 " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                new Font(normalFont.getBaseFont(), 7, Font.NORMAL));
+        version.setAlignment(Element.ALIGN_RIGHT);
+        docCell.addElement(version);
+        footerTable.addCell(docCell);
+
+        document.add(footerTable);
+    }
+
+    private void addStickerRow(PdfPTable table, String label, String value,
+                               Font labelFont, Font valueFont, boolean highlightValue) {
+        // Label cell
+        PdfPCell labelCell = new PdfPCell(new Phrase(label, labelFont));
+        labelCell.setBorder(Rectangle.BOX);
+        labelCell.setPadding(8);
+        labelCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        labelCell.setBackgroundColor(new BaseColor(245, 245, 245));
+        table.addCell(labelCell);
+
+        // Value cell
+        PdfPCell valueCell = new PdfPCell(new Phrase(value, valueFont));
+        valueCell.setBorder(Rectangle.BOX);
+        valueCell.setPadding(8);
+        valueCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        if (highlightValue) {
+            valueCell.setBackgroundColor(new BaseColor(255, 253, 231)); // أصفر فاتح
+        }
+
+        table.addCell(valueCell);
+    }
+
+
 }

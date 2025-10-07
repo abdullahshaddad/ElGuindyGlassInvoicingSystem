@@ -26,6 +26,7 @@ import NewCustomerForm from './components/NewCustomerForm';
 import InvoiceList from './components/InvoiceList';
 import InvoiceViewModal from './components/InvoiceViewModal';
 import PrintJobStatusModal from './components/PrintJobStatusModal';
+import {useSnackbar} from "@contexts/SnackbarContext.jsx";
 
 
 const CashierInvoicesPage = () => {
@@ -35,8 +36,8 @@ const CashierInvoicesPage = () => {
     const [currentMode, setCurrentMode] = useState('list'); // 'list', 'create', 'addCustomer'
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(null);
+    // const [success, setSuccess] = useState(null);
+    const { showSuccess, showError, showInfo, showWarning } = useSnackbar();
 
     // POS states
     const [cart, setCart] = useState([]);
@@ -89,8 +90,8 @@ const CashierInvoicesPage = () => {
     // Auto-clear messages
     const clearMessages = useCallback(() => {
         setTimeout(() => {
-            setError(null);
-            setSuccess(null);
+            // setError(null);
+            // setSuccess(null);
         }, 5000);
     }, []);
 
@@ -100,11 +101,6 @@ const CashierInvoicesPage = () => {
         loadGlassTypes();
     }, []);
 
-    useEffect(() => {
-        if (error || success) {
-            clearMessages();
-        }
-    }, [error, success, clearMessages]);
 
     // Customer search with debouncing
     useEffect(() => {
@@ -144,7 +140,7 @@ const CashierInvoicesPage = () => {
             setTotalPages(response.totalPages || 0);
         } catch (err) {
             console.error('Load invoices error:', err);
-            setError('فشل في تحميل الفواتير');
+            showError('فشل في تحميل الفواتير');
         } finally {
             setLoading(false);
         }
@@ -197,7 +193,7 @@ const CashierInvoicesPage = () => {
 
     const handleSaveNewCustomer = async () => {
         if (!newCustomer.name.trim()) {
-            setError('اسم العميل مطلوب');
+            showError('اسم العميل مطلوب');
             return;
         }
 
@@ -207,13 +203,13 @@ const CashierInvoicesPage = () => {
             setSelectedCustomer(savedCustomer);
             setCurrentMode('create');
             setNewCustomer({ name: '', phone: '', address: '', email: '' });
-            setSuccess(`تم إضافة العميل ${savedCustomer.name} بنجاح`);
+            showSuccess(`تم إضافة العميل ${savedCustomer.name} بنجاح`);
 
             // Focus on glass type selection
             setTimeout(() => glassTypeRef.current?.focus(), 100);
         } catch (err) {
             console.error('Create customer error:', err);
-            setError('فشل في إضافة العميل');
+            showError('فشل في إضافة العميل');
         } finally {
             setIsAddingCustomer(false);
         }
@@ -229,18 +225,18 @@ const CashierInvoicesPage = () => {
 
     const handleAddLineToCart = async () => {
         if (!currentLine.glassTypeId || !currentLine.width || !currentLine.height) {
-            setError('يرجى ملء جميع البيانات المطلوبة');
+            showError('يرجى ملء جميع البيانات المطلوبة');
             return;
         }
 
         const glassType = glassTypes.find(gt => gt.id == currentLine.glassTypeId);
         if (!glassType) {
-            setError('نوع الزجاج غير صحيح');
+            showError('نوع الزجاج غير صحيح');
             return;
         }
 
         if (currentLine.cuttingType === 'LASER' && !currentLine.manualCuttingPrice) {
-            setError('يرجى إدخال سعر القطع للقطع بالليزر');
+            showError('يرجى إدخال سعر القطع للقطع بالليزر');
             return;
         }
 
@@ -278,7 +274,7 @@ const CashierInvoicesPage = () => {
             setTimeout(() => widthRef.current?.focus(), 100);
         } catch (err) {
             console.error('Add to cart error:', err);
-            setError('فشل في حساب سعر البند. يرجى المحاولة مرة أخرى.');
+            showError('فشل في حساب سعر البند. يرجى المحاولة مرة أخرى.');
         }
     };
 
@@ -306,7 +302,7 @@ const CashierInvoicesPage = () => {
             ));
         } catch (err) {
             console.error('Recalculate cart item error:', err);
-            setError('فشل في إعادة حساب السعر');
+            showError('فشل في إعادة حساب السعر');
         }
     };
 
@@ -325,17 +321,17 @@ const CashierInvoicesPage = () => {
 
     const handleCreateInvoice = async () => {
         if (!selectedCustomer) {
-            setError('يرجى اختيار العميل');
+            showError('يرجى اختيار العميل');
             return;
         }
 
         if (cart.length === 0) {
-            setError('يرجى إضافة عنصر واحد على الأقل للفاتورة');
+            showError('يرجى إضافة عنصر واحد على الأقل للفاتورة');
             return;
         }
 
         setIsCreating(true);
-        setError(null);
+        showError(null);
 
         try {
             const invoiceData = {
@@ -356,7 +352,7 @@ const CashierInvoicesPage = () => {
             const newInvoice = await invoiceService.createInvoice(invoiceData);
             const totals = calculateCartTotals();
 
-            setSuccess(`تم إنشاء الفاتورة رقم ${newInvoice.id} بنجاح! الإجمالي: ${totals.total.toFixed(2)} ج.م`);
+            showSuccess(`تم إنشاء الفاتورة رقم ${newInvoice.id} بنجاح! الإجمالي: ${totals.total.toFixed(2)} ج.م`);
 
             // التحقق من حالة مهام الطباعة
             await checkPrintJobStatus(newInvoice.id);
@@ -366,7 +362,7 @@ const CashierInvoicesPage = () => {
 
         } catch (err) {
             console.error('Create invoice error:', err);
-            setError(err.response?.data?.message || 'فشل في إنشاء الفاتورة');
+            showError(err.response?.data?.message || 'فشل في إنشاء الفاتورة');
         } finally {
             setIsCreating(false);
         }
@@ -434,13 +430,12 @@ const CashierInvoicesPage = () => {
 
     const handlePrintInvoice = async (invoice) => {
         if (!invoice || !invoice.id) {
-            setError('معلومات الفاتورة غير صحيحة');
+            showError('معلومات الفاتورة غير صحيحة');
             return;
         }
         try {
             setIsPrinting(true);
             setPrintStatus('جاري إرسال الفاتورة للطباعة...');
-            setError('');
 
             // Note: Print jobs are automatically created when the invoice is created
             // by the backend InvoiceService. However, we can trigger additional
@@ -452,14 +447,14 @@ const CashierInvoicesPage = () => {
                 try {
                     const stickerJob = await printJobService.createStickerPrintJob(invoice.id);
                     setPrintStatus('تم إرسال الملصق للطباعة بنجاح');
-                    setSuccess(`تم إرسال الفاتورة ${invoice.id} والملصق للطباعة`);
+                    showSuccess(`تم إرسال الفاتورة ${invoice.id} والملصق للطباعة`);
                 } catch (stickerError) {
                     console.error('Sticker print error:', stickerError);
                     // Don't fail the entire process if sticker fails
-                    setSuccess(`تم إرسال الفاتورة ${invoice.id} للطباعة (فشل طباعة الملصق)`);
+                    showSuccess(`تم إرسال الفاتورة ${invoice.id} للطباعة (فشل طباعة الملصق)`);
                 }
             } else {
-                setSuccess(`تم إرسال الفاتورة ${invoice.id} للطباعة`);
+                showSuccess(`تم إرسال الفاتورة ${invoice.id} للطباعة`);
             }
 
             // Show print status details
@@ -478,7 +473,7 @@ const CashierInvoicesPage = () => {
                 errorMessage = `خطأ في الطباعة: ${err.message}`;
             }
 
-            setError(errorMessage);
+            showError(errorMessage);
             setPrintStatus(null);
         } finally {
             setIsPrinting(false);
@@ -487,7 +482,7 @@ const CashierInvoicesPage = () => {
 
     const handleReprintInvoice = async (invoice) => {
         if (!invoice || !invoice.id) {
-            setError('معلومات الفاتورة غير صحيحة');
+            showError('معلومات الفاتورة غير صحيحة');
             return;
         }
 
@@ -498,25 +493,24 @@ const CashierInvoicesPage = () => {
         try {
             setIsPrinting(true);
             setPrintStatus('جاري إعادة إرسال الفاتورة للطباعة...');
-            setError('');
 
             // Get queued print jobs to check status
             const queuedJobs = await printJobService.getQueuedJobs();
             const invoicePrintJobs = queuedJobs.filter(job => job.invoice?.id === invoice.id);
 
             if (invoicePrintJobs.length > 0) {
-                setSuccess(`يوجد ${invoicePrintJobs.length} مهام طباعة في قائمة الانتظار للفاتورة ${invoice.id}`);
+                showSuccess(`يوجد ${invoicePrintJobs.length} مهام طباعة في قائمة الانتظار للفاتورة ${invoice.id}`);
             } else {
                 // Create new sticker print job for reprint
                 await printJobService.createStickerPrintJob(invoice.id);
-                setSuccess(`تم إرسال الفاتورة ${invoice.id} للطباعة مجدداً`);
+                showSuccess(`تم إرسال الفاتورة ${invoice.id} للطباعة مجدداً`);
             }
 
             setPrintStatus(null);
 
         } catch (err) {
             console.error('Reprint invoice error:', err);
-            setError(`فشل في إعادة طباعة الفاتورة: ${err.message || 'خطأ غير معروف'}`);
+            showError(`فشل في إعادة طباعة الفاتورة: ${err.message || 'خطأ غير معروف'}`);
             setPrintStatus(null);
         } finally {
             setIsPrinting(false);
@@ -526,10 +520,10 @@ const CashierInvoicesPage = () => {
     const handleMarkAsPaid = async (invoice) => {
         try {
             await invoiceService.markAsPaid(invoice.id);
-            setSuccess(`تم تسديد الفاتورة ${invoice.id} بنجاح`);
+            showSuccess(`تم تسديد الفاتورة ${invoice.id} بنجاح`);
             loadInvoices(currentPage, searchTerm);
         } catch (err) {
-            setError('فشل في تسديد الفاتورة');
+            showError('فشل في تسديد الفاتورة');
         }
     };
 
@@ -540,7 +534,6 @@ const CashierInvoicesPage = () => {
         }
 
         setIsRetryingPrintJob(true);
-        setError(null);
 
         try {
             await printJobService.retryPrintJob(printJobStatus.invoiceId, printType);
@@ -551,7 +544,7 @@ const CashierInvoicesPage = () => {
                 STICKER: 'ملصق المصنع'
             }[printType] || printType;
 
-            setSuccess(`تم إعادة محاولة طباعة ${typeName} بنجاح`);
+            showSuccess(`تم إعادة محاولة طباعة ${typeName} بنجاح`);
 
             // تحديث الحالة بعد إعادة المحاولة
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -559,7 +552,7 @@ const CashierInvoicesPage = () => {
 
         } catch (err) {
             console.error('Retry print job error:', err);
-            setError(err.response?.data?.message || 'فشل في إعادة محاولة الطباعة');
+            showError(err.response?.data?.message || 'فشل في إعادة محاولة الطباعة');
         } finally {
             setIsRetryingPrintJob(false);
         }
@@ -612,36 +605,36 @@ const CashierInvoicesPage = () => {
                 }
             />
 
-            {/* Messages */}
-            {error && (
-                <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
-                    <FiX className="text-red-500 flex-shrink-0"/>
-                    <span className="text-red-700 flex-1">{error}</span>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setError(null)}
-                        className="text-red-500 hover:text-red-700"
-                    >
-                        <FiX size={16}/>
-                    </Button>
-                </div>
-            )}
+            {/*/!* Messages *!/*/}
+            {/*{error && (*/}
+            {/*    <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">*/}
+            {/*        <FiX className="text-red-500 flex-shrink-0"/>*/}
+            {/*        <span className="text-red-700 flex-1">{error}</span>*/}
+            {/*        <Button*/}
+            {/*            variant="ghost"*/}
+            {/*            size="sm"*/}
+            {/*            onClick={() => setError(null)}*/}
+            {/*            className="text-red-500 hover:text-red-700"*/}
+            {/*        >*/}
+            {/*            <FiX size={16}/>*/}
+            {/*        </Button>*/}
+            {/*    </div>*/}
+            {/*)}*/}
 
-            {success && (
-                <div className="mx-6 mt-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
-                    <FiCheck className="text-green-500 flex-shrink-0"/>
-                    <span className="text-green-700 flex-1">{success}</span>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSuccess(null)}
-                        className="text-green-500 hover:text-green-700"
-                    >
-                        <FiX size={16}/>
-                    </Button>
-                </div>
-            )}
+            {/*{success && (*/}
+            {/*    <div className="mx-6 mt-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">*/}
+            {/*        <FiCheck className="text-green-500 flex-shrink-0"/>*/}
+            {/*        <span className="text-green-700 flex-1">{success}</span>*/}
+            {/*        <Button*/}
+            {/*            variant="ghost"*/}
+            {/*            size="sm"*/}
+            {/*            onClick={() => setSuccess(null)}*/}
+            {/*            className="text-green-500 hover:text-green-700"*/}
+            {/*        >*/}
+            {/*            <FiX size={16}/>*/}
+            {/*        </Button>*/}
+            {/*    </div>*/}
+            {/*)}*/}
 
             {printStatus && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 px-4 py-3 rounded-lg flex items-center gap-2">
