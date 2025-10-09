@@ -17,23 +17,33 @@ import {
     Badge,
     Modal
 } from '@components';
+import { ConfirmationDialog } from '@components/ui/ConfirmationDialog';
 import { printJobService } from '@services/printJobService';
 import { printPDF, fetchAndPrintPDF, downloadPDF } from '@utils/printHelper';
 import useAuthorized from '@hooks/useAuthorized';
+import { useSnackbar } from '@contexts/SnackbarContext';
 
 const FactoryWorkerPage = () => {
     const { t, i18n } = useTranslation();
     const { isAuthorized, isLoading: authLoading } = useAuthorized(['WORKER', 'OWNER']);
+    const { showSuccess, showError, showInfo, showWarning } = useSnackbar();
 
     const [printJobs, setPrintJobs] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
     const [refreshing, setRefreshing] = useState(false);
     const [processingJobId, setProcessingJobId] = useState(null);
     const [selectedJob, setSelectedJob] = useState(null);
     const [showFailModal, setShowFailModal] = useState(false);
     const [failReason, setFailReason] = useState('');
+
+    // Confirmation dialog state
+    const [confirmDialog, setConfirmDialog] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: null,
+        type: 'warning'
+    });
 
     const isRTL = i18n.language === 'ar';
 
@@ -49,13 +59,12 @@ const FactoryWorkerPage = () => {
     const loadPrintQueue = async (showLoader = true) => {
         try {
             if (showLoader) setLoading(true);
-            setError('');
 
             const jobs = await printJobService.getQueuedJobs();
             setPrintJobs(jobs || []);
         } catch (err) {
             console.error('Load print queue error:', err);
-            setError(t('factory.messages.load_error', 'فشل في تحميل قائمة الطباعة'));
+            showError(t('factory.messages.load_error', 'فشل في تحميل قائمة الطباعة'));
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -67,59 +76,56 @@ const FactoryWorkerPage = () => {
         loadPrintQueue(false);
     };
 
-    /**
-     * Start printing - Opens printer dialog
-     */
     const handleStartPrinting = async (job) => {
         try {
             setProcessingJobId(job.id);
-            setError('');
 
-            // First, mark as printing in backend
+            // Mark as printing in backend
             await printJobService.markAsPrinting(job.id);
 
-            // Then, attempt to print the PDF
+            // Attempt to print the PDF
             if (job.pdfPath) {
                 try {
-                    // Construct full PDF URL
                     const pdfUrl = job.pdfPath.startsWith('http')
                         ? job.pdfPath
                         : `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${job.pdfPath}`;
 
-                    // Try to print with authentication
                     await fetchAndPrintPDF(pdfUrl);
 
-                    setSuccess(t('factory.messages.print_started', `بدأت طباعة الملصق #${job.id}`));
+                    showSuccess(t('factory.messages.print_started', `بدأت طباعة الملصق #${job.id}`));
                 } catch (printError) {
                     console.error('Print error:', printError);
 
-                    // Fallback: offer download
-                    if (window.confirm('فشل في فتح الطابعة. هل تريد تنزيل الملف بدلاً من ذلك؟')) {
-                        const pdfUrl = job.pdfPath.startsWith('http')
-                            ? job.pdfPath
-                            : `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${job.pdfPath}`;
-                        downloadPDF(pdfUrl, `sticker-${job.id}.pdf`);
-                    }
+                    // Fallback: offer download using confirmation dialog
+                    setConfirmDialog({
+                        isOpen: true,
+                        title: 'فشل في فتح الطابعة',
+                        message: 'فشل في فتح الطابعة. هل تريد تنزيل الملف بدلاً من ذلك؟',
+                        type: 'warning',
+                        onConfirm: () => {
+                            const pdfUrl = job.pdfPath.startsWith('http')
+                                ? job.pdfPath
+                                : `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${job.pdfPath}`;
+                            downloadPDF(pdfUrl, `sticker-${job.id}.pdf`);
+                        }
+                    });
                 }
             } else {
-                setError('مسار ملف PDF غير متوفر');
+                showError('مسار ملف PDF غير متوفر');
             }
 
             await loadPrintQueue(false);
         } catch (err) {
             console.error('Start printing error:', err);
-            setError(t('factory.messages.print_start_error', 'فشل في بدء الطباعة'));
+            showError(t('factory.messages.print_start_error', 'فشل في بدء الطباعة'));
         } finally {
             setProcessingJobId(null);
         }
     };
 
-    /**
-     * Reprint job - For PRINTING status jobs
-     */
     const handleReprint = async (job) => {
         if (!job.pdfPath) {
-            setError('مسار ملف PDF غير متوفر');
+            showError('مسار ملف PDF غير متوفر');
             return;
         }
 
@@ -131,31 +137,38 @@ const FactoryWorkerPage = () => {
                 : `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${job.pdfPath}`;
 
             await fetchAndPrintPDF(pdfUrl);
-            setSuccess(`تمت إعادة طباعة الملصق #${job.id}`);
+            showSuccess(`تمت إعادة طباعة الملصق #${job.id}`);
         } catch (error) {
             console.error('Reprint error:', error);
-            setError('فشل في إعادة الطباعة');
+            showError('فشل في إعادة الطباعة');
         } finally {
             setProcessingJobId(null);
         }
     };
 
     const handleMarkPrinted = async (job) => {
-        if (!window.confirm(t('factory.messages.mark_printed_confirm', 'هل تم طباعة الملصق بنجاح؟'))) {
-            return;
-        }
+        setConfirmDialog({
+            isOpen: true,
+            title: 'تأكيد إتمام الطباعة',
+            message: t('factory.messages.mark_printed_confirm', 'هل تم طباعة الملصق بنجاح؟'),
+            type: 'info',
+            onConfirm: async () => {
+                await executeMarkPrinted(job);
+            }
+        });
+    };
 
+    const executeMarkPrinted = async (job) => {
         try {
             setProcessingJobId(job.id);
-            setError('');
 
             await printJobService.markAsPrinted(job.id);
-            setSuccess(t('factory.messages.print_completed', `تمت طباعة الملصق #${job.id} بنجاح`));
+            showSuccess(t('factory.messages.print_completed', `تمت طباعة الملصق #${job.id} بنجاح`));
 
             await loadPrintQueue(false);
         } catch (err) {
             console.error('Mark printed error:', err);
-            setError(t('factory.messages.print_complete_error', 'فشل في تحديث حالة الطباعة'));
+            showError(t('factory.messages.print_complete_error', 'فشل في تحديث حالة الطباعة'));
         } finally {
             setProcessingJobId(null);
         }
@@ -169,16 +182,15 @@ const FactoryWorkerPage = () => {
 
     const handleMarkFailed = async () => {
         if (!failReason.trim()) {
-            setError(t('factory.messages.fail_reason_required', 'يرجى إدخال سبب الفشل'));
+            showError(t('factory.messages.fail_reason_required', 'يرجى إدخال سبب الفشل'));
             return;
         }
 
         try {
             setProcessingJobId(selectedJob.id);
-            setError('');
 
             await printJobService.markAsFailed(selectedJob.id, failReason);
-            setSuccess(t('factory.messages.print_failed_marked', `تم تسجيل فشل الطباعة للملصق #${selectedJob.id}`));
+            showSuccess(t('factory.messages.print_failed_marked', `تم تسجيل فشل الطباعة للملصق #${selectedJob.id}`));
 
             setShowFailModal(false);
             setSelectedJob(null);
@@ -187,7 +199,7 @@ const FactoryWorkerPage = () => {
             await loadPrintQueue(false);
         } catch (err) {
             console.error('Mark failed error:', err);
-            setError(t('factory.messages.mark_failed_error', 'فشل في تسجيل الفشل'));
+            showError(t('factory.messages.mark_failed_error', 'فشل في تسجيل الفشل'));
         } finally {
             setProcessingJobId(null);
         }
@@ -405,7 +417,7 @@ const FactoryWorkerPage = () => {
     }
 
     return (
-        <div className="space-y-6 p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div className="space-y-6 p-6 dark:bg-gray-900 min-h-screen">
             <PageHeader
                 title={t('factory.title', 'قائمة الطباعة - المصنع')}
                 subtitle={t('factory.subtitle', 'إدارة طباعة الملصقات والفواتير')}
@@ -425,36 +437,6 @@ const FactoryWorkerPage = () => {
                     </Button>
                 }
             />
-
-            {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg flex items-center gap-2">
-                    <FiAlertCircle size={20} />
-                    <span className="flex-1">{error}</span>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setError('')}
-                        className="text-red-600 dark:text-red-400"
-                    >
-                        <FiXCircle size={16} />
-                    </Button>
-                </div>
-            )}
-
-            {success && (
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded-lg flex items-center gap-2">
-                    <FiCheckCircle size={20} />
-                    <span className="flex-1">{success}</span>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSuccess('')}
-                        className="text-green-600 dark:text-green-400"
-                    >
-                        <FiXCircle size={16} />
-                    </Button>
-                </div>
-            )}
 
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -566,6 +548,16 @@ const FactoryWorkerPage = () => {
                     </div>
                 </div>
             </Modal>
+
+            {/* Confirmation Dialog */}
+            <ConfirmationDialog
+                isOpen={confirmDialog.isOpen}
+                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+                onConfirm={confirmDialog.onConfirm}
+                title={confirmDialog.title}
+                message={confirmDialog.message}
+                type={confirmDialog.type}
+            />
         </div>
     );
 };

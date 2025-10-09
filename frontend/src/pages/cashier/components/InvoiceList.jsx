@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiSearch, FiClock, FiEye, FiPrinter, FiCreditCard } from 'react-icons/fi';
+import { FiSearch, FiClock, FiEye, FiPrinter, FiCreditCard, FiPackage } from 'react-icons/fi';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import DataTable from '@/components/ui/DataTable';
@@ -11,11 +11,13 @@ const InvoiceList = ({
                          searchTerm,
                          currentPage,
                          totalPages,
-                         isPrinting = false, // ADD THIS PROP WITH DEFAULT VALUE
+                         isPrinting = false,
+                         isSendingToFactory = false,
                          onSearchChange,
                          onPageChange,
                          onViewInvoice,
-                         onPrintInvoice, // This is the reprint function from parent
+                         onPrintInvoice,
+                         onSendToFactory,
                          onMarkAsPaid
                      }) => {
     // Table columns for invoice list
@@ -126,18 +128,34 @@ const InvoiceList = ({
                         )}
                     </Button>
 
-                    {/* Mark as Paid Button */}
-                    {invoice?.status === 'PENDING' && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onMarkAsPaid(invoice)}
-                            className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20"
-                            title="تسديد"
-                        >
-                            <FiCreditCard size={16}/>
-                        </Button>
-                    )}
+                    {/* Send to Factory Button */}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onSendToFactory(invoice)}
+                        disabled={isSendingToFactory}
+                        className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="إرسال للمصنع"
+                    >
+                        {isSendingToFactory ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600 dark:border-orange-400"></div>
+                        ) : (
+                            <FiPackage size={16} />
+                        )}
+                    </Button>
+
+                    {/*/!* Mark as Paid Button *!/*/}
+                    {/*{invoice?.status === 'PENDING' && (*/}
+                    {/*    <Button*/}
+                    {/*        variant="ghost"*/}
+                    {/*        size="sm"*/}
+                    {/*        onClick={() => onMarkAsPaid(invoice)}*/}
+                    {/*        className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20"*/}
+                    {/*        title="تسديد"*/}
+                    {/*    >*/}
+                    {/*        <FiCreditCard size={16}/>*/}
+                    {/*    </Button>*/}
+                    {/*)}*/}
                 </div>
             )
         }

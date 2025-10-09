@@ -1,15 +1,23 @@
 package com.example.backend.services;
 
+import com.example.backend.dto.PrintJobStatusDTO;
+import com.example.backend.exceptions.invoice.InvoiceNotFoundException;
 import com.example.backend.exceptions.printjob.PdfGenerationException;
 import com.example.backend.exceptions.printjob.PrintJobCreationException;
 import com.example.backend.exceptions.printjob.PrintJobDatabaseException;
 import com.example.backend.exceptions.printjob.PrintJobException;
 import com.example.backend.models.Invoice;
+import com.example.backend.models.InvoiceLine;
 import com.example.backend.models.PrintJob;
+import com.example.backend.models.PrintJobStatus;
 import com.example.backend.models.enums.PrintStatus;
 import com.example.backend.models.enums.PrintType;
 import com.example.backend.repositories.InvoiceRepository;
 import com.example.backend.repositories.PrintJobRepository;
+import com.itextpdf.text.*;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.draw.LineSeparator;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,7 +29,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -50,148 +60,168 @@ private final InvoiceRepository invoiceRepository;
      * Continues with partial success if some jobs fail
      */
     @Transactional(rollbackFor = Exception.class)
-    public void createPrintJobs(Invoice invoice) {
-        if (invoice == null) {
-            log.error("Cannot create print jobs: invoice is null");
-            throw new IllegalArgumentException("Invoice cannot be null");
-        }
-
-        if (invoice.getId() == null) {
-            log.error("Cannot create print jobs: invoice ID is null");
-            throw new IllegalArgumentException("Invoice ID cannot be null");
-        }
-
-        log.info("Starting print job creation for invoice: {}", invoice.getId());
-
+    public void createPrintJobs(Invoice invoiceParam) {
         List<String> errors = new ArrayList<>();
         List<PrintJob> successfulJobs = new ArrayList<>();
         int totalJobs = 3; // CLIENT, OWNER, STICKER
 
         try {
+            // Reload invoice with all associations to ensure data is available
+            log.debug("Reloading invoice {} with all details for print job creation", invoiceParam.getId());
+            Invoice invoice = invoiceRepository.findByIdWithDetails(invoiceParam.getId())
+                    .orElseThrow(() -> new InvoiceNotFoundException(
+                            "الفاتورة غير موجودة: " + invoiceParam.getId()));
+
+            // Verify invoice lines are loaded
+            if (invoice.getInvoiceLines() == null || invoice.getInvoiceLines().isEmpty()) {
+                log.error("Invoice {} has no invoice lines", invoice.getId());
+                throw new PrintJobCreationException(
+                        "لا يمكن إنشاء مهام الطباعة: الفاتورة لا تحتوي على بنود");
+            }
+
+            log.info("Creating print jobs for invoice {} with {} lines",
+                    invoice.getId(), invoice.getInvoiceLines().size());
+
             // Create CLIENT print job
             try {
                 PrintJob clientJob = createSinglePrintJob(invoice, PrintType.CLIENT);
-                if (clientJob != null) {
-                    successfulJobs.add(clientJob);
-                    log.debug("CLIENT print job created successfully for invoice {}", invoice.getId());
-                }
+                successfulJobs.add(clientJob);
+                log.debug("CLIENT print job created: {}", clientJob.getPdfPath());
             } catch (Exception e) {
                 String error = "فشل في إنشاء مهمة طباعة العميل: " + e.getMessage();
                 errors.add(error);
-                log.error("Failed to create CLIENT print job for invoice {}: {}", invoice.getId(), e.getMessage(), e);
+                log.error("CLIENT print job failed: {}", e.getMessage(), e);
             }
 
             // Create OWNER print job
             try {
                 PrintJob ownerJob = createSinglePrintJob(invoice, PrintType.OWNER);
-                if (ownerJob != null) {
-                    successfulJobs.add(ownerJob);
-                    log.debug("OWNER print job created successfully for invoice {}", invoice.getId());
-                }
+                successfulJobs.add(ownerJob);
+                log.debug("OWNER print job created: {}", ownerJob.getPdfPath());
             } catch (Exception e) {
                 String error = "فشل في إنشاء مهمة طباعة المالك: " + e.getMessage();
                 errors.add(error);
-                log.error("Failed to create OWNER print job for invoice {}: {}", invoice.getId(), e.getMessage(), e);
+                log.error("OWNER print job failed: {}", e.getMessage(), e);
             }
 
-            // Create STICKER print job (special handling for different PDF type)
+            // Create STICKER print job
             try {
                 PrintJob stickerJob = createStickerPrintJob(invoice);
-                if (stickerJob != null) {
-                    successfulJobs.add(stickerJob);
-                    log.debug("STICKER print job created successfully for invoice {}", invoice.getId());
-                }
+                successfulJobs.add(stickerJob);
+                log.debug("STICKER print job created: {}", stickerJob.getPdfPath());
             } catch (Exception e) {
                 String error = "فشل في إنشاء مهمة طباعة الملصق: " + e.getMessage();
                 errors.add(error);
-                log.error("Failed to create STICKER print job for invoice {}: {}", invoice.getId(), e.getMessage(), e);
+                log.error("STICKER print job failed: {}", e.getMessage(), e);
             }
 
             // Evaluate results
             if (successfulJobs.isEmpty()) {
-                // Complete failure - all jobs failed
                 String allErrors = String.join(", ", errors);
                 log.error("All print jobs failed for invoice {}: {}", invoice.getId(), allErrors);
                 throw new PrintJobCreationException("فشل في إنشاء جميع مهام الطباعة: " + allErrors);
             }
 
             if (!errors.isEmpty()) {
-                // Partial success - some jobs failed
-                log.warn("Partial success creating print jobs for invoice {}: {} successful, {} failed",
-                        invoice.getId(), successfulJobs.size(), errors.size());
-                log.warn("Failed jobs errors: {}", String.join("; ", errors));
-            }
-
-            // Notify about successful jobs (non-critical)
-            try {
-                String message = String.format("تم إنشاء %d من %d مهام طباعة", successfulJobs.size(), totalJobs);
-                webSocketService.notifyPrintJobUpdate(invoice.getId(), message);
-                log.debug("Print job notification sent successfully for invoice {}", invoice.getId());
-            } catch (Exception e) {
-                log.warn("Failed to send print job notification for invoice {}: {}", invoice.getId(), e.getMessage());
-                // Don't fail the whole operation for notification issues
-            }
-
-            // Send partial failure alerts if needed
-            if (!errors.isEmpty()) {
+                log.warn("Partial success: {} of {} print jobs created for invoice {}",
+                        successfulJobs.size(), totalJobs, invoice.getId());
                 notifyPrintJobPartialFailure(invoice.getId(), successfulJobs.size(), totalJobs, errors);
+            } else {
+                log.info("All {} print jobs created successfully for invoice {}",
+                        totalJobs, invoice.getId());
             }
 
-            log.info("Print job creation completed for invoice {}: {} successful jobs",
-                    invoice.getId(), successfulJobs.size());
+            // Send WebSocket notification
+            try {
+                String message = String.format("تم إنشاء %d من %d مهام طباعة",
+                        successfulJobs.size(), totalJobs);
+                webSocketService.notifyPrintJobUpdate(invoice.getId(), message);
+            } catch (Exception e) {
+                log.warn("Failed to send WebSocket notification: {}", e.getMessage());
+            }
 
+        } catch (InvoiceNotFoundException e) {
+            log.error("Invoice not found: {}", e.getMessage());
+            throw new PrintJobCreationException("الفاتورة غير موجودة", e);
         } catch (PrintJobCreationException e) {
-            // Re-throw our custom exceptions
             throw e;
         } catch (Exception e) {
-            log.error("Unexpected error during print job creation for invoice {}: {}",
-                    invoice.getId(), e.getMessage(), e);
-            throw new PrintJobCreationException("خطأ غير متوقع أثناء إنشاء مهام الطباعة: " + e.getMessage(), e);
+            log.error("Unexpected error creating print jobs: {}", e.getMessage(), e);
+            throw new PrintJobCreationException(
+                    "خطأ غير متوقع أثناء إنشاء مهام الطباعة: " + e.getMessage(), e);
         }
     }
+
     /**
      * Create a single print job (CLIENT or OWNER type)
+     */
+    /**
+     * Create a single print job by type - exposed for controller use
+     *
+     * @param invoice Invoice with loaded lines
+     * @param printType Type of print job to create
+     * @return Created PrintJob with MinIO URL
+     */
+    public PrintJob createSinglePrintJobByType(Invoice invoice, PrintType printType) {
+        if (printType == PrintType.STICKER) {
+            return createStickerPrintJob(invoice);
+        } else {
+            return createSinglePrintJob(invoice, printType);
+        }
+    }
+
+
+    /**
+     * Create a single print job (CLIENT or OWNER type)
+     * PDF is generated and stored in MinIO/S3
      */
     private PrintJob createSinglePrintJob(Invoice invoice, PrintType printType) {
         try {
             log.debug("Creating {} print job for invoice {}", printType, invoice.getId());
 
-            // Create the print job entity
+            // Verify invoice lines
+            if (invoice.getInvoiceLines() == null || invoice.getInvoiceLines().isEmpty()) {
+                throw new PrintJobCreationException("Invoice has no lines");
+            }
+
+            // Create print job entity
             PrintJob printJob = new PrintJob(invoice, printType);
 
-            // Generate PDF
-            String pdfPath;
+            // Generate PDF and store in MinIO - returns public URL
+            String pdfUrl;
             try {
-                pdfPath = pdfGenerationService.generateInvoicePdf(invoice, printType);
-                if (pdfPath == null || pdfPath.trim().isEmpty()) {
-                    throw new PdfGenerationException("PDF path is null or empty for " + printType);
+                pdfUrl = pdfGenerationService.generateInvoicePdf(invoice, printType);
+                if (pdfUrl == null || pdfUrl.trim().isEmpty()) {
+                    throw new PdfGenerationException("PDF URL is null or empty for " + printType);
                 }
-                printJob.setPdfPath(pdfPath);
-                log.debug("PDF generated successfully for {} job: {}", printType, pdfPath);
+                printJob.setPdfPath(pdfUrl); // Store MinIO URL
+                log.debug("PDF generated and stored in MinIO: {}", pdfUrl);
             } catch (Exception e) {
-                log.error("PDF generation failed for {} job: {}", printType, e.getMessage());
-                throw new PdfGenerationException("فشل في إنشاء ملف PDF لنوع " + printType + ": " + e.getMessage(), e);
+                log.error("PDF generation failed for {}: {}", printType, e.getMessage());
+                throw new PdfGenerationException(
+                        "فشل في إنشاء ملف PDF لنوع " + printType + ": " + e.getMessage(), e);
             }
 
             // Save to database
             try {
                 PrintJob savedJob = printJobRepository.save(printJob);
-                log.debug("Print job saved to database: {} (ID: {})", printType, savedJob.getId());
+                log.info("{} print job created for invoice {}: {}",
+                        printType, invoice.getId(), savedJob.getId());
                 return savedJob;
             } catch (DataAccessException e) {
                 log.error("Database error saving {} print job: {}", printType, e.getMessage());
-                throw new PrintJobDatabaseException("فشل في حفظ مهمة الطباعة في قاعدة البيانات: " + e.getMessage(), e);
+                throw new PrintJobDatabaseException(
+                        "فشل في حفظ مهمة الطباعة: " + e.getMessage(), e);
             }
 
         } catch (PrintJobCreationException | PdfGenerationException | PrintJobDatabaseException e) {
-            // Re-throw our custom exceptions
             throw e;
         } catch (Exception e) {
             log.error("Unexpected error creating {} print job: {}", printType, e.getMessage(), e);
-            throw new PrintJobCreationException("خطأ غير متوقع في إنشاء مهمة طباعة " + printType, e);
+            throw new PrintJobCreationException(
+                    "خطأ غير متوقع في إنشاء مهمة طباعة " + printType, e);
         }
     }
-
     /**
      * Create sticker print job (special handling)
      */
@@ -232,6 +262,7 @@ private final InvoiceRepository invoiceRepository;
             throw new PrintJobCreationException("خطأ غير متوقع في إنشاء مهمة طباعة الملصق", e);
         }
     }
+
     /**
      * Handle partial failure notifications
      */
@@ -452,17 +483,104 @@ private final InvoiceRepository invoiceRepository;
     }
 
 
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class PrintJobStatus {
-        private Long invoiceId;
-        private int totalJobs;
-        private int expectedJobs;
-        private boolean allJobsComplete;
-        private List<PrintType> missingJobTypes;
-        private List<PrintJob> existingJobs;
-        private String error;
+
+
+
+    // أضف هذه الدوال في PrintJobService.java
+
+    /**
+     * الحصول على حالة مهام الطباعة لفاتورة معينة
+     */
+    public PrintJobStatusDTO getPrintJobStatus(Long invoiceId) {
+        try {
+            log.debug("Fetching print job status for invoice {}", invoiceId);
+
+            Invoice invoice = invoiceRepository.findById(invoiceId)
+                    .orElseThrow(() -> new InvoiceNotFoundException("الفاتورة غير موجودة: " + invoiceId));
+
+            List<PrintJob> printJobs = printJobRepository.findByInvoiceId(invoiceId);
+
+            log.debug("Found {} print jobs for invoice {}", printJobs.size(), invoiceId);
+
+            PrintJobStatusDTO status = PrintJobStatusDTO.fromPrintJobs(invoiceId, printJobs);
+
+            log.info("Print job status for invoice {}: {} successful, {} failed, {} missing",
+                    invoiceId, status.getSuccessfulJobs(), status.getFailedJobs(),
+                    status.getMissingJobTypes().size());
+
+            return status;
+
+        } catch (InvoiceNotFoundException e) {
+            log.error("Invoice not found: {}", invoiceId);
+            throw e;
+        } catch (Exception e) {
+            log.error("Error getting print job status for invoice {}: {}", invoiceId, e.getMessage(), e);
+            throw new PrintJobException("فشل في الحصول على حالة مهام الطباعة: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * إعادة محاولة إنشاء مهمة طباعة فاشلة
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public PrintJob retryPrintJob(Long invoiceId, PrintType printType) {
+        try {
+            log.info("Retrying print job for invoice {} with type {}", invoiceId, printType);
+
+            Invoice invoice = invoiceRepository.findById(invoiceId)
+                    .orElseThrow(() -> new InvoiceNotFoundException("الفاتورة غير موجودة: " + invoiceId));
+
+            List<PrintJob> existingJobs = printJobRepository.findByInvoiceId(invoiceId);
+            existingJobs.stream()
+                    .filter(job -> job.getType() == printType)
+                    .peek(job -> log.debug("Deleting existing {} print job with status {}",
+                            printType, job.getStatus()))
+                    .forEach(printJobRepository::delete);
+
+            PrintJob newJob;
+            if (printType == PrintType.STICKER) {
+                log.debug("Creating new STICKER print job");
+                newJob = createStickerPrintJob(invoice);
+            } else {
+                log.debug("Creating new {} print job", printType);
+                newJob = createSinglePrintJob(invoice, printType);
+            }
+
+            try {
+                String message = String.format("تمت إعادة محاولة طباعة %s بنجاح", printType.getArabicName());
+                webSocketService.notifyPrintJobUpdate(invoiceId, message);
+            } catch (Exception e) {
+                log.warn("Failed to send notification for retry: {}", e.getMessage());
+            }
+
+            log.info("Print job retry successful for invoice {} with type {}: new job ID {}",
+                    invoiceId, printType, newJob.getId());
+
+            return newJob;
+
+        } catch (InvoiceNotFoundException e) {
+            log.error("Invoice not found during retry: {}", invoiceId);
+            throw e;
+        } catch (PrintJobCreationException e) {
+            log.error("Print job creation failed during retry: {}", e.getMessage());
+            throw e;
+        } catch (PdfGenerationException e) {
+            log.error("PDF generation failed during retry for invoice {} with type {}: {}",
+                    invoiceId, printType, e.getMessage(), e);
+            throw new PrintJobCreationException("فشل في إنشاء ملف PDF: " + e.getMessage(), e);
+        } catch (DataAccessException e) {
+            log.error("Database error during retry for invoice {} with type {}: {}",
+                    invoiceId, printType, e.getMessage(), e);
+            throw new PrintJobException("خطأ في قاعدة البيانات أثناء إعادة المحاولة", e);
+        } catch (Exception e) {
+            log.error("Unexpected error during retry for invoice {} with type {}: {}",
+                    invoiceId, printType, e.getMessage(), e);
+            throw new PrintJobException("خطأ غير متوقع أثناء إعادة محاولة إنشاء مهمة الطباعة: " + e.getMessage(), e);
+        }
+    }
+
+    public void deletePrintJob(Long jobId) {
+        printJobRepository.deleteById(jobId);
+        log.info("Print job {} deleted", jobId);
     }
 }

@@ -3,10 +3,14 @@ import { get, post, put, del } from '@/api/axios';
 /**
  * Invoice Service
  * Handles all invoice-related API calls
+ * Note: Print jobs are now created separately via printJobService
  */
 export const invoiceService = {
+    // ===== INVOICE CRUD =====
+
     /**
-     * Create new invoice
+     * Create new invoice (without print jobs)
+     * Print jobs should be created separately using printJobService.createAllPrintJobs()
      * @param {CreateInvoiceRequest} invoiceData
      * @returns {Promise<Invoice>}
      */
@@ -43,6 +47,7 @@ export const invoiceService = {
      * @param {string} [params.startDate] - Start date filter (ISO string)
      * @param {string} [params.endDate] - End date filter (ISO string)
      * @param {string} [params.customerName] - Customer name filter
+     * @param {string} [params.status] - Invoice status filter
      * @returns {Promise<PagedResponse<Invoice>>}
      */
     async listInvoices(params = {}) {
@@ -53,12 +58,13 @@ export const invoiceService = {
             if (params.startDate) queryParams.append('startDate', params.startDate);
             if (params.endDate) queryParams.append('endDate', params.endDate);
             if (params.customerName) queryParams.append('customerName', params.customerName);
+            if (params.status) queryParams.append('status', params.status);
 
             const response = await get(`/invoices?${queryParams.toString()}`);
 
             // Handle paginated response from Spring Boot
             return {
-                content: response.content || response, // Fallback for non-paginated
+                content: response.content || response,
                 totalElements: response.totalElements || response.length || 0,
                 totalPages: response.totalPages || 1,
                 number: response.number || 0,
@@ -71,6 +77,38 @@ export const invoiceService = {
             throw error;
         }
     },
+
+    /**
+     * Update invoice
+     * @param {string|number} id - Invoice ID
+     * @param {Object} updateData - Data to update
+     * @returns {Promise<Invoice>}
+     */
+    async updateInvoice(id, updateData) {
+        try {
+            const response = await put(`/invoices/${id}`, updateData);
+            return response;
+        } catch (error) {
+            console.error('Update invoice error:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Delete invoice
+     * @param {string|number} id - Invoice ID
+     * @returns {Promise<void>}
+     */
+    async deleteInvoice(id) {
+        try {
+            await del(`/invoices/${id}`);
+        } catch (error) {
+            console.error('Delete invoice error:', error);
+            throw error;
+        }
+    },
+
+    // ===== INVOICE STATUS =====
 
     /**
      * Mark invoice as paid
@@ -86,6 +124,23 @@ export const invoiceService = {
             throw error;
         }
     },
+
+    /**
+     * Mark invoice as cancelled
+     * @param {string|number} id - Invoice ID
+     * @returns {Promise<Invoice>}
+     */
+    async markAsCancelled(id) {
+        try {
+            const response = await put(`/invoices/${id}/cancel`);
+            return response;
+        } catch (error) {
+            console.error('Mark as cancelled error:', error);
+            throw error;
+        }
+    },
+
+    // ===== INVOICE ANALYTICS =====
 
     /**
      * Get revenue for date range (Owner only)
@@ -104,59 +159,6 @@ export const invoiceService = {
             return response;
         } catch (error) {
             console.error('Get revenue error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Export invoices to CSV (Owner only)
-     * @param {string} [startDate] - Start date (ISO string)
-     * @param {string} [endDate] - End date (ISO string)
-     * @returns {Promise<Blob>}
-     */
-    async exportInvoices(startDate, endDate) {
-        try {
-            const params = new URLSearchParams();
-            if (startDate) params.append('startDate', startDate);
-            if (endDate) params.append('endDate', endDate);
-
-            const response = await get(`/invoices/export?${params.toString()}`, {
-                responseType: 'blob',
-            });
-
-            return response;
-        } catch (error) {
-            console.error('Export invoices error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Update invoice (if allowed)
-     * @param {string|number} id - Invoice ID
-     * @param {Object} updateData - Data to update
-     * @returns {Promise<Invoice>}
-     */
-    async updateInvoice(id, updateData) {
-        try {
-            const response = await put(`/invoices/${id}`, updateData);
-            return response;
-        } catch (error) {
-            console.error('Update invoice error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Delete invoice (if allowed)
-     * @param {string|number} id - Invoice ID
-     * @returns {Promise<void>}
-     */
-    async deleteInvoice(id) {
-        try {
-            await del(`/invoices/${id}`);
-        } catch (error) {
-            console.error('Delete invoice error:', error);
             throw error;
         }
     },
@@ -182,6 +184,8 @@ export const invoiceService = {
         }
     },
 
+    // ===== INVOICE SEARCH =====
+
     /**
      * Search invoices
      * @param {string} query - Search query
@@ -203,21 +207,101 @@ export const invoiceService = {
         }
     },
 
-    // New function in invoiceService.js
-    async previewLineTotal(lineData) {
-        return await post('/invoices/preview-line-total', {
-            glassTypeId: lineData.glassTypeId,
-            width: lineData.width,  // Send as entered (cm or mm)
-            height: lineData.height,
-            cuttingType: lineData.cuttingType,
-            manualCuttingPrice: lineData.manualCuttingPrice
-        });
-    },
     /**
-     * Preview line calculation before creating invoice
+     * Get invoices by customer ID
+     * @param {string|number} customerId - Customer ID
+     * @param {Object} params - Query parameters
+     * @returns {Promise<PagedResponse<Invoice>>}
      */
+    async getInvoicesByCustomer(customerId, params = {}) {
+        try {
+            const queryParams = new URLSearchParams();
+            if (params.page !== undefined) queryParams.append('page', params.page);
+            if (params.size !== undefined) queryParams.append('size', params.size);
+
+            const response = await get(`/invoices/customer/${customerId}?${queryParams.toString()}`);
+
+            return {
+                content: response.content || response,
+                totalElements: response.totalElements || response.length || 0,
+                totalPages: response.totalPages || 1,
+                number: response.number || 0,
+                size: response.size || (response.length || 20),
+                first: response.first !== undefined ? response.first : true,
+                last: response.last !== undefined ? response.last : true
+            };
+        } catch (error) {
+            console.error('Get invoices by customer error:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Get recent invoices
+     * @param {Object} params - Query parameters
+     * @returns {Promise<PagedResponse<Invoice>>}
+     */
+    async getRecentInvoices(params = {}) {
+        try {
+            const queryParams = new URLSearchParams();
+            if (params.page !== undefined) queryParams.append('page', params.page);
+            if (params.size !== undefined) queryParams.append('size', params.size);
+
+            const response = await get(`/invoices/recent?${queryParams.toString()}`);
+
+            return {
+                content: response.content || response,
+                totalElements: response.totalElements || response.length || 0,
+                totalPages: response.totalPages || 1,
+                number: response.number || 0,
+                size: response.size || (response.length || 20),
+                first: response.first !== undefined ? response.first : true,
+                last: response.last !== undefined ? response.last : true
+            };
+        } catch (error) {
+            console.error('Get recent invoices error:', error);
+            throw error;
+        }
+    },
+
+    // ===== INVOICE EXPORT =====
+
+    /**
+     * Export invoices to CSV (Owner only)
+     * @param {string} [startDate] - Start date (ISO string)
+     * @param {string} [endDate] - End date (ISO string)
+     * @returns {Promise<Blob>}
+     */
+    async exportInvoices(startDate, endDate) {
+        try {
+            const params = new URLSearchParams();
+            if (startDate) params.append('startDate', startDate);
+            if (endDate) params.append('endDate', endDate);
+
+            const response = await get(`/invoices/export?${params.toString()}`, {
+                responseType: 'blob',
+            });
+
+            return response;
+        } catch (error) {
+            console.error('Export invoices error:', error);
+            throw error;
+        }
+    },
+
+    // ===== LINE PREVIEW =====
+
     /**
      * Preview line calculation before creating invoice
+     * This allows frontend to show exact calculation that backend will use
+     * @param {Object} lineData - Line data
+     * @param {number} lineData.glassTypeId - Glass type ID
+     * @param {number} lineData.width - Width in selected unit
+     * @param {number} lineData.height - Height in selected unit
+     * @param {string} lineData.dimensionUnit - MM, CM, or M
+     * @param {string} lineData.cuttingType - SHATF, LASER, etc.
+     * @param {number} [lineData.manualCuttingPrice] - Required for LASER
+     * @returns {Promise<LinePreviewDTO>}
      */
     async previewLineCalculation(lineData) {
         try {
@@ -225,7 +309,7 @@ export const invoiceService = {
                 glassTypeId: lineData.glassTypeId,
                 width: lineData.width,
                 height: lineData.height,
-                dimensionUnit: lineData.dimensionUnit,
+                dimensionUnit: lineData.dimensionUnit || 'MM',
                 cuttingType: lineData.cuttingType,
                 manualCuttingPrice: lineData.manualCuttingPrice || null
             });
@@ -235,5 +319,257 @@ export const invoiceService = {
             console.error('Preview line calculation error:', error);
             throw error;
         }
+    },
+
+    // ===== UTILITY METHODS =====
+
+    /**
+     * Get invoice status display text in Arabic
+     * @param {string} status - Invoice status
+     * @returns {string} Arabic status text
+     */
+    getStatusText(status) {
+        const statusMap = {
+            'PENDING': 'قيد الانتظار',
+            'PAID': 'مدفوعة',
+            'CANCELLED': 'ملغاة',
+            'OVERDUE': 'متأخرة'
+        };
+        return statusMap[status] || status;
+    },
+
+    /**
+     * Get status color for UI
+     * @param {string} status - Invoice status
+     * @returns {string} Tailwind color class
+     */
+    getStatusColor(status) {
+        const colorMap = {
+            'PENDING': 'yellow',
+            'PAID': 'green',
+            'CANCELLED': 'red',
+            'OVERDUE': 'orange'
+        };
+        return colorMap[status] || 'gray';
+    },
+
+    /**
+     * Format invoice number
+     * @param {Invoice} invoice - Invoice object
+     * @returns {string} Formatted invoice number
+     */
+    formatInvoiceNumber(invoice) {
+        if (!invoice) return '';
+        return `INV-${String(invoice.id).padStart(6, '0')}`;
+    },
+
+    /**
+     * Calculate invoice age in days
+     * @param {Invoice} invoice - Invoice object
+     * @returns {number} Days since invoice creation
+     */
+    getInvoiceAge(invoice) {
+        if (!invoice || !invoice.issueDate) return 0;
+        const issueDate = new Date(invoice.issueDate);
+        const now = new Date();
+        const diffTime = Math.abs(now - issueDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays;
+    },
+
+    /**
+     * Check if invoice is overdue
+     * @param {Invoice} invoice - Invoice object
+     * @param {number} [dueDays=30] - Days until invoice is due
+     * @returns {boolean}
+     */
+    isOverdue(invoice, dueDays = 30) {
+        if (!invoice || invoice.status === 'PAID' || invoice.status === 'CANCELLED') {
+            return false;
+        }
+        return this.getInvoiceAge(invoice) > dueDays;
+    },
+
+    /**
+     * Format currency
+     * @param {number} amount - Amount
+     * @returns {string} Formatted currency string
+     */
+    formatCurrency(amount) {
+        if (typeof amount !== 'number') return '0 جنيه';
+        return `${amount.toFixed(2)} جنيه`;
+    },
+
+    /**
+     * Download invoice as PDF (if endpoint exists)
+     * @param {string|number} id - Invoice ID
+     * @returns {Promise<Blob>}
+     */
+    async downloadInvoicePdf(id) {
+        try {
+            const response = await get(`/invoices/${id}/pdf`, {
+                responseType: 'blob',
+            });
+            return response;
+        } catch (error) {
+            console.error('Download invoice PDF error:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Validate invoice data before submission
+     * @param {CreateInvoiceRequest} invoiceData - Invoice data to validate
+     * @returns {{valid: boolean, errors: string[]}}
+     */
+    validateInvoiceData(invoiceData) {
+        const errors = [];
+
+        // Validate customer
+        if (!invoiceData.customerId) {
+            errors.push('يجب اختيار عميل');
+        }
+
+        // Validate invoice lines
+        if (!invoiceData.invoiceLines || invoiceData.invoiceLines.length === 0) {
+            errors.push('يجب إضافة بند واحد على الأقل');
+        }
+
+        // Validate each line
+        invoiceData.invoiceLines?.forEach((line, index) => {
+            if (!line.glassTypeId) {
+                errors.push(`البند ${index + 1}: يجب اختيار نوع الزجاج`);
+            }
+            if (!line.width || line.width <= 0) {
+                errors.push(`البند ${index + 1}: العرض يجب أن يكون أكبر من صفر`);
+            }
+            if (!line.height || line.height <= 0) {
+                errors.push(`البند ${index + 1}: الارتفاع يجب أن يكون أكبر من صفر`);
+            }
+            if (!line.dimensionUnit) {
+                errors.push(`البند ${index + 1}: يجب اختيار وحدة القياس`);
+            }
+            if (!line.cuttingType) {
+                errors.push(`البند ${index + 1}: يجب اختيار نوع القطع`);
+            }
+            if (line.cuttingType === 'LASER' && !line.manualCuttingPrice) {
+                errors.push(`البند ${index + 1}: يجب إدخال سعر القطع اليدوي للقطع بالليزر`);
+            }
+        });
+
+        return {
+            valid: errors.length === 0,
+            errors
+        };
+    },
+
+    /**
+     * Calculate total from invoice lines (client-side)
+     * @param {InvoiceLine[]} lines - Invoice lines
+     * @returns {number} Total amount
+     */
+    calculateTotal(lines) {
+        if (!lines || lines.length === 0) return 0;
+        return lines.reduce((total, line) => total + (line.lineTotal || 0), 0);
+    },
+
+    /**
+     * Format date for display
+     * @param {string} dateString - ISO date string
+     * @returns {string} Formatted date in Arabic
+     */
+    formatDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return new Intl.DateTimeFormat('ar-EG', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        }).format(date);
+    },
+
+    /**
+     * Format date and time for display
+     * @param {string} dateString - ISO date string
+     * @returns {string} Formatted date and time in Arabic
+     */
+    formatDateTime(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return new Intl.DateTimeFormat('ar-EG', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        }).format(date);
     }
 };
+
+/**
+ * TypeScript type definitions (for reference)
+ *
+ * @typedef {Object} CreateInvoiceRequest
+ * @property {number} customerId
+ * @property {string} [issueDate] - ISO date string
+ * @property {string} [notes]
+ * @property {InvoiceLine[]} invoiceLines
+ *
+ * @typedef {Object} InvoiceLine
+ * @property {number} glassTypeId
+ * @property {number} width
+ * @property {number} height
+ * @property {string} dimensionUnit - MM, CM, M
+ * @property {string} cuttingType - SHATF, LASER
+ * @property {number} [manualCuttingPrice] - Required for LASER
+ *
+ * @typedef {Object} Invoice
+ * @property {number} id
+ * @property {number} customerId
+ * @property {Customer} customer
+ * @property {string} issueDate - ISO date string
+ * @property {string} [paymentDate] - ISO date string
+ * @property {number} totalPrice
+ * @property {string} status - PENDING, PAID, CANCELLED
+ * @property {string} [notes]
+ * @property {InvoiceLine[]} invoiceLines
+ *
+ * @typedef {Object} LinePreviewDTO
+ * @property {number} width - in meters
+ * @property {number} height - in meters
+ * @property {number} glassTypeId
+ * @property {string} glassTypeName
+ * @property {number} thickness
+ * @property {string} calculationMethod
+ * @property {number} areaM2
+ * @property {number} [lengthM]
+ * @property {number} quantityForPricing
+ * @property {number} glassUnitPrice
+ * @property {number} glassPrice
+ * @property {string} cuttingType
+ * @property {number} [cuttingRate]
+ * @property {number} perimeter
+ * @property {number} cuttingPrice
+ * @property {number} lineTotal
+ * @property {string} quantityUnit
+ * @property {string} calculationDescription
+ *
+ * @typedef {Object} InvoiceStats
+ * @property {number} totalInvoices
+ * @property {number} pendingInvoices
+ * @property {number} paidInvoices
+ * @property {number} cancelledInvoices
+ * @property {number} totalRevenue
+ * @property {number} pendingRevenue
+ *
+ * @typedef {Object} PagedResponse
+ * @property {Array} content
+ * @property {number} totalElements
+ * @property {number} totalPages
+ * @property {number} number
+ * @property {number} size
+ * @property {boolean} first
+ * @property {boolean} last
+ */
+
+export default invoiceService;

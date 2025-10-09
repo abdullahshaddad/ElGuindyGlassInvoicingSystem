@@ -13,6 +13,7 @@ import com.example.backend.models.Invoice;
 import com.example.backend.models.enums.InvoiceStatus;
 import com.example.backend.services.ExportService;
 import com.example.backend.services.InvoiceService;
+import com.example.backend.services.PrintJobService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,12 +39,16 @@ public class InvoiceController {
     
     private final InvoiceService invoiceService;
     private final ExportService exportService;
+    private final PrintJobService printJobService;
     
     @Autowired
-    public InvoiceController(InvoiceService invoiceService, ExportService exportService) {
+    public InvoiceController(InvoiceService invoiceService, ExportService exportService, PrintJobService printJobService) {
         this.invoiceService = invoiceService;
         this.exportService = exportService;
+        this.printJobService = printJobService;
     }
+
+
     
     @PostMapping
     @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER')")

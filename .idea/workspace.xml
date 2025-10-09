@@ -4,43 +4,47 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0b609ddb-2dbd-441e-9c1d-a9e2a89cd7df" name="Changes" comment="feat: refactor invoice creation to use customer ID and add DTO layer&#10;&#10;BREAKING CHANGES:&#10;- Invoice creation now requires customerId instead of customer details&#10;- API responses now return DTOs instead of raw entities&#10;&#10;Backend Changes:&#10;- Refactored CreateInvoiceRequest to use customerId for proper customer linking&#10;- Added comprehensive error handling with Arabic error messages&#10;- Implemented InvoiceDTO, CustomerDTO, InvoiceLineDTO, and GlassTypeDTO&#10;- Fixed Hibernate lazy loading serialization issues (ByteBuddyInterceptor error)&#10;- Enhanced invoice retrieval with filtering by customerId, status, and date range&#10;- Added proper input validation and boundary checks&#10;- Improved logging with structured debug and error messages&#10;- Added transaction management and rollback handling&#10;- Separated invoice line processing into dedicated methods&#10;- Implemented partial success handling for invoice lines&#10;&#10;Frontend Changes:&#10;- Fixed DataTable component to handle Spring Boot paginated responses&#10;- Added safe data extraction for various response structures&#10;- Enhanced error handling and null safety in DataTable&#10;- Improved sorting with nested property support and Arabic locale&#10;- Added development debug mode for troubleshooting&#10;&#10;New Exception Classes:&#10;- CustomerNotFoundException, CustomerLookupException&#10;- InvoiceCreationException, InvoiceLineCreationException&#10;- InvoiceUpdateException, InvoiceReloadException&#10;- GlassTypeNotFoundException, InvalidDimensionsException&#10;- CuttingCalculationException, WebSocketException&#10;&#10;Repository Methods:&#10;- findByCustomerId(Long, Pageable)&#10;- findByStatus(InvoiceStatus, Pageable)&#10;- countByCustomerId(Long)&#10;&#10;Performance Improvements:&#10;- DTO conversion prevents N+1 query issues&#10;- List views exclude invoice lines for faster loading&#10;- Detail views use optimized fetch joins&#10;&#10;Benefits:&#10;- Better data integrity with customer FK relationships&#10;- Eliminates duplicate customer records&#10;- Clean, stable JSON API responses&#10;- Improved customer tracking and analytics&#10;- RTL and Arabic-first throughout">
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/PrintJobDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/invoice/LinePreviewDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/invoice/PreviewLineRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/printjob/PrintJobException.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/enums/DimensionUnit.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/assets/logo elguindy-1.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/CustomersPage.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/FactoryWorkerPage.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/InvoicesPage.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/utils/dimensionUtils.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/utils/printHelper.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/bee79f5e-2b0c-43a7-90b6-6ab876e62423.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/bee79f5e-2b0c-43a7-90b6-6ab876e62423.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/bee79f5e-2b0c-43a7-90b6-6ab876e62423/storage_v2/_src_/database/elguindyDB.jc4UoA/schema/public.abK9xQ.meta" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/bee79f5e-2b0c-43a7-90b6-6ab876e62423/storage_v2/_src_/database/elguindyDB.jc4UoA/schema/public.abK9xQ.meta" afterDir="false" />
+    <list default="true" id="ea39321d-6bb3-415f-bc92-ee442bcbbe19" name="Changes" comment="fixing flow">
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/PrintJobStatusDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/StorageService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/ConfirmationDialog.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/Snackbar.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/contexts/SnackbarContext.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/PrintJobStatusModal.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-09-29.0.gz" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-09-30.0.gz" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-10-01.0.gz" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-10-02.0.gz" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-10-03.0.gz" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-10-04.0.gz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/bee79f5e-2b0c-43a7-90b6-6ab876e62423.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/bee79f5e-2b0c-43a7-90b6-6ab876e62423/storage_v2/_src_/database/elguindyDB.jc4UoA/schema/public.abK9xQ.meta" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/FactoryController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/FactoryController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pom.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/InvoiceController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/InvoiceController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PrintJobController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PrintJobController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/CreateInvoiceLineRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/CreateInvoiceLineRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/invoice/InvoiceLineDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/invoice/InvoiceLineDTO.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/InvoiceLine.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/InvoiceLine.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PrintJobManagementController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PrintJobManagementController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/PrintJobDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/PrintJobDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/PrintJob.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/PrintJob.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/monitoring/PrintJobMonitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/monitoring/PrintJobMonitor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/InvoiceRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/InvoiceRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PdfGenerationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PdfGenerationService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PrintJobService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PrintJobService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/api/axios.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/axios.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/components/AppRouter.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/AppRouter.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/FactoryWorkerPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/FactoryWorkerPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/InvoicesPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/InvoicesPage.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicePage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicePage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/EnhancedOrderSummary.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/EnhancedOrderSummary.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceList.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceList.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceViewModal.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceViewModal.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/PricingBreakdown.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/PricingBreakdown.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/ProductEntry.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/ProductEntry.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/services/invoiceService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/invoiceService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/utils/invoiceUtils.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/utils/invoiceUtils.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/printJobService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/printJobService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logs/elguindy-backend.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/elguindy-backend.log" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -69,59 +73,39 @@
     &quot;accountId&quot;: &quot;af309460-3127-4ed4-b77a-170d879aba03&quot;
   }
 }</component>
-  <component name="KubernetesApiPersistence">{}</component>
-  <component name="KubernetesApiProvider">{
-  &quot;isMigrated&quot;: true
-}</component>
   <component name="ProjectCodeStyleSettingsMigration">
     <option name="version" value="2" />
   </component>
   <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
   &quot;associatedIndex&quot;: 8
 }</component>
-  <component name="ProjectId" id="32YzIRhltCnNB3fUUld2DwfmjNW" />
+  <component name="ProjectId" id="33mOVaxuFCYjVSsi0xrxd6aVKsp" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
-    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
-    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
-    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;Spring Boot.BackendApplication.executor&quot;: &quot;Run&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Abdullah Shaddad/Desktop/ElGuindyGlassInvoicingSystem&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Program Files\\JetBrains\\IntelliJ IDEA 2024.3.4.1\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
-  },
-  &quot;keyToStringList&quot;: {
-    &quot;DatabaseDriversLRU&quot;: [
-      &quot;postgresql&quot;
-    ]
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RequestMappingsPanelOrder0": "0",
+    "RequestMappingsPanelOrder1": "1",
+    "RequestMappingsPanelWidth0": "75",
+    "RequestMappingsPanelWidth1": "75",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "Spring Boot.BackendApplication.executor": "Run",
+    "git-widget-placeholder": "Merging main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/lenovo/Desktop/RockOps",
+    "node.js.detected.package.eslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "ts.external.directory.path": "C:\\Program Files\\JetBrains\\IntelliJ IDEA 2024.3.4.1\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
-  <component name="RecentsManager">
-    <key name="CreateClassDialog.RecentsKey">
-      <recent name="com.example.backend.dto.invoice" />
-    </key>
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\Abdullah Shaddad\Desktop\ElGuindyGlassInvoicingSystem\frontend\src\assets" />
-      <recent name="C:\Users\Abdullah Shaddad\Desktop\ElGuindyGlassInvoicingSystem\frontend\src\pages\cashier" />
-      <recent name="C:\Users\Abdullah Shaddad\Desktop\ElGuindyGlassInvoicingSystem\frontend\src\pages\admin" />
-      <recent name="C:\Users\Abdullah Shaddad\Desktop\ElGuindyGlassInvoicingSystem\frontend\src\i18n\locales" />
-      <recent name="C:\Users\Abdullah Shaddad\Desktop\ElGuindyGlassInvoicingSystem\frontend\src\i18n" />
-    </key>
-  </component>
+}]]></component>
   <component name="RunManager">
     <configuration name="BackendApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
       <module name="backend" />
@@ -142,185 +126,22 @@
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="0b609ddb-2dbd-441e-9c1d-a9e2a89cd7df" name="Changes" comment="" />
-      <created>1757612214161</created>
+      <changelist id="ea39321d-6bb3-415f-bc92-ee442bcbbe19" name="Changes" comment="fixing flow" />
+      <created>1759918806893</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1757612214161</updated>
-      <workItem from="1757612215333" duration="2716000" />
-      <workItem from="1757614957928" duration="11213000" />
-      <workItem from="1757681821140" duration="2563000" />
-      <workItem from="1757689371624" duration="5825000" />
-      <workItem from="1757703928217" duration="5380000" />
-      <workItem from="1757766281489" duration="2477000" />
-      <workItem from="1757833007926" duration="26688000" />
-      <workItem from="1758106702588" duration="1158000" />
-      <workItem from="1758117108300" duration="593000" />
-      <workItem from="1758468403264" duration="590000" />
-      <workItem from="1758541189695" duration="598000" />
-      <workItem from="1758554484926" duration="595000" />
-      <workItem from="1758558671879" duration="591000" />
-      <workItem from="1758672574987" duration="132000" />
-      <workItem from="1758726870673" duration="1217000" />
-      <workItem from="1758759218637" duration="326000" />
-      <workItem from="1758770118437" duration="1125000" />
-      <workItem from="1758803154217" duration="2463000" />
-      <workItem from="1758892998300" duration="16465000" />
-      <workItem from="1758983603119" duration="918000" />
-      <workItem from="1759067177850" duration="5980000" />
-      <workItem from="1759097795746" duration="2784000" />
-      <workItem from="1759119366920" duration="27148000" />
+      <updated>1759918806893</updated>
+      <workItem from="1759918809821" duration="1256000" />
     </task>
-    <task id="LOCAL-00001" summary="init">
-      <option name="closed" value="true" />
-      <created>1757612363376</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1757612363376</updated>
-    </task>
-    <task id="LOCAL-00002" summary="feat: initialize React frontend with Arabic-first design system&#10;&#10;- Setup Vite + React + TypeScript project structure&#10;- Configure TailwindCSS with RTL support and Arabic fonts (Tajawal, Cairo)&#10;- Implement theme context with light/dark mode toggle&#10;- Add Axios configuration with JWT auth and token refresh&#10;- Create responsive layout with Arabic navigation&#10;- Setup project with proper TypeScript configuration and testing">
-      <option name="closed" value="true" />
-      <created>1757614775846</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1757614775846</updated>
-    </task>
-    <task id="LOCAL-00003" summary="deleted frontend">
-      <option name="closed" value="true" />
-      <created>1757614998549</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1757614998549</updated>
-    </task>
-    <task id="LOCAL-00004" summary="frontnend init">
-      <option name="closed" value="true" />
-      <created>1757636358606</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1757636358606</updated>
-    </task>
-    <task id="LOCAL-00005" summary="feat: implement routing, authentication, and service layer&#10;&#10;- Add comprehensive AuthContext with role-based permissions (OWNER/CASHIER/WORKER)&#10;- Implement protected routing with automatic role-based redirects&#10;- Create axios instance with JWT token management and auto-refresh&#10;- Build complete service layer for auth, invoices, customers, glass types, print jobs&#10;- Add RTL-first layout system with Arabic navigation and theme switching&#10;- Implement login page with Arabic-first design and error handling&#10;- Create role-specific dashboard with stats and quick actions&#10;- Add error boundaries and 404/unauthorized pages&#10;- Set up JSDoc type definitions for all DTOs and API responses&#10;- Configure React Query, i18n, and dayjs with Arabic locale support&#10;&#10;Ready for Step 5: Component and page implementation">
-      <option name="closed" value="true" />
-      <created>1757646502567</created>
-      <option name="number" value="00005" />
-      <option name="presentableId" value="LOCAL-00005" />
-      <option name="project" value="LOCAL" />
-      <updated>1757646502567</updated>
-    </task>
-    <task id="LOCAL-00006" summary="feat: implement routing, authentication, and service layer&#10;&#10;- Add comprehensive AuthContext with role-based permissions (OWNER/CASHIER/WORKER)&#10;- Implement protected routing with automatic role-based redirects&#10;- Create axios instance with JWT token management and auto-refresh&#10;- Build complete service layer for auth, invoices, customers, glass types, print jobs&#10;- Add RTL-first layout system with Arabic navigation and theme switching&#10;- Implement login page with Arabic-first design and error handling&#10;- Create role-specific dashboard with stats and quick actions&#10;- Add error boundaries and 404/unauthorized pages&#10;- Set up JSDoc type definitions for all DTOs and API responses&#10;- Configure React Query, i18n, and dayjs with Arabic locale support&#10;&#10;Ready for Step 5: Component and page implementation">
-      <option name="closed" value="true" />
-      <created>1757649751699</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
-      <option name="project" value="LOCAL" />
-      <updated>1757649751699</updated>
-    </task>
-    <task id="LOCAL-00007" summary="feat: implement routing, authentication, and service layer&#10;&#10;- Add comprehensive AuthContext with role-based permissions (OWNER/CASHIER/WORKER)&#10;- Implement protected routing with automatic role-based redirects&#10;- Create axios instance with JWT token management and auto-refresh&#10;- Build complete service layer for auth, invoices, customers, glass types, print jobs&#10;- Add RTL-first layout system with Arabic navigation and theme switching&#10;- Implement login page with Arabic-first design and error handling&#10;- Create role-specific dashboard with stats and quick actions&#10;- Add error boundaries and 404/unauthorized pages&#10;- Set up JSDoc type definitions for all DTOs and API responses&#10;- Configure React Query, i18n, and dayjs with Arabic locale support&#10;&#10;Ready for Step 5: Component and page implementation">
-      <option name="closed" value="true" />
-      <created>1757653149975</created>
-      <option name="number" value="00007" />
-      <option name="presentableId" value="LOCAL-00007" />
-      <option name="project" value="LOCAL" />
-      <updated>1757653149975</updated>
-    </task>
-    <task id="LOCAL-00008" summary="login fixed auth service too">
-      <option name="closed" value="true" />
-      <created>1757689622643</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
-      <option name="project" value="LOCAL" />
-      <updated>1757689622643</updated>
-    </task>
-    <task id="LOCAL-00009" summary="auth fixed">
-      <option name="closed" value="true" />
-      <created>1757704277920</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1757704277920</updated>
-    </task>
-    <task id="LOCAL-00010" summary="feat: Replace emojis with professional React Icons across all components&#10;&#10;- Add react-icons dependency for consistent iconography&#10;- Update Sidebar with professional Feather icons (FiHome, FiFileText, etc.)&#10;- Replace emoji-based Header elements with FiMenu, FiGlobe, FiSun/FiMoon&#10;- Modernize Dashboard with role-based icons (FiCrown, FiBriefcase, FiTool)&#10;- Create professional UI component library (Button, Card, Form components)&#10;- Add comprehensive ThemeContext with light/dark/system modes&#10;- Update Error Boundary and error pages with FiAlertTriangle&#10;- Maintain all existing functionality and RTL support&#10;- Improve accessibility with proper ARIA labels and semantic icons&#10;&#10;BREAKING CHANGE: All emoji-based UI elements replaced with React Icons">
-      <option name="closed" value="true" />
-      <created>1757706912372</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1757706912372</updated>
-    </task>
-    <task id="LOCAL-00011" summary="feat: add Glass Types CRUD page with backend model alignment&#10;&#10;- Implement complete glass types management interface&#10;- Fix field mapping (pricePerMeter) to match backend GlassType model&#10;- Add form validation, search, and role-based permissions&#10;- Include comprehensive tests and RTL support">
-      <option name="closed" value="true" />
-      <created>1757833483224</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1757833483224</updated>
-    </task>
-    <task id="LOCAL-00012" summary="invoice page created">
-      <option name="closed" value="true" />
-      <created>1757870514307</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1757870514307</updated>
-    </task>
-    <task id="LOCAL-00013" summary="feat: Add cutting prices configuration system with enhanced POS pricing&#10;&#10;- Add CuttingPricesConfigPage with full dark mode and RTL support&#10;- Implement cuttingRateService for backend API integration&#10;- Create modular cashier invoice components (PricingBreakdown, EnhancedOrderSummary, etc.)&#10;- Add detailed pricing breakdown with glass/cutting cost separation&#10;- Support both area-based and length-based pricing calculations&#10;- Add role-based routing with separate CashierLayout for cashier users&#10;- Refactor Sidebar to use centralized sidebarItems configuration&#10;- Add /admin/cutting-prices route restricted to OWNER role&#10;- Include real-time pricing examples and payment suggestions&#10;- Implement proper error handling and loading states&#10;- Add &quot;جديد&quot; badge for new cutting prices feature in sidebar&#10;&#10;This enables owners to configure SHATF and laser cutting prices dynamically,&#10;provides transparent pricing breakdowns in the POS system, and separates&#10;cashier interface from admin functionality.">
-      <option name="closed" value="true" />
-      <created>1758902446017</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1758902446017</updated>
-    </task>
-    <task id="LOCAL-00014" summary="feat: implement comprehensive invoice creation with error handling&#10;&#10;- Add graceful error handling for createInvoice method with custom exceptions&#10;- Implement CuttingPriceRateConfigPage for Shataf-only pricing management&#10;- Fix overlapping thickness ranges issue in CuttingRateRepository&#10;- Add robust print job creation with partial success support&#10;- Implement null safety for Invoice.invoiceLines collection&#10;- Add retry mechanisms and monitoring for print jobs&#10;- Update frontend with RTL Arabic-first design and theme variables&#10;- Add comprehensive validation and Arabic error messages&#10;&#10;Resolves invoice creation failures and improves system reliability">
-      <option name="closed" value="true" />
-      <created>1759074436496</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1759074436496</updated>
-    </task>
-    <task id="LOCAL-00015" summary="feat: refactor invoice creation to use customer ID and add DTO layer&#10;&#10;BREAKING CHANGES:&#10;- Invoice creation now requires customerId instead of customer details&#10;- API responses now return DTOs instead of raw entities&#10;&#10;Backend Changes:&#10;- Refactored CreateInvoiceRequest to use customerId for proper customer linking&#10;- Added comprehensive error handling with Arabic error messages&#10;- Implemented InvoiceDTO, CustomerDTO, InvoiceLineDTO, and GlassTypeDTO&#10;- Fixed Hibernate lazy loading serialization issues (ByteBuddyInterceptor error)&#10;- Enhanced invoice retrieval with filtering by customerId, status, and date range&#10;- Added proper input validation and boundary checks&#10;- Improved logging with structured debug and error messages&#10;- Added transaction management and rollback handling&#10;- Separated invoice line processing into dedicated methods&#10;- Implemented partial success handling for invoice lines&#10;&#10;Frontend Changes:&#10;- Fixed DataTable component to handle Spring Boot paginated responses&#10;- Added safe data extraction for various response structures&#10;- Enhanced error handling and null safety in DataTable&#10;- Improved sorting with nested property support and Arabic locale&#10;- Added development debug mode for troubleshooting&#10;&#10;New Exception Classes:&#10;- CustomerNotFoundException, CustomerLookupException&#10;- InvoiceCreationException, InvoiceLineCreationException&#10;- InvoiceUpdateException, InvoiceReloadException&#10;- GlassTypeNotFoundException, InvalidDimensionsException&#10;- CuttingCalculationException, WebSocketException&#10;&#10;Repository Methods:&#10;- findByCustomerId(Long, Pageable)&#10;- findByStatus(InvoiceStatus, Pageable)&#10;- countByCustomerId(Long)&#10;&#10;Performance Improvements:&#10;- DTO conversion prevents N+1 query issues&#10;- List views exclude invoice lines for faster loading&#10;- Detail views use optimized fetch joins&#10;&#10;Benefits:&#10;- Better data integrity with customer FK relationships&#10;- Eliminates duplicate customer records&#10;- Clean, stable JSON API responses&#10;- Improved customer tracking and analytics&#10;- RTL and Arabic-first throughout">
-      <option name="closed" value="true" />
-      <created>1759120717303</created>
-      <option name="number" value="00015" />
-      <option name="presentableId" value="LOCAL-00015" />
-      <option name="project" value="LOCAL" />
-      <updated>1759120717303</updated>
-    </task>
-    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="init" />
-    <MESSAGE value="feat: initialize React frontend with Arabic-first design system&#10;&#10;- Setup Vite + React + TypeScript project structure&#10;- Configure TailwindCSS with RTL support and Arabic fonts (Tajawal, Cairo)&#10;- Implement theme context with light/dark mode toggle&#10;- Add Axios configuration with JWT auth and token refresh&#10;- Create responsive layout with Arabic navigation&#10;- Setup project with proper TypeScript configuration and testing" />
-    <MESSAGE value="deleted frontend" />
-    <MESSAGE value="frontnend init" />
-    <MESSAGE value="feat: implement routing, authentication, and service layer&#10;&#10;- Add comprehensive AuthContext with role-based permissions (OWNER/CASHIER/WORKER)&#10;- Implement protected routing with automatic role-based redirects&#10;- Create axios instance with JWT token management and auto-refresh&#10;- Build complete service layer for auth, invoices, customers, glass types, print jobs&#10;- Add RTL-first layout system with Arabic navigation and theme switching&#10;- Implement login page with Arabic-first design and error handling&#10;- Create role-specific dashboard with stats and quick actions&#10;- Add error boundaries and 404/unauthorized pages&#10;- Set up JSDoc type definitions for all DTOs and API responses&#10;- Configure React Query, i18n, and dayjs with Arabic locale support&#10;&#10;Ready for Step 5: Component and page implementation" />
-    <MESSAGE value="login fixed auth service too" />
-    <MESSAGE value="auth fixed" />
-    <MESSAGE value="feat: Replace emojis with professional React Icons across all components&#10;&#10;- Add react-icons dependency for consistent iconography&#10;- Update Sidebar with professional Feather icons (FiHome, FiFileText, etc.)&#10;- Replace emoji-based Header elements with FiMenu, FiGlobe, FiSun/FiMoon&#10;- Modernize Dashboard with role-based icons (FiCrown, FiBriefcase, FiTool)&#10;- Create professional UI component library (Button, Card, Form components)&#10;- Add comprehensive ThemeContext with light/dark/system modes&#10;- Update Error Boundary and error pages with FiAlertTriangle&#10;- Maintain all existing functionality and RTL support&#10;- Improve accessibility with proper ARIA labels and semantic icons&#10;&#10;BREAKING CHANGE: All emoji-based UI elements replaced with React Icons" />
-    <MESSAGE value="feat: add Glass Types CRUD page with backend model alignment&#10;&#10;- Implement complete glass types management interface&#10;- Fix field mapping (pricePerMeter) to match backend GlassType model&#10;- Add form validation, search, and role-based permissions&#10;- Include comprehensive tests and RTL support" />
-    <MESSAGE value="invoice page created" />
-    <MESSAGE value="feat: Add cutting prices configuration system with enhanced POS pricing&#10;&#10;- Add CuttingPricesConfigPage with full dark mode and RTL support&#10;- Implement cuttingRateService for backend API integration&#10;- Create modular cashier invoice components (PricingBreakdown, EnhancedOrderSummary, etc.)&#10;- Add detailed pricing breakdown with glass/cutting cost separation&#10;- Support both area-based and length-based pricing calculations&#10;- Add role-based routing with separate CashierLayout for cashier users&#10;- Refactor Sidebar to use centralized sidebarItems configuration&#10;- Add /admin/cutting-prices route restricted to OWNER role&#10;- Include real-time pricing examples and payment suggestions&#10;- Implement proper error handling and loading states&#10;- Add &quot;جديد&quot; badge for new cutting prices feature in sidebar&#10;&#10;This enables owners to configure SHATF and laser cutting prices dynamically,&#10;provides transparent pricing breakdowns in the POS system, and separates&#10;cashier interface from admin functionality." />
-    <MESSAGE value="feat: implement comprehensive invoice creation with error handling&#10;&#10;- Add graceful error handling for createInvoice method with custom exceptions&#10;- Implement CuttingPriceRateConfigPage for Shataf-only pricing management&#10;- Fix overlapping thickness ranges issue in CuttingRateRepository&#10;- Add robust print job creation with partial success support&#10;- Implement null safety for Invoice.invoiceLines collection&#10;- Add retry mechanisms and monitoring for print jobs&#10;- Update frontend with RTL Arabic-first design and theme variables&#10;- Add comprehensive validation and Arabic error messages&#10;&#10;Resolves invoice creation failures and improves system reliability" />
+    <MESSAGE value="Snackbar.jsx, SnackbarContext.jsx, ConfirmationDialog.jsx" />
     <MESSAGE value="feat: refactor invoice creation to use customer ID and add DTO layer&#10;&#10;BREAKING CHANGES:&#10;- Invoice creation now requires customerId instead of customer details&#10;- API responses now return DTOs instead of raw entities&#10;&#10;Backend Changes:&#10;- Refactored CreateInvoiceRequest to use customerId for proper customer linking&#10;- Added comprehensive error handling with Arabic error messages&#10;- Implemented InvoiceDTO, CustomerDTO, InvoiceLineDTO, and GlassTypeDTO&#10;- Fixed Hibernate lazy loading serialization issues (ByteBuddyInterceptor error)&#10;- Enhanced invoice retrieval with filtering by customerId, status, and date range&#10;- Added proper input validation and boundary checks&#10;- Improved logging with structured debug and error messages&#10;- Added transaction management and rollback handling&#10;- Separated invoice line processing into dedicated methods&#10;- Implemented partial success handling for invoice lines&#10;&#10;Frontend Changes:&#10;- Fixed DataTable component to handle Spring Boot paginated responses&#10;- Added safe data extraction for various response structures&#10;- Enhanced error handling and null safety in DataTable&#10;- Improved sorting with nested property support and Arabic locale&#10;- Added development debug mode for troubleshooting&#10;&#10;New Exception Classes:&#10;- CustomerNotFoundException, CustomerLookupException&#10;- InvoiceCreationException, InvoiceLineCreationException&#10;- InvoiceUpdateException, InvoiceReloadException&#10;- GlassTypeNotFoundException, InvalidDimensionsException&#10;- CuttingCalculationException, WebSocketException&#10;&#10;Repository Methods:&#10;- findByCustomerId(Long, Pageable)&#10;- findByStatus(InvoiceStatus, Pageable)&#10;- countByCustomerId(Long)&#10;&#10;Performance Improvements:&#10;- DTO conversion prevents N+1 query issues&#10;- List views exclude invoice lines for faster loading&#10;- Detail views use optimized fetch joins&#10;&#10;Benefits:&#10;- Better data integrity with customer FK relationships&#10;- Eliminates duplicate customer records&#10;- Clean, stable JSON API responses&#10;- Improved customer tracking and analytics&#10;- RTL and Arabic-first throughout" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: refactor invoice creation to use customer ID and add DTO layer&#10;&#10;BREAKING CHANGES:&#10;- Invoice creation now requires customerId instead of customer details&#10;- API responses now return DTOs instead of raw entities&#10;&#10;Backend Changes:&#10;- Refactored CreateInvoiceRequest to use customerId for proper customer linking&#10;- Added comprehensive error handling with Arabic error messages&#10;- Implemented InvoiceDTO, CustomerDTO, InvoiceLineDTO, and GlassTypeDTO&#10;- Fixed Hibernate lazy loading serialization issues (ByteBuddyInterceptor error)&#10;- Enhanced invoice retrieval with filtering by customerId, status, and date range&#10;- Added proper input validation and boundary checks&#10;- Improved logging with structured debug and error messages&#10;- Added transaction management and rollback handling&#10;- Separated invoice line processing into dedicated methods&#10;- Implemented partial success handling for invoice lines&#10;&#10;Frontend Changes:&#10;- Fixed DataTable component to handle Spring Boot paginated responses&#10;- Added safe data extraction for various response structures&#10;- Enhanced error handling and null safety in DataTable&#10;- Improved sorting with nested property support and Arabic locale&#10;- Added development debug mode for troubleshooting&#10;&#10;New Exception Classes:&#10;- CustomerNotFoundException, CustomerLookupException&#10;- InvoiceCreationException, InvoiceLineCreationException&#10;- InvoiceUpdateException, InvoiceReloadException&#10;- GlassTypeNotFoundException, InvalidDimensionsException&#10;- CuttingCalculationException, WebSocketException&#10;&#10;Repository Methods:&#10;- findByCustomerId(Long, Pageable)&#10;- findByStatus(InvoiceStatus, Pageable)&#10;- countByCustomerId(Long)&#10;&#10;Performance Improvements:&#10;- DTO conversion prevents N+1 query issues&#10;- List views exclude invoice lines for faster loading&#10;- Detail views use optimized fetch joins&#10;&#10;Benefits:&#10;- Better data integrity with customer FK relationships&#10;- Eliminates duplicate customer records&#10;- Clean, stable JSON API responses&#10;- Improved customer tracking and analytics&#10;- RTL and Arabic-first throughout" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/frontend/src/pages/DashboardPage.jsx</url>
-          <option name="timeStamp" value="4" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
+    <MESSAGE value="fixing flow" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixing flow" />
   </component>
 </project>
