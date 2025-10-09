@@ -14,9 +14,6 @@ import FactoryWorkerPage from "@pages/FactoryWorkerPage.jsx";
 const LoginPage = React.lazy(() => import('@/pages/auth/LoginPage'));
 const DashboardPage = React.lazy(() => import('@/pages/DashboardPage'));
 const InvoicesPage = React.lazy(() => import('@/pages/InvoicesPage'));
-const CreateInvoicePage = React.lazy(() => import('@/pages/invoices/CreateInvoicePage'));
-const InvoiceDetailPage = React.lazy(() => import('@/pages/invoices/InvoiceDetailPage'));
-const FactoryPage = React.lazy(() => import('@/pages/factory/FactoryPage'));
 const AdminGlassTypesPage = React.lazy(() => import('@/pages/admin/GlassTypesPage'));
 const CustomersPage = React.lazy(() => import('@/pages/CustomersPage'));
 const NotFoundPage = React.lazy(() => import('@/pages/errors/NotFoundPage'));
@@ -154,22 +151,22 @@ const AppRouter = () => {
                                 </RoleRoute>
                             }
                         />
-                        <Route
-                            path="/invoices/new"
-                            element={
-                                <RoleRoute allowedRoles={SALES_ROLES}>
-                                    <CreateInvoicePage/>
-                                </RoleRoute>
-                            }
-                        />
-                        <Route
-                            path="/invoices/:id"
-                            element={
-                                <RoleRoute allowedRoles={SALES_ROLES}>
-                                    <InvoiceDetailPage/>
-                                </RoleRoute>
-                            }
-                        />
+                        {/*<Route*/}
+                        {/*    path="/invoices/new"*/}
+                        {/*    element={*/}
+                        {/*        <RoleRoute allowedRoles={SALES_ROLES}>*/}
+                        {/*            <CreateInvoicePage/>*/}
+                        {/*        </RoleRoute>*/}
+                        {/*    }*/}
+                        {/*/>*/}
+                        {/*<Route*/}
+                        {/*    path="/invoices/:id"*/}
+                        {/*    element={*/}
+                        {/*        <RoleRoute allowedRoles={SALES_ROLES}>*/}
+                        {/*            <InvoiceDetailPage/>*/}
+                        {/*        </RoleRoute>*/}
+                        {/*    }*/}
+                        {/*/>*/}
 
                         {/* Customer Management - Sales roles only */}
                         <Route
