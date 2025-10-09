@@ -5,46 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ea39321d-6bb3-415f-bc92-ee442bcbbe19" name="Changes" comment="fixing flow">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/PrintJobStatusDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/StorageService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/ConfirmationDialog.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/Snackbar.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/contexts/SnackbarContext.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/PrintJobStatusModal.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-09-29.0.gz" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-09-30.0.gz" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-10-01.0.gz" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-10-02.0.gz" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-10-03.0.gz" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-10-04.0.gz" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/bee79f5e-2b0c-43a7-90b6-6ab876e62423.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/bee79f5e-2b0c-43a7-90b6-6ab876e62423/storage_v2/_src_/database/elguindyDB.jc4UoA/schema/public.abK9xQ.meta" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/InvoiceController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/InvoiceController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PrintJobController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PrintJobController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PrintJobManagementController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PrintJobManagementController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/PrintJobDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/PrintJobDTO.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/PrintJob.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/PrintJob.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/monitoring/PrintJobMonitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/monitoring/PrintJobMonitor.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/InvoiceRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/InvoiceRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PdfGenerationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PdfGenerationService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PrintJobService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PrintJobService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/resources/application.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/api/axios.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/axios.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/AppRouter.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/AppRouter.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/FactoryWorkerPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/FactoryWorkerPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/InvoicesPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/InvoicesPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicePage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicePage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceList.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceList.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceViewModal.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceViewModal.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/services/invoiceService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/invoiceService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/services/printJobService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/printJobService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/elguindy-backend.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/elguindy-backend.log" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -95,7 +56,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "Spring Boot.BackendApplication.executor": "Run",
-    "git-widget-placeholder": "Merging main",
+    "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "C:/Users/lenovo/Desktop/RockOps",
     "node.js.detected.package.eslint": "true",
@@ -133,6 +94,23 @@
       <updated>1759918806893</updated>
       <workItem from="1759918809821" duration="1256000" />
     </task>
+    <task id="LOCAL-00001" summary="fixing flow">
+      <option name="closed" value="true" />
+      <created>1760031962003</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1760031962003</updated>
+    </task>
+    <task id="LOCAL-00002" summary="fixing flow">
+      <option name="closed" value="true" />
+      <created>1760032630100</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1760032630100</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

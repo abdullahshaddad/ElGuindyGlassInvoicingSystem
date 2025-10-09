@@ -19,11 +19,6 @@ import java.util.UUID;
 
 @Service
 @Slf4j
-@ConditionalOnProperty(
-        name = "minio.enabled",
-        havingValue = "true",
-        matchIfMissing = false
-)
 public class StorageService {
 
     private final MinioClient minioClient;
