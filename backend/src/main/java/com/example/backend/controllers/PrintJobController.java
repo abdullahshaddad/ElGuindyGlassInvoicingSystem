@@ -5,8 +5,10 @@ import com.example.backend.dto.PrintJobStatusDTO;
 import com.example.backend.exceptions.invoice.InvoiceNotFoundException;
 import com.example.backend.exceptions.printjob.PrintJobCreationException;
 import com.example.backend.exceptions.printjob.PrintJobException;
+import com.example.backend.models.Invoice;
 import com.example.backend.models.PrintJob;
 import com.example.backend.models.enums.PrintType;
+import com.example.backend.repositories.InvoiceRepository;
 import com.example.backend.services.PrintJobService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,268 +17,482 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-@Slf4j
+/**
+ * Controller for managing print jobs
+ * Allows on-demand creation of print jobs after invoice creation
+ * PDFs are generated and stored in MinIO/S3
+ */
 @RestController
 @RequestMapping("/api/v1/print-jobs")
+@Slf4j
 @CrossOrigin(origins = "*")
-@PreAuthorize("hasRole('WORKER') or hasRole('OWNER')")
 public class PrintJobController {
 
     private final PrintJobService printJobService;
+    private final InvoiceRepository invoiceRepository;
 
     @Autowired
-    public PrintJobController(PrintJobService printJobService) {
+    public PrintJobController(PrintJobService printJobService, InvoiceRepository invoiceRepository) {
         this.printJobService = printJobService;
+        this.invoiceRepository = invoiceRepository;
+    }
+
+    /**
+     * Create all print jobs (CLIENT, OWNER, STICKER) for an invoice on-demand
+     * POST /api/v1/print-jobs/invoice/{invoiceId}
+     *
+     * @param invoiceId Invoice ID to create print jobs for
+     * @return Response with status of created print jobs
+     */
+    @PostMapping("/invoice/{invoiceId}")
+    @PreAuthorize("hasAnyRole('OWNER', 'MANAGER')")
+    public ResponseEntity<Map<String, Object>> createPrintJobsForInvoice(@PathVariable Long invoiceId) {
+        try {
+            log.info("REST API: Creating print jobs for invoice {}", invoiceId);
+
+            // Reload invoice with full details (lines, glass types, customer)
+            Invoice invoice = invoiceRepository.findByIdWithDetails(invoiceId)
+                    .orElseThrow(() -> new InvoiceNotFoundException("الفاتورة غير موجودة: " + invoiceId));
+
+            // Create all print jobs (CLIENT, OWNER, STICKER)
+            printJobService.createPrintJobs(invoice);
+
+            // Get status after creation
+            PrintJobStatusDTO status = printJobService.getPrintJobStatus(invoiceId);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "تم إنشاء مهام الطباعة بنجاح");
+            response.put("invoiceId", invoiceId);
+            response.put("status", status);
+
+            log.info("Print jobs created successfully for invoice {}: {} successful, {} failed",
+                    invoiceId, status.getSuccessfulJobs(), status.getFailedJobs());
+
+            return ResponseEntity.ok(response);
+
+        } catch (InvoiceNotFoundException e) {
+            log.error("Invoice not found: {}", invoiceId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of(
+                            "success", false,
+                            "error", e.getMessage()
+                    ));
+        } catch (PrintJobCreationException e) {
+            log.error("Print job creation failed for invoice {}: {}", invoiceId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "success", false,
+                            "error", e.getMessage()
+                    ));
+        } catch (Exception e) {
+            log.error("Unexpected error creating print jobs for invoice {}: {}",
+                    invoiceId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "success", false,
+                            "error", "خطأ غير متوقع: " + e.getMessage()
+                    ));
+        }
+    }
+
+    /**
+     * Create a single print job (CLIENT, OWNER, or STICKER)
+     * POST /api/v1/print-jobs/invoice/{invoiceId}/{printType}
+     *
+     * @param invoiceId Invoice ID
+     * @param printType Print type (CLIENT, OWNER, STICKER)
+     * @return Created print job with PDF URL
+     */
+    @PostMapping("/invoice/{invoiceId}/{printType}")
+    @PreAuthorize("hasAnyRole('OWNER', 'MANAGER')")
+    public ResponseEntity<Map<String, Object>> createSinglePrintJob(
+            @PathVariable Long invoiceId,
+            @PathVariable PrintType printType) {
+        try {
+            log.info("REST API: Creating {} print job for invoice {}", printType, invoiceId);
+
+            // Reload invoice with full details
+            Invoice invoice = invoiceRepository.findByIdWithDetails(invoiceId)
+                    .orElseThrow(() -> new InvoiceNotFoundException("الفاتورة غير موجودة: " + invoiceId));
+
+            // Create single print job
+            PrintJob printJob = printJobService.createSinglePrintJobByType(invoice, printType);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", String.format("تم إنشاء مهمة طباعة %s بنجاح", printType.getArabicName()));
+            response.put("printJob", Map.of(
+                    "id", printJob.getId(),
+                    "type", printJob.getType(),
+                    "status", printJob.getStatus(),
+                    "pdfPath", printJob.getPdfPath(),
+                    "createdAt", printJob.getCreatedAt()
+            ));
+
+            log.info("{} print job created successfully for invoice {}: PDF at {}",
+                    printType, invoiceId, printJob.getPdfPath());
+
+            return ResponseEntity.ok(response);
+
+        } catch (InvoiceNotFoundException e) {
+            log.error("Invoice not found: {}", invoiceId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of(
+                            "success", false,
+                            "error", e.getMessage()
+                    ));
+        } catch (PrintJobCreationException e) {
+            log.error("Error creating {} print job for invoice {}: {}",
+                    printType, invoiceId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "success", false,
+                            "error", e.getMessage()
+                    ));
+        } catch (Exception e) {
+            log.error("Unexpected error creating {} print job for invoice {}: {}",
+                    printType, invoiceId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "success", false,
+                            "error", "خطأ غير متوقع: " + e.getMessage()
+                    ));
+        }
+    }
+
+    /**
+     * Get print job status for an invoice
+     * GET /api/v1/print-jobs/invoice/{invoiceId}/status
+     *
+     * @param invoiceId Invoice ID
+     * @return Status of all print jobs for the invoice
+     */
+    @GetMapping("/invoice/{invoiceId}/status")
+    @PreAuthorize("hasAnyRole('OWNER', 'MANAGER', 'WORKER')")
+    public ResponseEntity<PrintJobStatusDTO> getPrintJobStatus(@PathVariable Long invoiceId) {
+        try {
+            log.debug("REST API: Getting print job status for invoice {}", invoiceId);
+
+            PrintJobStatusDTO status = printJobService.getPrintJobStatus(invoiceId);
+
+            log.debug("Print job status retrieved for invoice {}: {} total jobs",
+                    invoiceId, status.getTotalJobs());
+
+            return ResponseEntity.ok(status);
+
+        } catch (InvoiceNotFoundException e) {
+            log.error("Invoice not found: {}", invoiceId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            log.error("Error getting print job status for invoice {}: {}",
+                    invoiceId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Retry a failed print job
+     * POST /api/v1/print-jobs/invoice/{invoiceId}/retry/{printType}
+     *
+     * @param invoiceId Invoice ID
+     * @param printType Print type to retry
+     * @return Newly created print job
+     */
+    @PostMapping("/invoice/{invoiceId}/retry/{printType}")
+    @PreAuthorize("hasAnyRole('OWNER', 'MANAGER')")
+    public ResponseEntity<Map<String, Object>> retryPrintJob(
+            @PathVariable Long invoiceId,
+            @PathVariable PrintType printType) {
+        try {
+            log.info("REST API: Retrying {} print job for invoice {}", printType, invoiceId);
+
+            PrintJob printJob = printJobService.retryPrintJob(invoiceId, printType);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", String.format("تمت إعادة محاولة طباعة %s بنجاح", printType.getArabicName()));
+            response.put("printJob", Map.of(
+                    "id", printJob.getId(),
+                    "type", printJob.getType(),
+                    "status", printJob.getStatus(),
+                    "pdfPath", printJob.getPdfPath(),
+                    "createdAt", printJob.getCreatedAt()
+            ));
+
+            log.info("Print job retry successful for invoice {}, type {}: new job ID {}",
+                    invoiceId, printType, printJob.getId());
+
+            return ResponseEntity.ok(response);
+
+        } catch (InvoiceNotFoundException e) {
+            log.error("Invoice not found during retry: {}", invoiceId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of(
+                            "success", false,
+                            "error", e.getMessage()
+                    ));
+        } catch (PrintJobException e) {
+            log.error("Error retrying print job for invoice {} with type {}: {}",
+                    invoiceId, printType, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "success", false,
+                            "error", e.getMessage()
+                    ));
+        } catch (Exception e) {
+            log.error("Unexpected error retrying print job: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "success", false,
+                            "error", "خطأ غير متوقع: " + e.getMessage()
+                    ));
+        }
     }
 
     /**
      * Get all queued print jobs
+     * GET /api/v1/print-jobs/queue
+     *
      * @return List of queued print jobs as DTOs
      */
     @GetMapping("/queue")
-    public ResponseEntity<?> getQueuedJobs() {
+    @PreAuthorize("hasAnyRole('OWNER', 'MANAGER', 'WORKER')")
+    public ResponseEntity<List<PrintJobDTO>> getQueuedJobs() {
         try {
-            log.debug("API: Fetching queued print jobs");
+            log.debug("REST API: Getting queued print jobs");
 
-            List<PrintJob> jobs = printJobService.getQueuedJobs();
+            List<PrintJob> queuedJobs = printJobService.getQueuedJobs();
 
-            // Convert to DTOs to avoid Hibernate serialization issues
-            List<PrintJobDTO> jobDTOs = jobs.stream()
+            // Convert to DTOs to avoid lazy loading issues
+            List<PrintJobDTO> queuedJobDTOs = queuedJobs.stream()
                     .map(PrintJobDTO::fromEntity)
-                    .collect(Collectors.toList());
+                    .toList();
 
-            log.info("API: Returning {} queued print jobs", jobDTOs.size());
-            return ResponseEntity.ok(jobDTOs);
+            log.debug("Found {} queued print jobs", queuedJobDTOs.size());
+
+            return ResponseEntity.ok(queuedJobDTOs);
 
         } catch (PrintJobException e) {
-            log.error("API: Print job service error: {}", e.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("فشل في تحميل قائمة الطباعة", e.getMessage()));
-
+            log.error("Error getting queued jobs: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         } catch (Exception e) {
-            log.error("API: Unexpected error fetching queued jobs: {}", e.getMessage(), e);
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("خطأ غير متوقع", "حدث خطأ أثناء تحميل قائمة الطباعة"));
+            log.error("Unexpected error getting queued jobs: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     /**
      * Mark print job as printing
-     * @param id Print job ID
-     * @return Updated print job
+     * PUT /api/v1/print-jobs/{jobId}/printing
+     *
+     * @param jobId Print job ID
+     * @return Updated print job as DTO
      */
-    @PutMapping("/{id}/printing")
-    public ResponseEntity<?> markAsPrinting(@PathVariable Long id) {
+    @PutMapping("/{jobId}/printing")
+    @PreAuthorize("hasAnyRole('OWNER', 'MANAGER', 'WORKER')")
+    public ResponseEntity<PrintJobDTO> markAsPrinting(@PathVariable Long jobId) {
         try {
-            log.debug("API: Marking print job {} as PRINTING", id);
+            log.info("REST API: Marking print job {} as PRINTING", jobId);
 
-            PrintJob job = printJobService.markAsPrinting(id);
-            PrintJobDTO jobDTO = PrintJobDTO.fromEntity(job);
+            PrintJob printJob = printJobService.markAsPrinting(jobId);
+            PrintJobDTO dto = PrintJobDTO.fromEntity(printJob);
 
-            log.info("API: Print job {} marked as PRINTING", id);
-            return ResponseEntity.ok(jobDTO);
+            return ResponseEntity.ok(dto);
 
-        } catch (IllegalArgumentException e) {
-            log.warn("API: Invalid print job ID: {}", id);
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(createErrorResponse("مهمة الطباعة غير موجودة", "لم يتم العثور على المهمة رقم " + id));
-
-        } catch (IllegalStateException e) {
-            log.warn("API: Invalid state transition for job {}: {}", id, e.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(createErrorResponse("حالة غير صالحة", e.getMessage()));
-
+        } catch (PrintJobException e) {
+            log.error("Error marking job {} as printing: {}", jobId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
-            log.error("API: Error marking job {} as printing: {}", id, e.getMessage(), e);
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("فشل في تحديث الحالة", "حدث خطأ أثناء بدء الطباعة"));
+            log.error("Unexpected error marking job as printing: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     /**
      * Mark print job as printed
-     * @param id Print job ID
-     * @return Updated print job
+     * PUT /api/v1/print-jobs/{jobId}/printed
+     *
+     * @param jobId Print job ID
+     * @return Updated print job as DTO
      */
-    @PutMapping("/{id}/printed")
-    public ResponseEntity<?> markAsPrinted(@PathVariable Long id) {
+    @PutMapping("/{jobId}/printed")
+    @PreAuthorize("hasAnyRole('OWNER', 'MANAGER', 'WORKER')")
+    public ResponseEntity<PrintJobDTO> markAsPrinted(@PathVariable Long jobId) {
         try {
-            log.debug("API: Marking print job {} as PRINTED", id);
+            log.info("REST API: Marking print job {} as PRINTED", jobId);
 
-            PrintJob job = printJobService.markAsPrinted(id);
-            PrintJobDTO jobDTO = PrintJobDTO.fromEntity(job);
+            PrintJob printJob = printJobService.markAsPrinted(jobId);
+            PrintJobDTO dto = PrintJobDTO.fromEntity(printJob);
 
-            log.info("API: Print job {} marked as PRINTED", id);
-            return ResponseEntity.ok(jobDTO);
+            return ResponseEntity.ok(dto);
 
-        } catch (IllegalArgumentException e) {
-            log.warn("API: Invalid print job ID: {}", id);
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(createErrorResponse("مهمة الطباعة غير موجودة", "لم يتم العثور على المهمة رقم " + id));
-
-        } catch (IllegalStateException e) {
-            log.warn("API: Invalid state transition for job {}: {}", id, e.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(createErrorResponse("حالة غير صالحة", e.getMessage()));
-
+        } catch (PrintJobException e) {
+            log.error("Error marking job {} as printed: {}", jobId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
-            log.error("API: Error marking job {} as printed: {}", id, e.getMessage(), e);
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("فشل في تحديث الحالة", "حدث خطأ أثناء تسجيل الطباعة"));
+            log.error("Unexpected error marking job as printed: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     /**
      * Mark print job as failed
-     * @param id Print job ID
-     * @param errorMessage Error message from request body
-     * @return Updated print job
+     * PUT /api/v1/print-jobs/{jobId}/failed
+     *
+     * @param jobId Print job ID
+     * @param body Request body with error message
+     * @return Updated print job as DTO
      */
-    @PutMapping("/{id}/failed")
-    public ResponseEntity<?> markAsFailed(
-            @PathVariable Long id,
-            @RequestBody String errorMessage) {
+    @PutMapping("/{jobId}/failed")
+    @PreAuthorize("hasAnyRole('OWNER', 'MANAGER', 'WORKER')")
+    public ResponseEntity<PrintJobDTO> markAsFailed(
+            @PathVariable Long jobId,
+            @RequestBody Map<String, String> body) {
         try {
-            log.debug("API: Marking print job {} as FAILED with reason: {}", id, errorMessage);
+            String errorMessage = body.getOrDefault("errorMessage", "Unknown error");
 
-            if (errorMessage == null || errorMessage.trim().isEmpty()) {
-                return ResponseEntity
-                        .status(HttpStatus.BAD_REQUEST)
-                        .body(createErrorResponse("سبب مطلوب", "يجب تحديد سبب فشل الطباعة"));
-            }
+            log.warn("REST API: Marking print job {} as FAILED: {}", jobId, errorMessage);
 
-            PrintJob job = printJobService.markAsFailed(id, errorMessage.trim());
-            PrintJobDTO jobDTO = PrintJobDTO.fromEntity(job);
+            PrintJob printJob = printJobService.markAsFailed(jobId, errorMessage);
+            PrintJobDTO dto = PrintJobDTO.fromEntity(printJob);
 
-            log.info("API: Print job {} marked as FAILED", id);
-            return ResponseEntity.ok(jobDTO);
-
-        } catch (IllegalArgumentException e) {
-            log.warn("API: Invalid print job ID: {}", id);
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(createErrorResponse("مهمة الطباعة غير موجودة", "لم يتم العثور على المهمة رقم " + id));
-
-        } catch (IllegalStateException e) {
-            log.warn("API: Invalid state transition for job {}: {}", id, e.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(createErrorResponse("حالة غير صالحة", e.getMessage()));
-
-        } catch (Exception e) {
-            log.error("API: Error marking job {} as failed: {}", id, e.getMessage(), e);
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("فشل في تحديث الحالة", "حدث خطأ أثناء تسجيل الفشل"));
-        }
-    }
-
-    /**
-     * الحصول على حالة مهام الطباعة لفاتورة معينة
-     * GET /api/v1/print-jobs/invoice/{invoiceId}/status
-     */
-    @GetMapping("/invoice/{invoiceId}/status")
-    @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER')")
-    public ResponseEntity<?> getPrintJobStatus(@PathVariable Long invoiceId) {
-        try {
-            log.debug("API: Fetching print job status for invoice {}", invoiceId);
-
-            PrintJobStatusDTO status = printJobService.getPrintJobStatus(invoiceId);
-
-            log.info("API: Returning print job status for invoice {}: {} successful jobs, {} failed jobs",
-                    invoiceId, status.getSuccessfulJobs(), status.getFailedJobs());
-
-            return ResponseEntity.ok(status);
-
-        } catch (InvoiceNotFoundException e) {
-            log.error("API: Invoice not found: {}", invoiceId);
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(createErrorResponse("الفاتورة غير موجودة", e.getMessage()));
+            return ResponseEntity.ok(dto);
 
         } catch (PrintJobException e) {
-            log.error("API: Print job service error: {}", e.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("فشل في تحميل حالة مهام الطباعة", e.getMessage()));
-
+            log.error("Error marking job {} as failed: {}", jobId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
-            log.error("API: Unexpected error fetching print job status: {}", e.getMessage(), e);
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("خطأ غير متوقع", "حدث خطأ أثناء تحميل حالة مهام الطباعة"));
+            log.error("Unexpected error marking job as failed: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     /**
-     * إعادة محاولة إنشاء مهمة طباعة فاشلة
-     * POST /api/v1/print-jobs/invoice/{invoiceId}/retry/{printType}
+     * Get print job by ID
+     * GET /api/v1/print-jobs/{jobId}
+     *
+     * @param jobId Print job ID
+     * @return Print job details as DTO
      */
-    @PostMapping("/invoice/{invoiceId}/retry/{printType}")
-    @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER')")
-    public ResponseEntity<?> retryPrintJob(
-            @PathVariable Long invoiceId,
-            @PathVariable PrintType printType) {
+    @GetMapping("/{jobId}")
+    @PreAuthorize("hasAnyRole('OWNER', 'MANAGER', 'WORKER')")
+    public ResponseEntity<PrintJobDTO> getPrintJobById(@PathVariable Long jobId) {
         try {
-            log.debug("API: Retrying print job for invoice {} with type {}", invoiceId, printType);
+            log.debug("REST API: Getting print job {}", jobId);
 
-            PrintJob newJob = printJobService.retryPrintJob(invoiceId, printType);
-            PrintJobDTO jobDTO = PrintJobDTO.fromEntity(newJob);
+            return printJobService.findById(jobId)
+                    .map(PrintJobDTO::fromEntity)
+                    .map(ResponseEntity::ok)
+                    .orElseGet(() -> {
+                        log.warn("Print job {} not found", jobId);
+                        return ResponseEntity.notFound().build();
+                    });
 
-            log.info("API: Print job retry successful for invoice {} with type {}: new job ID {}",
-                    invoiceId, printType, newJob.getId());
+        } catch (Exception e) {
+            log.error("Error getting print job {}: {}", jobId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
-            return ResponseEntity.ok(jobDTO);
+    /**
+     * Get all print jobs for an invoice
+     * GET /api/v1/print-jobs/invoice/{invoiceId}
+     *
+     * @param invoiceId Invoice ID
+     * @return List of print jobs for the invoice as DTOs
+     */
+    @GetMapping("/invoice/{invoiceId}")
+    @PreAuthorize("hasAnyRole('OWNER', 'MANAGER', 'WORKER')")
+    public ResponseEntity<List<PrintJobDTO>> getPrintJobsByInvoice(@PathVariable Long invoiceId) {
+        try {
+            log.debug("REST API: Getting print jobs for invoice {}", invoiceId);
 
-        } catch (InvoiceNotFoundException e) {
-            log.error("API: Invoice not found: {}", invoiceId);
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(createErrorResponse("الفاتورة غير موجودة", e.getMessage()));
+            List<PrintJob> printJobs = printJobService.findByInvoiceId(invoiceId);
+            List<PrintJobDTO> printJobDTOs = printJobs.stream()
+                    .map(PrintJobDTO::fromEntity)
+                    .toList();
 
-        } catch (PrintJobCreationException e) {
-            log.error("API: Print job creation failed: {}", e.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("فشل في إعادة محاولة الطباعة", e.getMessage()));
+            log.debug("Found {} print jobs for invoice {}", printJobDTOs.size(), invoiceId);
+
+            return ResponseEntity.ok(printJobDTOs);
+
+        } catch (Exception e) {
+            log.error("Error getting print jobs for invoice {}: {}",
+                    invoiceId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Get all failed print jobs
+     * GET /api/v1/print-jobs/failed
+     *
+     * @return List of failed print jobs as DTOs
+     */
+    @GetMapping("/failed")
+    @PreAuthorize("hasAnyRole('OWNER', 'MANAGER')")
+    public ResponseEntity<List<PrintJobDTO>> getFailedJobs() {
+        try {
+            log.debug("REST API: Getting failed print jobs");
+
+            List<PrintJob> failedJobs = printJobService.findFailedJobs();
+            List<PrintJobDTO> failedJobDTOs = failedJobs.stream()
+                    .map(PrintJobDTO::fromEntity)
+                    .toList();
+
+            log.debug("Found {} failed print jobs", failedJobDTOs.size());
+
+            return ResponseEntity.ok(failedJobDTOs);
+
+        } catch (Exception e) {
+            log.error("Error getting failed jobs: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Delete a print job
+     * DELETE /api/v1/print-jobs/{jobId}
+     *
+     * @param jobId Print job ID
+     * @return Success response
+     */
+    @DeleteMapping("/{jobId}")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<Map<String, Object>> deletePrintJob(@PathVariable Long jobId) {
+        try {
+            log.info("REST API: Deleting print job {}", jobId);
+
+            PrintJob printJob = printJobService.findById(jobId)
+                    .orElseThrow(() -> new PrintJobException("Print job not found: " + jobId));
+
+            printJobService.deletePrintJob(jobId);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "تم حذف مهمة الطباعة بنجاح",
+                    "jobId", jobId
+            ));
 
         } catch (PrintJobException e) {
-            log.error("API: Print job service error: {}", e.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("فشل في إعادة محاولة الطباعة", e.getMessage()));
-
+            log.error("Error deleting print job {}: {}", jobId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of(
+                            "success", false,
+                            "error", e.getMessage()
+                    ));
         } catch (Exception e) {
-            log.error("API: Unexpected error retrying print job: {}", e.getMessage(), e);
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("خطأ غير متوقع", "حدث خطأ أثناء إعادة محاولة الطباعة"));
+            log.error("Unexpected error deleting print job {}: {}", jobId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "success", false,
+                            "error", "خطأ غير متوقع: " + e.getMessage()
+                    ));
         }
-    }
-
-    /**
-     * دالة مساعدة لإنشاء استجابة خطأ موحدة
-     */
-    private Map<String, Object> createErrorResponse(String message, String details) {
-        Map<String, Object> error = new HashMap<>();
-        error.put("message", message);
-        error.put("details", details);
-        error.put("timestamp", LocalDateTime.now().toString());
-        return error;
-
     }
 }

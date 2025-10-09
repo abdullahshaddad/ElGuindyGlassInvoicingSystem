@@ -41,10 +41,10 @@ import java.util.Optional;
 public class InvoiceService {
 
     // Constants for validation
-    private static final double MAX_GLASS_WIDTH = 5000.0;  // 5 meters in mm
-    private static final double MAX_GLASS_HEIGHT = 3000.0; // 3 meters in mm
+    private static final double MAX_GLASS_WIDTH = 10000000.0;  // 5 meters in mm
+    private static final double MAX_GLASS_HEIGHT = 1000000.0; // 3 meters in mm
     private static final double MIN_DIMENSION = 0.1;       // Minimum 0.1mm
-    private static final int MAX_NOTES_LENGTH = 500;
+    private static final int MAX_NOTES_LENGTH = 5000000;
 
     private final InvoiceRepository invoiceRepository;
     private final InvoiceLineRepository invoiceLineRepository;
@@ -73,6 +73,7 @@ public class InvoiceService {
 
     /**
      * Create a new invoice with comprehensive error handling
+     * NOTE: Print jobs are created separately via PrintJobController
      * @param request The invoice creation request
      * @return Created invoice
      * @throws InvoiceCreationException if invoice creation fails
@@ -80,51 +81,46 @@ public class InvoiceService {
     @Transactional(rollbackFor = Exception.class)
     public Invoice createInvoice(CreateInvoiceRequest request) {
         log.info("Starting invoice creation for customer ID: {}", request.getCustomerId());
-        Long invoiceId = null;
 
         try {
             // 1. Validate request
             validateCreateInvoiceRequest(request);
 
-            // 2. Lookup customer with error handling
+            // 2. Lookup customer
             Customer customer = lookupCustomer(request.getCustomerId());
 
-            // 3. Create invoice with error handling
+            // 3. Create invoice
             Invoice invoice = createInvoiceEntity(customer, request);
-            invoiceId = invoice.getId();
 
-            // 4. Add invoice lines with individual error handling
+            // 4. Add invoice lines
             InvoiceLineProcessingResult lineResult = processInvoiceLines(invoice, request.getInvoiceLines());
 
             // 5. Validate that we have at least one successful line
             if (lineResult.getSuccessfulLines() == 0) {
                 String allErrors = String.join(", ", lineResult.getErrors());
-                log.error("All invoice lines failed for invoice {}: {}", invoiceId, allErrors);
+                log.error("All invoice lines failed for invoice {}: {}", invoice.getId(), allErrors);
                 throw new InvoiceLineCreationException("فشل في إنشاء جميع بنود الفاتورة: " + allErrors);
             }
 
             // Log warnings for partial failures
             if (!lineResult.getErrors().isEmpty()) {
-                log.warn("Invoice {} created with {} successful lines and {} failed lines. Errors: {}",
-                        invoiceId, lineResult.getSuccessfulLines(), lineResult.getErrors().size(), lineResult.getErrors());
+                log.warn("Invoice {} created with {} successful lines and {} failed lines",
+                        invoice.getId(), lineResult.getSuccessfulLines(), lineResult.getErrors().size());
             }
 
             // 6. Update total price
             invoice = updateInvoiceTotal(invoice, lineResult.getTotalPrice());
 
             // 7. Reload invoice with lines and glass types
-            invoice = reloadInvoiceWithLines(invoiceId);
+            invoice = reloadInvoiceWithLines(invoice.getId());
 
-            // 8. Create print jobs (non-critical)
-            handlePrintJobCreation(invoice);
-
-            // 9. Notify factory screen (non-critical)
+            // 8. Notify factory screen (non-critical)
             handleFactoryNotification(invoice);
 
-            // 10. Log success with summary
-            log.info("Invoice {} created successfully for customer '{}' (ID: {}) with {} lines, total: {} EGP. {} errors occurred.",
-                    invoiceId, customer.getName(), customer.getId(), lineResult.getSuccessfulLines(),
-                    lineResult.getTotalPrice(), lineResult.getErrors().size());
+            // 9. Log success
+            log.info("Invoice {} created successfully for customer '{}' (ID: {}) with {} lines, total: {} EGP",
+                    invoice.getId(), customer.getName(), customer.getId(),
+                    lineResult.getSuccessfulLines(), lineResult.getTotalPrice());
 
             return invoice;
 
@@ -143,12 +139,10 @@ public class InvoiceService {
             log.error("Database error during invoice creation: {}", e.getMessage(), e);
             throw new InvoiceCreationException("خطأ في قاعدة البيانات أثناء إنشاء الفاتورة", e);
         } catch (Exception e) {
-            log.error("Unexpected error during invoice creation for customer {}: {}",
-                    request.getCustomerId(), e.getMessage(), e);
+            log.error("Unexpected error during invoice creation: {}", e.getMessage(), e);
             throw new InvoiceCreationException("خطأ غير متوقع أثناء إنشاء الفاتورة: " + e.getMessage(), e);
         }
     }
-
     /**
      * Lookup customer with proper error handling
      */
@@ -284,24 +278,7 @@ public class InvoiceService {
         }
     }
 
-    /**
-     * Handle print job creation (non-critical)
-     */
-    private void handlePrintJobCreation(Invoice invoice) {
-        try {
-            printJobService.createPrintJobs(invoice);
-            log.debug("Print jobs created successfully for invoice {}", invoice.getId());
-        } catch (PdfGenerationException e) {
-            log.error("PDF generation failed for invoice {}: {}", invoice.getId(), e.getMessage(), e);
-            notifyPrintJobFailure(invoice.getId(), "فشل في إنشاء ملف PDF", e);
-        } catch (DataAccessException e) {
-            log.error("Database error creating print jobs for invoice {}: {}", invoice.getId(), e.getMessage(), e);
-            notifyPrintJobFailure(invoice.getId(), "خطأ في قاعدة البيانات أثناء إنشاء مهام الطباعة", e);
-        } catch (Exception e) {
-            log.error("Unexpected error creating print jobs for invoice {}: {}", invoice.getId(), e.getMessage(), e);
-            notifyPrintJobFailure(invoice.getId(), "خطأ غير متوقع في إنشاء مهام الطباعة", e);
-        }
-    }
+
     /**
      * Handle factory notification (non-critical)
      */
@@ -526,19 +503,6 @@ public class InvoiceService {
     }
 
     /**
-     * Handle print job failure notification (non-critical)
-     */
-    private void notifyPrintJobFailure(Long invoiceId, String arabicMessage, Exception cause) {
-        try {
-            // Could send notification to admin dashboard, email, etc.
-            log.warn("Print job failure notification for invoice {}: {}", invoiceId, arabicMessage);
-            // Example: emailService.notifyAdminPrintJobFailure(invoiceId, arabicMessage, cause);
-        } catch (Exception e) {
-            log.error("Failed to notify print job failure for invoice {}: {}", invoiceId, e.getMessage());
-        }
-    }
-
-    /**
      * Schedule factory notification retry (non-critical)
      */
     private void scheduleFactoryNotificationRetry(Invoice invoice, String arabicMessage) {
@@ -554,7 +518,7 @@ public class InvoiceService {
     // ================ OTHER METHODS (unchanged) ================
 
     public Optional<Invoice> findById(Long id) {
-        return invoiceRepository.findById(id);
+        return invoiceRepository.findByIdWithDetails(id);
     }
 
     public Page<Invoice> findInvoicesByDateRange(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {

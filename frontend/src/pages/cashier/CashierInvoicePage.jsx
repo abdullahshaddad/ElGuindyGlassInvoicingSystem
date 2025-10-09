@@ -9,12 +9,14 @@ import {
 } from 'react-icons/fi';
 import Button from '@components/ui/Button.jsx';
 import LoadingSpinner from '@components/ui/LoadingSpinner.jsx';
+import { ConfirmationDialog } from '@components/ui/ConfirmationDialog.jsx';
 import { invoiceService } from '@services/invoiceService.js';
 import { customerService } from '@services/customerService.js';
 import { glassTypeService } from '@services/glassTypeService.js';
+import { printJobService } from '@services/printJobService.js';
 import { invoiceUtils } from '@utils';
 import { PageHeader } from "@components";
-import { printJobService } from '@services/printJobService';
+import { useSnackbar } from "@contexts/SnackbarContext.jsx";
 
 // Import sub-components
 import PricingBreakdown from './components/PricingBreakdown.jsx';
@@ -26,18 +28,15 @@ import NewCustomerForm from './components/NewCustomerForm';
 import InvoiceList from './components/InvoiceList';
 import InvoiceViewModal from './components/InvoiceViewModal';
 import PrintJobStatusModal from './components/PrintJobStatusModal';
-import {useSnackbar} from "@contexts/SnackbarContext.jsx";
-
 
 const CashierInvoicesPage = () => {
     const { t } = useTranslation();
+    const { showSuccess, showError, showInfo, showWarning } = useSnackbar();
 
     // Main states
-    const [currentMode, setCurrentMode] = useState('list'); // 'list', 'create', 'addCustomer'
+    const [currentMode, setCurrentMode] = useState('list');
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(false);
-    // const [success, setSuccess] = useState(null);
-    const { showSuccess, showError, showInfo, showWarning } = useSnackbar();
 
     // POS states
     const [cart, setCart] = useState([]);
@@ -54,12 +53,26 @@ const CashierInvoicesPage = () => {
         cuttingType: 'SHATF',
         manualCuttingPrice: ''
     });
+
+    // Print job states
     const [isPrinting, setIsPrinting] = useState(false);
+    const [isSendingToFactory, setIsSendingToFactory] = useState(false);
     const [printStatus, setPrintStatus] = useState(null);
     const [printJobStatus, setPrintJobStatus] = useState(null);
     const [showPrintJobStatusModal, setShowPrintJobStatusModal] = useState(false);
     const [isCheckingPrintJobs, setIsCheckingPrintJobs] = useState(false);
     const [isRetryingPrintJob, setIsRetryingPrintJob] = useState(false);
+    const [isCreatingPrintJobs, setIsCreatingPrintJobs] = useState(false);
+
+    // Confirmation dialog states
+    const [confirmDialog, setConfirmDialog] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: null,
+        type: 'warning'
+    });
+
     // New customer form states
     const [newCustomer, setNewCustomer] = useState({
         name: '',
@@ -87,20 +100,11 @@ const CashierInvoicesPage = () => {
     const [totalPages, setTotalPages] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Auto-clear messages
-    const clearMessages = useCallback(() => {
-        setTimeout(() => {
-            // setError(null);
-            // setSuccess(null);
-        }, 5000);
-    }, []);
-
     // Load initial data
     useEffect(() => {
         loadInvoices();
         loadGlassTypes();
     }, []);
-
 
     // Customer search with debouncing
     useEffect(() => {
@@ -173,13 +177,11 @@ const CashierInvoicesPage = () => {
         setSelectedCustomer(customer);
         setCustomerSearch('');
         setCustomerResults([]);
-        // Focus on glass type selection
         setTimeout(() => glassTypeRef.current?.focus(), 100);
     };
 
     const handleStartNewCustomer = () => {
         const searchValue = customerSearch.trim();
-        // Pre-fill phone if search looks like a phone number
         const phonePattern = /^\d+$/;
         if (phonePattern.test(searchValue)) {
             setNewCustomer(prev => ({ ...prev, phone: searchValue }));
@@ -204,8 +206,6 @@ const CashierInvoicesPage = () => {
             setCurrentMode('create');
             setNewCustomer({ name: '', phone: '', address: '', email: '' });
             showSuccess(`تم إضافة العميل ${savedCustomer.name} بنجاح`);
-
-            // Focus on glass type selection
             setTimeout(() => glassTypeRef.current?.focus(), 100);
         } catch (err) {
             console.error('Create customer error:', err);
@@ -221,8 +221,6 @@ const CashierInvoicesPage = () => {
     };
 
     // Cart/Invoice line management
-    // Replace the handleAddLineToCart function in CashierInvoicePage.jsx with this version:
-
     const handleAddLineToCart = async () => {
         if (!currentLine.glassTypeId || !currentLine.width || !currentLine.height) {
             showError('يرجى ملء جميع البيانات المطلوبة');
@@ -319,6 +317,20 @@ const CashierInvoicesPage = () => {
         }));
     };
 
+    const handleRemoveFromCart = (itemId) => {
+        setCart(prev => prev.filter(item => item.id !== itemId));
+    };
+
+    const calculateCartTotals = () => {
+        const subtotal = cart.reduce((sum, item) => sum + (item.lineTotal || 0), 0);
+        return {
+            subtotal: Math.round(subtotal * 100) / 100,
+            tax: 0,
+            total: Math.round(subtotal * 100) / 100
+        };
+    };
+
+    // Create invoice
     const handleCreateInvoice = async () => {
         if (!selectedCustomer) {
             showError('يرجى اختيار العميل');
@@ -331,12 +343,11 @@ const CashierInvoicesPage = () => {
         }
 
         setIsCreating(true);
-        showError(null);
 
         try {
             const invoiceData = {
                 customerId: selectedCustomer.id,
-                issuedAt: new Date().toISOString(),
+                issueDate: new Date().toISOString(),
                 invoiceLines: cart.map(item => ({
                     glassTypeId: parseInt(item.glassTypeId),
                     width: parseFloat(item.width),
@@ -354,8 +365,16 @@ const CashierInvoicesPage = () => {
 
             showSuccess(`تم إنشاء الفاتورة رقم ${newInvoice.id} بنجاح! الإجمالي: ${totals.total.toFixed(2)} ج.م`);
 
-            // التحقق من حالة مهام الطباعة
-            await checkPrintJobStatus(newInvoice.id);
+            // Ask if user wants to create print jobs
+            setConfirmDialog({
+                isOpen: true,
+                title: 'إنشاء مهام الطباعة',
+                message: 'هل تريد إنشاء وطباعة الفواتير وإرسال الملصق للمصنع الآن؟',
+                type: 'info',
+                onConfirm: async () => {
+                    await createAndPrintInvoice(newInvoice.id);
+                }
+            });
 
             handleResetPOS();
             loadInvoices();
@@ -368,45 +387,169 @@ const CashierInvoicesPage = () => {
         }
     };
 
-    const calculateCartTotals = () => {
-        const subtotal = cart.reduce((sum, item) => sum + (item.lineTotal || 0), 0);
-        return {
-            subtotal: Math.round(subtotal * 100) / 100,
-            tax: 0,
-            total: Math.round(subtotal * 100) / 100
-        };
-    };
-
-// 3. Update totals calculation
-    const handleRemoveFromCart = (itemId) => {
-        setCart(prev => prev.filter(item => item.id !== itemId));
-    };
-
-    const checkPrintJobStatus = async (invoiceId) => {
-        setIsCheckingPrintJobs(true);
+    // Create and print invoice (CLIENT + OWNER + STICKER)
+    const createAndPrintInvoice = async (invoiceId) => {
+        setIsCreatingPrintJobs(true);
         try {
-            // الانتظار قليلاً للسماح للنظام الخلفي بإنشاء مهام الطباعة
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            const result = await printJobService.createSinglePrintJob(invoiceId, 'STICKER');
 
-            const status = await printJobService.getPrintJobStatus(invoiceId);
-            setPrintJobStatus(status);
-            setShowPrintJobStatusModal(true);
+            if (result.success) {
+                showSuccess('تم إنشاء مهام الطباعة بنجاح');
 
-            console.log('Print job status:', status);
+                // Get the created jobs
+                const status = await printJobService.getPrintJobStatus(invoiceId);
+                const jobs = status.jobs || [];
 
+                // Open CLIENT and OWNER PDFs
+                const clientJob = jobs.find(job => job.type === 'CLIENT');
+                if (clientJob?.pdfPath) {
+                    window.open(printJobService.getPdfUrl(clientJob), '_blank');
+                }
+
+                const ownerJob = jobs.find(job => job.type === 'OWNER');
+                if (ownerJob?.pdfPath) {
+                    window.open(printJobService.getPdfUrl(ownerJob), '_blank');
+                }
+
+                showInfo('تم إرسال الملصق للمصنع');
+            }
         } catch (err) {
-            console.error('Check print job status error:', err);
-            // لا نعرض خطأ هنا لأن مهام الطباعة غير حرجة
-            console.warn('Failed to check print job status, but invoice was created successfully');
+            console.error('Create print jobs error:', err);
+            showError('فشل في إنشاء مهام الطباعة');
         } finally {
-            setIsCheckingPrintJobs(false);
+            setIsCreatingPrintJobs(false);
         }
     };
-    // Calculate totals
-    const totals = invoiceUtils.calculateTotals(cart, glassTypes);
 
-    // Invoice operations
+    // Print invoice (CLIENT + OWNER only)
+    const handlePrintInvoice = async (invoice) => {
+        if (!invoice || !invoice.id) {
+            showError('معلومات الفاتورة غير صحيحة');
+            return;
+        }
 
+        try {
+            setIsPrinting(true);
+            setPrintStatus('جاري التحقق من مهام الطباعة...');
+
+            const status = await printJobService.getPrintJobStatus(invoice.id);
+
+            const needsClient = status.missingJobTypes?.includes('CLIENT');
+            const needsOwner = status.missingJobTypes?.includes('OWNER');
+
+            // Create CLIENT if missing
+            if (needsClient) {
+                setPrintStatus('جاري إنشاء نسخة العميل...');
+                const clientResult = await printJobService.createSinglePrintJob(invoice.id, 'CLIENT');
+                if (clientResult.success && clientResult.printJob?.pdfPath) {
+                    window.open(printJobService.getPdfUrl(clientResult.printJob), '_blank');
+                }
+            }
+
+            // Create OWNER if missing
+            if (needsOwner) {
+                setPrintStatus('جاري إنشاء نسخة المالك...');
+                const ownerResult = await printJobService.createSinglePrintJob(invoice.id, 'OWNER');
+                if (ownerResult.success && ownerResult.printJob?.pdfPath) {
+                    window.open(printJobService.getPdfUrl(ownerResult.printJob), '_blank');
+                }
+            }
+
+            // If PDFs exist, just open them
+            if (!needsClient && !needsOwner) {
+                const existingJobs = status.jobs || [];
+
+                const clientJob = existingJobs.find(job => job.type === 'CLIENT');
+                if (clientJob?.pdfPath) {
+                    window.open(printJobService.getPdfUrl(clientJob), '_blank');
+                }
+
+                const ownerJob = existingJobs.find(job => job.type === 'OWNER');
+                if (ownerJob?.pdfPath) {
+                    window.open(printJobService.getPdfUrl(ownerJob), '_blank');
+                }
+            }
+
+            showSuccess('تم فتح ملفات PDF للطباعة');
+            setPrintStatus(null);
+
+        } catch (err) {
+            console.error('Print invoice error:', err);
+            showError('فشل في طباعة الفاتورة');
+            setPrintStatus(null);
+        } finally {
+            setIsPrinting(false);
+        }
+    };
+
+    // Send to factory (STICKER only)
+    const handleSendToFactory = async (invoice) => {
+        if (!invoice || !invoice.id) {
+            showError('معلومات الفاتورة غير صحيحة');
+            return;
+        }
+
+        setConfirmDialog({
+            isOpen: true,
+            title: 'إرسال للمصنع',
+            message: `هل تريد إرسال ملصق الفاتورة #${invoice.id} للمصنع؟`,
+            type: 'info',
+            onConfirm: async () => {
+                await executeSendToFactory(invoice);
+            }
+        });
+    };
+
+    const executeSendToFactory = async (invoice) => {
+        try {
+            setIsSendingToFactory(true);
+            setPrintStatus('جاري إرسال الملصق للمصنع...');
+
+            const status = await printJobService.getPrintJobStatus(invoice.id);
+            const needsSticker = status.missingJobTypes?.includes('STICKER');
+
+
+                const stickerResult = await printJobService.createSinglePrintJob(invoice.id, 'STICKER');
+                if (stickerResult.success) {
+                    showSuccess(`تم إرسال ملصق الفاتورة #${invoice.id} للمصنع`);
+                }
+
+
+            setPrintStatus(null);
+        } catch (err) {
+            console.error('Send to factory error:', err);
+            showError('فشل في إرسال الملصق للمصنع');
+            setPrintStatus(null);
+        } finally {
+            setIsSendingToFactory(false);
+        }
+    };
+
+    // Mark invoice as paid
+    const handleMarkAsPaid = async (invoice) => {
+        setConfirmDialog({
+            isOpen: true,
+            title: 'تسديد الفاتورة',
+            message: `هل تريد تسديد الفاتورة #${invoice.id}؟`,
+            type: 'warning',
+            onConfirm: async () => {
+                await executeMarkAsPaid(invoice);
+            }
+        });
+    };
+
+    const executeMarkAsPaid = async (invoice) => {
+        try {
+            await invoiceService.markAsPaid(invoice.id);
+            showSuccess(`تم تسديد الفاتورة ${invoice.id} بنجاح`);
+            loadInvoices(currentPage, searchTerm);
+        } catch (err) {
+            console.error('Mark as paid error:', err);
+            showError('فشل في تسديد الفاتورة');
+        }
+    };
+
+    // Reset POS
     const handleResetPOS = () => {
         setCurrentMode('list');
         setSelectedCustomer(null);
@@ -417,6 +560,7 @@ const CashierInvoicesPage = () => {
             glassTypeId: '',
             width: '',
             height: '',
+            dimensionUnit: 'MM',
             cuttingType: 'SHATF',
             manualCuttingPrice: ''
         });
@@ -426,136 +570,6 @@ const CashierInvoicesPage = () => {
     const handleViewInvoice = (invoice) => {
         setSelectedInvoice(invoice);
         setIsViewModalOpen(true);
-    };
-
-    const handlePrintInvoice = async (invoice) => {
-        if (!invoice || !invoice.id) {
-            showError('معلومات الفاتورة غير صحيحة');
-            return;
-        }
-        try {
-            setIsPrinting(true);
-            setPrintStatus('جاري إرسال الفاتورة للطباعة...');
-
-            // Note: Print jobs are automatically created when the invoice is created
-            // by the backend InvoiceService. However, we can trigger additional
-            // print jobs if needed, such as reprinting or printing stickers separately.
-
-            // Check if we need to create additional sticker print job
-            // (Usually done for factory workers)
-            if (window.confirm('هل تريد طباعة ملصق للفاتورة؟')) {
-                try {
-                    const stickerJob = await printJobService.createStickerPrintJob(invoice.id);
-                    setPrintStatus('تم إرسال الملصق للطباعة بنجاح');
-                    showSuccess(`تم إرسال الفاتورة ${invoice.id} والملصق للطباعة`);
-                } catch (stickerError) {
-                    console.error('Sticker print error:', stickerError);
-                    // Don't fail the entire process if sticker fails
-                    showSuccess(`تم إرسال الفاتورة ${invoice.id} للطباعة (فشل طباعة الملصق)`);
-                }
-            } else {
-                showSuccess(`تم إرسال الفاتورة ${invoice.id} للطباعة`);
-            }
-
-            // Show print status details
-            setTimeout(() => {
-                setPrintStatus(null);
-            }, 3000);
-
-        } catch (err) {
-            console.error('Print invoice error:', err);
-
-            let errorMessage = 'فشل في إرسال الفاتورة للطباعة';
-
-            if (err.response?.data?.message) {
-                errorMessage = `خطأ في الطباعة: ${err.response.data.message}`;
-            } else if (err.message) {
-                errorMessage = `خطأ في الطباعة: ${err.message}`;
-            }
-
-            showError(errorMessage);
-            setPrintStatus(null);
-        } finally {
-            setIsPrinting(false);
-        }
-    };
-
-    const handleReprintInvoice = async (invoice) => {
-        if (!invoice || !invoice.id) {
-            showError('معلومات الفاتورة غير صحيحة');
-            return;
-        }
-
-        if (!window.confirm(`هل تريد إعادة طباعة الفاتورة ${invoice.id}؟`)) {
-            return;
-        }
-
-        try {
-            setIsPrinting(true);
-            setPrintStatus('جاري إعادة إرسال الفاتورة للطباعة...');
-
-            // Get queued print jobs to check status
-            const queuedJobs = await printJobService.getQueuedJobs();
-            const invoicePrintJobs = queuedJobs.filter(job => job.invoice?.id === invoice.id);
-
-            if (invoicePrintJobs.length > 0) {
-                showSuccess(`يوجد ${invoicePrintJobs.length} مهام طباعة في قائمة الانتظار للفاتورة ${invoice.id}`);
-            } else {
-                // Create new sticker print job for reprint
-                await printJobService.createStickerPrintJob(invoice.id);
-                showSuccess(`تم إرسال الفاتورة ${invoice.id} للطباعة مجدداً`);
-            }
-
-            setPrintStatus(null);
-
-        } catch (err) {
-            console.error('Reprint invoice error:', err);
-            showError(`فشل في إعادة طباعة الفاتورة: ${err.message || 'خطأ غير معروف'}`);
-            setPrintStatus(null);
-        } finally {
-            setIsPrinting(false);
-        }
-    };
-
-    const handleMarkAsPaid = async (invoice) => {
-        try {
-            await invoiceService.markAsPaid(invoice.id);
-            showSuccess(`تم تسديد الفاتورة ${invoice.id} بنجاح`);
-            loadInvoices(currentPage, searchTerm);
-        } catch (err) {
-            showError('فشل في تسديد الفاتورة');
-        }
-    };
-
-    const handleRetryPrintJob = async (printType) => {
-        if (!printJobStatus?.invoiceId) {
-            console.error('No invoice ID available for retry');
-            return;
-        }
-
-        setIsRetryingPrintJob(true);
-
-        try {
-            await printJobService.retryPrintJob(printJobStatus.invoiceId, printType);
-
-            const typeName = {
-                CLIENT: 'نسخة العميل',
-                OWNER: 'نسخة المالك',
-                STICKER: 'ملصق المصنع'
-            }[printType] || printType;
-
-            showSuccess(`تم إعادة محاولة طباعة ${typeName} بنجاح`);
-
-            // تحديث الحالة بعد إعادة المحاولة
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            await checkPrintJobStatus(printJobStatus.invoiceId);
-
-        } catch (err) {
-            console.error('Retry print job error:', err);
-            showError(err.response?.data?.message || 'فشل في إعادة محاولة الطباعة');
-        } finally {
-            setIsRetryingPrintJob(false);
-        }
     };
 
     // Keyboard shortcuts for POS workflow
@@ -581,7 +595,7 @@ const CashierInvoicesPage = () => {
 
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [currentMode, currentLine, cart, selectedCustomer]);
+    }, [currentMode, currentLine, cart, selectedCustomer, isViewModalOpen]);
 
     return (
         <div className="" dir="rtl">
@@ -605,39 +619,8 @@ const CashierInvoicesPage = () => {
                 }
             />
 
-            {/*/!* Messages *!/*/}
-            {/*{error && (*/}
-            {/*    <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">*/}
-            {/*        <FiX className="text-red-500 flex-shrink-0"/>*/}
-            {/*        <span className="text-red-700 flex-1">{error}</span>*/}
-            {/*        <Button*/}
-            {/*            variant="ghost"*/}
-            {/*            size="sm"*/}
-            {/*            onClick={() => setError(null)}*/}
-            {/*            className="text-red-500 hover:text-red-700"*/}
-            {/*        >*/}
-            {/*            <FiX size={16}/>*/}
-            {/*        </Button>*/}
-            {/*    </div>*/}
-            {/*)}*/}
-
-            {/*{success && (*/}
-            {/*    <div className="mx-6 mt-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">*/}
-            {/*        <FiCheck className="text-green-500 flex-shrink-0"/>*/}
-            {/*        <span className="text-green-700 flex-1">{success}</span>*/}
-            {/*        <Button*/}
-            {/*            variant="ghost"*/}
-            {/*            size="sm"*/}
-            {/*            onClick={() => setSuccess(null)}*/}
-            {/*            className="text-green-500 hover:text-green-700"*/}
-            {/*        >*/}
-            {/*            <FiX size={16}/>*/}
-            {/*        </Button>*/}
-            {/*    </div>*/}
-            {/*)}*/}
-
             {printStatus && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 px-4 py-3 rounded-lg flex items-center gap-2">
+                <div className="mx-6 mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 px-4 py-3 rounded-lg flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                     <span>{printStatus}</span>
                 </div>
@@ -651,7 +634,7 @@ const CashierInvoicesPage = () => {
                         onClick={() => setCurrentMode('list')}
                         className="flex items-center gap-2"
                     >
-                        <FiShoppingCart/>
+                        <FiShoppingCart />
                         قائمة الفواتير
                     </Button>
                     <Button
@@ -659,7 +642,7 @@ const CashierInvoicesPage = () => {
                         onClick={() => setCurrentMode('create')}
                         className="flex items-center gap-2"
                     >
-                        <FiPlus/>
+                        <FiPlus />
                         فاتورة جديدة
                     </Button>
                 </div>
@@ -681,9 +664,7 @@ const CashierInvoicesPage = () => {
                 {/* POS Interface */}
                 {(currentMode === 'create' || currentMode === 'addCustomer') && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                        {/* Left Panel - Product Entry */}
                         <div className="lg:col-span-2 space-y-4">
-                            {/* Customer Selection */}
                             <CustomerSelection
                                 selectedCustomer={selectedCustomer}
                                 customerSearch={customerSearch}
@@ -695,7 +676,6 @@ const CashierInvoicesPage = () => {
                                 onClearSelection={() => setSelectedCustomer(null)}
                             />
 
-                            {/* Product Entry */}
                             <ProductEntry
                                 currentLine={currentLine}
                                 glassTypes={glassTypes}
@@ -707,9 +687,7 @@ const CashierInvoicesPage = () => {
                             />
                         </div>
 
-                        {/* Right Panel - Cart & Summary */}
                         <div className="space-y-4">
-                            {/* Shopping Cart */}
                             <ShoppingCart
                                 cart={cart}
                                 glassTypes={glassTypes}
@@ -717,7 +695,6 @@ const CashierInvoicesPage = () => {
                                 onUpdate={handleUpdateCartItem}
                             />
 
-                            {/* Enhanced Order Summary */}
                             {cart.length > 0 && (
                                 <EnhancedOrderSummary
                                     cart={cart}
@@ -725,29 +702,30 @@ const CashierInvoicesPage = () => {
                                 />
                             )}
 
-                            {/* Action Buttons */}
                             {cart.length > 0 && selectedCustomer && (
                                 <div className="space-y-3">
                                     <Button
                                         onClick={handleCreateInvoice}
-                                        disabled={isCreating}
+                                        disabled={isCreating || isCreatingPrintJobs}
                                         className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-lg py-4 shadow-lg hover:shadow-emerald-500/25 transition-all duration-200"
                                     >
-                                        {isCreating ? (
-                                            <LoadingSpinner size="sm" className="ml-2"/>
+                                        {(isCreating || isCreatingPrintJobs) ? (
+                                            <LoadingSpinner size="sm" className="ml-2" />
                                         ) : (
-                                            <FiDollarSign className="ml-2"/>
+                                            <FiDollarSign className="ml-2" />
                                         )}
-                                        {isCreating ? 'جارٍ إنشاء الفاتورة...' : 'إنشاء الفاتورة (F2)'}
+                                        {isCreating ? 'جاري إنشاء الفاتورة...' :
+                                            isCreatingPrintJobs ? 'جاري إنشاء مهام الطباعة...' :
+                                                'إنشاء الفاتورة (F2)'}
                                     </Button>
 
                                     <Button
                                         variant="outline"
                                         onClick={handleResetPOS}
-                                        disabled={isCreating}
+                                        disabled={isCreating || isCreatingPrintJobs}
                                         className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
                                     >
-                                        <FiX className="ml-2"/>
+                                        <FiX className="ml-2" />
                                         إلغاء (Esc)
                                     </Button>
                                 </div>
@@ -772,10 +750,6 @@ const CashierInvoicesPage = () => {
                                         <kbd className="px-2 py-1 bg-blue-100 rounded text-xs font-mono">Esc</kbd>
                                         <span>إلغاء العملية</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <kbd className="px-2 py-1 bg-blue-100 rounded text-xs font-mono">Enter</kbd>
-                                        <span>الانتقال للحقل التالي</span>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -786,6 +760,7 @@ const CashierInvoicesPage = () => {
                 {currentMode === 'list' && (
                     <InvoiceList
                         isPrinting={isPrinting}
+                        isSendingToFactory={isSendingToFactory}
                         invoices={invoices}
                         loading={loading}
                         searchTerm={searchTerm}
@@ -798,6 +773,7 @@ const CashierInvoicesPage = () => {
                         }}
                         onViewInvoice={handleViewInvoice}
                         onPrintInvoice={handlePrintInvoice}
+                        onSendToFactory={handleSendToFactory}
                         onMarkAsPaid={handleMarkAsPaid}
                     />
                 )}
@@ -810,15 +786,18 @@ const CashierInvoicesPage = () => {
                 invoice={selectedInvoice}
                 glassTypes={glassTypes}
                 onPrint={handlePrintInvoice}
+                onSendToFactory={handleSendToFactory}
                 onMarkAsPaid={handleMarkAsPaid}
             />
 
-            <PrintJobStatusModal
-                isOpen={showPrintJobStatusModal}
-                onClose={() => setShowPrintJobStatusModal(false)}
-                printJobStatus={printJobStatus}
-                onRetry={handleRetryPrintJob}
-                isRetrying={isRetryingPrintJob}
+            {/* Confirmation Dialog */}
+            <ConfirmationDialog
+                isOpen={confirmDialog.isOpen}
+                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+                onConfirm={confirmDialog.onConfirm}
+                title={confirmDialog.title}
+                message={confirmDialog.message}
+                type={confirmDialog.type}
             />
         </div>
     );
