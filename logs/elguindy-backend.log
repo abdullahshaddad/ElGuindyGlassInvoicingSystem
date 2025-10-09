@@ -1,0 +1,2043 @@
+2025-10-08 15:18:40.022 [main] INFO  c.example.backend.BackendApplication - Starting BackendApplication using Java 23.0.2 with PID 24820 (C:\Users\lenovo\Desktop\Work\ElGuindyGlassInvoicingSystem\backend\target\classes started by lenovo in C:\Users\lenovo\Desktop\Work\ElGuindyGlassInvoicingSystem)
+2025-10-08 15:18:40.029 [main] DEBUG c.example.backend.BackendApplication - Running with Spring Boot v3.5.5, Spring v6.2.10
+2025-10-08 15:18:40.033 [main] INFO  c.example.backend.BackendApplication - No active profile set, falling back to 1 default profile: "default"
+2025-10-08 15:18:44.490 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2025-10-08 15:18:44.498 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JDBC repositories in DEFAULT mode.
+2025-10-08 15:18:44.696 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.CustomerRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-08 15:18:44.703 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.CuttingDetailRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-08 15:18:44.709 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.CuttingRateRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-08 15:18:44.715 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.GlassTypeRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-08 15:18:44.720 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.InvoiceLineRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-08 15:18:44.726 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.InvoiceRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-08 15:18:44.733 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.NotificationRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-08 15:18:44.739 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.PrintJobRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-08 15:18:44.747 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.UserRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-08 15:18:44.750 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 229 ms. Found 0 JDBC repository interfaces.
+2025-10-08 15:18:44.793 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2025-10-08 15:18:44.797 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-10-08 15:18:45.036 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 219 ms. Found 9 JPA repository interfaces.
+2025-10-08 15:18:47.219 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-10-08 15:18:47.298 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-10-08 15:18:47.299 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.44]
+2025-10-08 15:18:47.521 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-10-08 15:18:47.522 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 7088 ms
+2025-10-08 15:18:48.206 [main] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-10-08 15:18:48.506 [main] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.26.Final
+2025-10-08 15:18:48.642 [main] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2025-10-08 15:18:49.445 [main] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-10-08 15:18:49.547 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-10-08 15:18:50.002 [main] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@5e541ef9
+2025-10-08 15:18:50.006 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2025-10-08 15:18:50.148 [main] WARN  org.hibernate.orm.deprecation - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-10-08 15:18:50.212 [main] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 17.6
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-10-08 15:18:53.472 [main] INFO  o.h.e.t.j.p.i.JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-10-08 15:18:53.745 [main] DEBUG org.hibernate.SQL - 
+    alter table if exists invoice 
+       add column notes varchar(255)
+2025-10-08 15:18:53.850 [main] DEBUG org.hibernate.SQL - 
+    alter table if exists invoice_line 
+       add column dimension_unit varchar(255) not null check (dimension_unit in ('MM','CM','M'))
+2025-10-08 15:18:55.676 [main] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-10-08 15:18:56.312 [main] INFO  o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-10-08 15:19:01.500 [main] DEBUG c.e.b.c.s.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
+2025-10-08 15:19:01.966 [main] INFO  o.s.s.c.a.a.c.InitializeAuthenticationProviderBeanManagerConfigurer$InitializeAuthenticationProviderManagerConfigurer - Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2025-10-08 15:19:01.971 [main] WARN  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2025-10-08 15:19:05.327 [main] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-10-08 15:19:11.494 [main] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - Starting...
+2025-10-08 15:19:11.500 [main] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@4bc5b2cf]]
+2025-10-08 15:19:11.506 [main] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - Started.
+2025-10-08 15:19:11.638 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-10-08 15:19:11.699 [main] INFO  c.example.backend.BackendApplication - Started BackendApplication in 33.84 seconds (process running for 37.29)
+2025-10-08 15:19:11.788 [main] INFO  c.e.backend.config.DataInitializer - Starting application data initialization...
+2025-10-08 15:19:11.788 [main] INFO  c.e.backend.config.DataInitializer - Application data initialization completed successfully.
+2025-10-08 15:19:12.441 [main] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id 
+    from
+        users u1_0 
+    where
+        u1_0.username=? 
+    fetch
+        first ? rows only
+2025-10-08 15:19:13.065 [main] DEBUG org.hibernate.SQL - 
+    /* insert for
+        com.example.backend.models.user.User */insert 
+    into
+        users (first_name, is_active, last_name, password, role, username, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?)
+2025-10-08 15:19:13.716 [main] INFO  c.e.backend.config.DataInitializer - Default OWNER user created successfully with username: 'owner'
+2025-10-08 15:19:13.722 [main] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id 
+    from
+        users u1_0 
+    where
+        u1_0.username=? 
+    fetch
+        first ? rows only
+2025-10-08 15:19:14.646 [main] DEBUG org.hibernate.SQL - 
+    /* insert for
+        com.example.backend.models.user.User */insert 
+    into
+        users (first_name, is_active, last_name, password, role, username, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?)
+2025-10-08 15:19:14.903 [main] INFO  org.hibernate.orm.jdbc.batch - HHH100503: On release of batch it still contained JDBC statements
+2025-10-08 15:19:14.904 [main] WARN  o.h.e.jdbc.spi.SqlExceptionHelper - SQL Error: 0, SQLState: 23514
+2025-10-08 15:19:14.905 [main] ERROR o.h.e.jdbc.spi.SqlExceptionHelper - Batch entry 0 /* insert for com.example.backend.models.user.User */insert into users (first_name,is_active,last_name,password,role,username,id) values (('System'),('TRUE'::boolean),('Admin'),('$2a$10$.0vSpHO0DZGekOqzNR2IWO4NY/zYjAmHWn7yayfnURb6Lzc2ZFoMK'),('ADMIN'),('admin'),('48dab0b2-3d86-4741-a4e1-b871ef9355be'::uuid)) was aborted: ERROR: new row for relation "users" violates check constraint "users_role_check"
+  Detail: Failing row contains (48dab0b2-3d86-4741-a4e1-b871ef9355be, System, t, Admin, $2a$10$.0vSpHO0DZGekOqzNR2IWO4NY/zYjAmHWn7yayfnURb6Lzc2ZFoMK, ADMIN, admin).  Call getNextException to see other errors in the batch.
+2025-10-08 15:19:14.906 [main] ERROR o.h.e.jdbc.spi.SqlExceptionHelper - ERROR: new row for relation "users" violates check constraint "users_role_check"
+  Detail: Failing row contains (48dab0b2-3d86-4741-a4e1-b871ef9355be, System, t, Admin, $2a$10$.0vSpHO0DZGekOqzNR2IWO4NY/zYjAmHWn7yayfnURb6Lzc2ZFoMK, ADMIN, admin).
+2025-10-08 15:19:15.516 [main] ERROR c.e.backend.config.DataInitializer - Failed to create default ADMIN user: Username already exists: admin
+2025-10-08 15:19:15.520 [main] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id 
+    from
+        users u1_0 
+    where
+        u1_0.username=? 
+    fetch
+        first ? rows only
+2025-10-08 15:19:18.425 [main] DEBUG org.hibernate.SQL - 
+    /* insert for
+        com.example.backend.models.user.User */insert 
+    into
+        users (first_name, is_active, last_name, password, role, username, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?)
+2025-10-08 15:19:19.059 [main] INFO  c.e.backend.config.DataInitializer - Default CASHIER user created successfully with username: 'cashier'
+2025-10-08 15:19:19.063 [main] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id 
+    from
+        users u1_0 
+    where
+        u1_0.username=? 
+    fetch
+        first ? rows only
+2025-10-08 15:19:19.646 [main] DEBUG org.hibernate.SQL - 
+    /* insert for
+        com.example.backend.models.user.User */insert 
+    into
+        users (first_name, is_active, last_name, password, role, username, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?)
+2025-10-08 15:19:19.913 [main] INFO  c.e.backend.config.DataInitializer - Default WORKER user created successfully with username: 'worker'
+2025-10-08 15:19:19.914 [main] INFO  c.e.backend.config.DataInitializer - User initialization completed. Default users created if they didn't exist.
+2025-10-08 15:19:19.914 [main] INFO  c.e.backend.config.DataInitializer - IMPORTANT: Please change default passwords after first login for security!
+2025-10-08 15:20:11.390 [MessageBroker-1] INFO  o.s.w.s.c.WebSocketMessageBrokerStats - WebSocketSession[0 current WS(0)-HttpStream(0)-HttpPoll(0), 0 total, 0 closed abnormally (0 connect failure, 0 send limit, 0 transport error)], stompSubProtocol[processed CONNECT(0)-CONNECTED(0)-DISCONNECT(0)], stompBrokerRelay[null], inboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], outboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], sockJsScheduler[pool size = 1, active threads = 1, queued tasks = 0, completed tasks = 0]
+2025-10-08 15:25:27.877 [http-nio-8080-exec-2] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-10-08 15:25:27.878 [http-nio-8080-exec-2] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-10-08 15:25:27.884 [http-nio-8080-exec-2] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 6 ms
+2025-10-08 15:25:28.807 [http-nio-8080-exec-3] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:25:29.353 [http-nio-8080-exec-3] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:26:09.796 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:26:09.871 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:26:09.936 [http-nio-8080-exec-5] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:26:09.961 [http-nio-8080-exec-5] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:27:20.855 [http-nio-8080-exec-3] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:27:20.934 [http-nio-8080-exec-3] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:27:21.021 [http-nio-8080-exec-3] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:27:21.103 [http-nio-8080-exec-3] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:27:21.137 [http-nio-8080-exec-3] WARN  o.s.d.w.c.SpringDataJacksonConfiguration$PageModule$WarningLoggingModifier - Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
+	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
+	or Spring HATEOAS and Spring Data's PagedResourcesAssembler as documented in https://docs.spring.io/spring-data/commons/reference/repositories/core-extensions.html#core.web.pageables.
+
+2025-10-08 15:27:21.277 [http-nio-8080-exec-3] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:27:21.296 [http-nio-8080-exec-3] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:27:21.305 [http-nio-8080-exec-3] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:27:21.322 [http-nio-8080-exec-3] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:27:27.379 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:27:27.406 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        c1_0.id,
+        c1_0.address,
+        c1_0.created_at,
+        c1_0.name,
+        c1_0.phone 
+    from
+        customer c1_0
+2025-10-08 15:27:27.439 [http-nio-8080-exec-5] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:27:27.462 [http-nio-8080-exec-5] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        c1_0.id,
+        c1_0.address,
+        c1_0.created_at,
+        c1_0.name,
+        c1_0.phone 
+    from
+        customer c1_0
+2025-10-08 15:27:35.204 [http-nio-8080-exec-10] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:27:35.215 [http-nio-8080-exec-8] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:27:35.230 [http-nio-8080-exec-10] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:27:35.233 [http-nio-8080-exec-10] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:27:35.250 [http-nio-8080-exec-10] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:27:35.261 [http-nio-8080-exec-8] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:27:35.277 [http-nio-8080-exec-9] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:27:35.298 [http-nio-8080-exec-9] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:27:35.299 [http-nio-8080-exec-8] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:27:35.304 [http-nio-8080-exec-9] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:27:35.315 [http-nio-8080-exec-9] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:27:35.320 [http-nio-8080-exec-8] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:27:35.484 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:27:35.505 [http-nio-8080-exec-2] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:27:35.511 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:27:35.527 [http-nio-8080-exec-2] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:27:50.495 [http-nio-8080-exec-5] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:27:50.524 [http-nio-8080-exec-5] DEBUG c.e.b.controllers.PrintJobController - API: Fetching queued print jobs
+2025-10-08 15:27:50.533 [http-nio-8080-exec-5] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        p 
+    FROM
+        PrintJob p 
+    WHERE
+        p.status = :status 
+    ORDER BY
+        p.createdAt ASC */ select
+            pj1_0.id,
+            pj1_0.created_at,
+            pj1_0.error_message,
+            pj1_0.invoice_id,
+            pj1_0.pdf_path,
+            pj1_0.printed_at,
+            pj1_0.status,
+            pj1_0.type 
+        from
+            print_job pj1_0 
+        where
+            pj1_0.status=? 
+        order by
+            pj1_0.created_at
+2025-10-08 15:27:50.546 [http-nio-8080-exec-5] INFO  c.e.backend.services.PrintJobService - Found 0 queued print jobs
+2025-10-08 15:27:50.560 [http-nio-8080-exec-5] INFO  c.e.b.controllers.PrintJobController - API: Returning 0 queued print jobs
+2025-10-08 15:27:50.577 [http-nio-8080-exec-10] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:27:50.604 [http-nio-8080-exec-10] DEBUG c.e.b.controllers.PrintJobController - API: Fetching queued print jobs
+2025-10-08 15:27:50.606 [http-nio-8080-exec-10] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        p 
+    FROM
+        PrintJob p 
+    WHERE
+        p.status = :status 
+    ORDER BY
+        p.createdAt ASC */ select
+            pj1_0.id,
+            pj1_0.created_at,
+            pj1_0.error_message,
+            pj1_0.invoice_id,
+            pj1_0.pdf_path,
+            pj1_0.printed_at,
+            pj1_0.status,
+            pj1_0.type 
+        from
+            print_job pj1_0 
+        where
+            pj1_0.status=? 
+        order by
+            pj1_0.created_at
+2025-10-08 15:27:50.614 [http-nio-8080-exec-10] INFO  c.e.backend.services.PrintJobService - Found 0 queued print jobs
+2025-10-08 15:27:50.624 [http-nio-8080-exec-10] INFO  c.e.b.controllers.PrintJobController - API: Returning 0 queued print jobs
+2025-10-08 15:27:52.774 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:27:52.802 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0
+2025-10-08 15:27:52.865 [http-nio-8080-exec-7] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:27:52.886 [http-nio-8080-exec-7] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0
+2025-10-08 15:27:55.625 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:27:55.667 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:27:55.722 [http-nio-8080-exec-1] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:27:55.765 [http-nio-8080-exec-1] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:28:20.606 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:28:20.683 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        cr1_0.id,
+        cr1_0.active,
+        cr1_0.cutting_type,
+        cr1_0.max_thickness,
+        cr1_0.min_thickness,
+        cr1_0.rate_per_meter 
+    from
+        cutting_rates cr1_0
+2025-10-08 15:28:20.755 [http-nio-8080-exec-7] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:28:20.786 [http-nio-8080-exec-7] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        cr1_0.id,
+        cr1_0.active,
+        cr1_0.cutting_type,
+        cr1_0.max_thickness,
+        cr1_0.min_thickness,
+        cr1_0.rate_per_meter 
+    from
+        cutting_rates cr1_0
+2025-10-08 15:28:57.466 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:28:57.486 [http-nio-8080-exec-4] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:28:57.489 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:28:57.501 [http-nio-8080-exec-4] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:28:57.525 [http-nio-8080-exec-1] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:28:57.548 [http-nio-8080-exec-1] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:28:57.552 [http-nio-8080-exec-1] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:28:57.568 [http-nio-8080-exec-1] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:29:00.518 [http-nio-8080-exec-5] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:00.548 [http-nio-8080-exec-5] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        c1_0.id,
+        c1_0.address,
+        c1_0.created_at,
+        c1_0.name,
+        c1_0.phone 
+    from
+        customer c1_0
+2025-10-08 15:29:00.582 [http-nio-8080-exec-10] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:00.601 [http-nio-8080-exec-10] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        c1_0.id,
+        c1_0.address,
+        c1_0.created_at,
+        c1_0.name,
+        c1_0.phone 
+    from
+        customer c1_0
+2025-10-08 15:29:02.021 [http-nio-8080-exec-8] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:02.039 [http-nio-8080-exec-9] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:02.054 [http-nio-8080-exec-8] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:29:02.058 [http-nio-8080-exec-8] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:29:02.077 [http-nio-8080-exec-8] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:29:02.082 [http-nio-8080-exec-9] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:29:02.107 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:02.125 [http-nio-8080-exec-9] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:02.127 [http-nio-8080-exec-2] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:29:02.132 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:29:02.151 [http-nio-8080-exec-2] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:29:02.167 [http-nio-8080-exec-9] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:29:02.315 [http-nio-8080-exec-7] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:02.429 [http-nio-8080-exec-7] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:29:02.436 [http-nio-8080-exec-7] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:29:02.463 [http-nio-8080-exec-7] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:29:03.934 [http-nio-8080-exec-1] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:03.962 [http-nio-8080-exec-1] DEBUG c.e.b.controllers.PrintJobController - API: Fetching queued print jobs
+2025-10-08 15:29:03.964 [http-nio-8080-exec-1] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        p 
+    FROM
+        PrintJob p 
+    WHERE
+        p.status = :status 
+    ORDER BY
+        p.createdAt ASC */ select
+            pj1_0.id,
+            pj1_0.created_at,
+            pj1_0.error_message,
+            pj1_0.invoice_id,
+            pj1_0.pdf_path,
+            pj1_0.printed_at,
+            pj1_0.status,
+            pj1_0.type 
+        from
+            print_job pj1_0 
+        where
+            pj1_0.status=? 
+        order by
+            pj1_0.created_at
+2025-10-08 15:29:03.970 [http-nio-8080-exec-1] INFO  c.e.backend.services.PrintJobService - Found 0 queued print jobs
+2025-10-08 15:29:03.974 [http-nio-8080-exec-1] INFO  c.e.b.controllers.PrintJobController - API: Returning 0 queued print jobs
+2025-10-08 15:29:04.000 [http-nio-8080-exec-5] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:04.020 [http-nio-8080-exec-5] DEBUG c.e.b.controllers.PrintJobController - API: Fetching queued print jobs
+2025-10-08 15:29:04.023 [http-nio-8080-exec-5] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        p 
+    FROM
+        PrintJob p 
+    WHERE
+        p.status = :status 
+    ORDER BY
+        p.createdAt ASC */ select
+            pj1_0.id,
+            pj1_0.created_at,
+            pj1_0.error_message,
+            pj1_0.invoice_id,
+            pj1_0.pdf_path,
+            pj1_0.printed_at,
+            pj1_0.status,
+            pj1_0.type 
+        from
+            print_job pj1_0 
+        where
+            pj1_0.status=? 
+        order by
+            pj1_0.created_at
+2025-10-08 15:29:04.034 [http-nio-8080-exec-5] INFO  c.e.backend.services.PrintJobService - Found 0 queued print jobs
+2025-10-08 15:29:04.038 [http-nio-8080-exec-5] INFO  c.e.b.controllers.PrintJobController - API: Returning 0 queued print jobs
+2025-10-08 15:29:06.484 [http-nio-8080-exec-10] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:06.527 [http-nio-8080-exec-10] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0
+2025-10-08 15:29:06.595 [http-nio-8080-exec-10] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:06.657 [http-nio-8080-exec-10] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0
+2025-10-08 15:29:08.042 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:08.108 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:29:08.204 [http-nio-8080-exec-9] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:08.265 [http-nio-8080-exec-9] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:29:12.315 [http-nio-8080-exec-7] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:12.330 [http-nio-8080-exec-7] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        cr1_0.id,
+        cr1_0.active,
+        cr1_0.cutting_type,
+        cr1_0.max_thickness,
+        cr1_0.min_thickness,
+        cr1_0.rate_per_meter 
+    from
+        cutting_rates cr1_0
+2025-10-08 15:29:12.349 [http-nio-8080-exec-6] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:12.366 [http-nio-8080-exec-6] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        cr1_0.id,
+        cr1_0.active,
+        cr1_0.cutting_type,
+        cr1_0.max_thickness,
+        cr1_0.min_thickness,
+        cr1_0.rate_per_meter 
+    from
+        cutting_rates cr1_0
+2025-10-08 15:29:23.977 [http-nio-8080-exec-1] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:23.989 [http-nio-8080-exec-5] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:23.992 [http-nio-8080-exec-1] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:29:23.998 [http-nio-8080-exec-1] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:29:24.007 [http-nio-8080-exec-1] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:29:24.010 [http-nio-8080-exec-5] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:29:24.026 [http-nio-8080-exec-8] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:24.036 [http-nio-8080-exec-10] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:24.043 [http-nio-8080-exec-8] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:29:24.046 [http-nio-8080-exec-8] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:29:24.054 [http-nio-8080-exec-10] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:29:24.058 [http-nio-8080-exec-8] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:29:24.277 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:24.293 [http-nio-8080-exec-2] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:29:24.295 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:29:24.312 [http-nio-8080-exec-2] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:29:43.619 [http-nio-8080-exec-3] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:43.640 [http-nio-8080-exec-3] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:29:43.684 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:29:43.710 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:30:06.970 [http-nio-8080-exec-10] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:30:07.033 [http-nio-8080-exec-10] DEBUG org.hibernate.SQL - 
+    /* insert for
+        com.example.backend.models.GlassType */insert 
+    into
+        glass_type (calculation_method, color, name, price_per_meter, thickness) 
+    values
+        (?, ?, ?, ?, ?)
+2025-10-08 15:30:07.151 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:30:07.172 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:30:12.056 [http-nio-8080-exec-7] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:30:12.057 [http-nio-8080-exec-9] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:30:12.071 [http-nio-8080-exec-7] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:30:12.071 [http-nio-8080-exec-9] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:30:12.075 [http-nio-8080-exec-7] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:30:12.086 [http-nio-8080-exec-7] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:30:12.102 [http-nio-8080-exec-6] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:30:12.105 [http-nio-8080-exec-3] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:30:12.113 [http-nio-8080-exec-6] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 15:30:12.121 [http-nio-8080-exec-3] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:30:12.126 [http-nio-8080-exec-3] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:30:12.141 [http-nio-8080-exec-3] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:30:12.404 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:30:12.428 [http-nio-8080-exec-4] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 15:30:12.437 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 15:30:12.455 [http-nio-8080-exec-4] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 15:30:56.163 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:30:56.625 [http-nio-8080-exec-2] INFO  c.e.b.controllers.InvoiceController - Previewing line calculation for glass type: 1, dimensions: 28.0x3.0, cutting: LASER
+2025-10-08 15:30:56.732 [http-nio-8080-exec-2] DEBUG org.hibernate.SQL - 
+    select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0 
+    where
+        gt1_0.id=?
+2025-10-08 15:30:56.758 [http-nio-8080-exec-2] ERROR c.e.backend.services.InvoiceService - Error calculating line preview: الأبعاد صغيرة جداً (الحد الأدنى: 0.1 مم)
+2025-10-08 15:30:56.772 [http-nio-8080-exec-2] ERROR c.e.b.controllers.InvoiceController - Invalid dimensions: الأبعاد صغيرة جداً (الحد الأدنى: 0.1 مم)
+2025-10-08 15:31:04.520 [http-nio-8080-exec-9] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:31:04.534 [http-nio-8080-exec-9] INFO  c.e.b.controllers.InvoiceController - Previewing line calculation for glass type: 1, dimensions: 28.0x3.0, cutting: LASER
+2025-10-08 15:31:04.536 [http-nio-8080-exec-9] DEBUG org.hibernate.SQL - 
+    select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0 
+    where
+        gt1_0.id=?
+2025-10-08 15:31:04.540 [http-nio-8080-exec-9] ERROR c.e.backend.services.InvoiceService - Error calculating line preview: الأبعاد صغيرة جداً (الحد الأدنى: 0.1 مم)
+2025-10-08 15:31:04.543 [http-nio-8080-exec-9] ERROR c.e.b.controllers.InvoiceController - Invalid dimensions: الأبعاد صغيرة جداً (الحد الأدنى: 0.1 مم)
+2025-10-08 15:31:24.835 [http-nio-8080-exec-7] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:31:24.848 [http-nio-8080-exec-7] INFO  c.e.b.controllers.InvoiceController - Previewing line calculation for glass type: 1, dimensions: 10.0x3.0, cutting: LASER
+2025-10-08 15:31:24.851 [http-nio-8080-exec-7] DEBUG org.hibernate.SQL - 
+    select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0 
+    where
+        gt1_0.id=?
+2025-10-08 15:31:24.857 [http-nio-8080-exec-7] ERROR c.e.backend.services.InvoiceService - Error calculating line preview: الأبعاد صغيرة جداً (الحد الأدنى: 0.1 مم)
+2025-10-08 15:31:24.860 [http-nio-8080-exec-7] ERROR c.e.b.controllers.InvoiceController - Invalid dimensions: الأبعاد صغيرة جداً (الحد الأدنى: 0.1 مم)
+2025-10-08 15:31:32.134 [http-nio-8080-exec-6] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:31:32.179 [http-nio-8080-exec-6] INFO  c.e.b.controllers.InvoiceController - Previewing line calculation for glass type: 1, dimensions: 10.0x3.0, cutting: LASER
+2025-10-08 15:31:32.182 [http-nio-8080-exec-6] DEBUG org.hibernate.SQL - 
+    select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0 
+    where
+        gt1_0.id=?
+2025-10-08 15:31:32.202 [http-nio-8080-exec-6] ERROR c.e.backend.services.InvoiceService - Error calculating line preview: الأبعاد صغيرة جداً (الحد الأدنى: 0.1 مم)
+2025-10-08 15:31:32.222 [http-nio-8080-exec-6] ERROR c.e.b.controllers.InvoiceController - Invalid dimensions: الأبعاد صغيرة جداً (الحد الأدنى: 0.1 مم)
+2025-10-08 15:31:40.636 [http-nio-8080-exec-3] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:31:40.663 [http-nio-8080-exec-3] INFO  c.e.b.controllers.InvoiceController - Previewing line calculation for glass type: 1, dimensions: 10.0x3.0, cutting: LASER
+2025-10-08 15:31:40.666 [http-nio-8080-exec-3] DEBUG org.hibernate.SQL - 
+    select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0 
+    where
+        gt1_0.id=?
+2025-10-08 15:31:40.674 [http-nio-8080-exec-3] ERROR c.e.backend.services.InvoiceService - Error calculating line preview: الأبعاد صغيرة جداً (الحد الأدنى: 0.1 مم)
+2025-10-08 15:31:40.682 [http-nio-8080-exec-3] ERROR c.e.b.controllers.InvoiceController - Invalid dimensions: الأبعاد صغيرة جداً (الحد الأدنى: 0.1 مم)
+2025-10-08 15:31:45.670 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:31:45.702 [http-nio-8080-exec-4] INFO  c.e.b.controllers.InvoiceController - Previewing line calculation for glass type: 1, dimensions: 10.0x3.0, cutting: LASER
+2025-10-08 15:31:45.704 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0 
+    where
+        gt1_0.id=?
+2025-10-08 15:31:45.715 [http-nio-8080-exec-4] ERROR c.e.backend.services.InvoiceService - Error calculating line preview: الأبعاد صغيرة جداً (الحد الأدنى: 0.1 مم)
+2025-10-08 15:31:45.728 [http-nio-8080-exec-4] ERROR c.e.b.controllers.InvoiceController - Invalid dimensions: الأبعاد صغيرة جداً (الحد الأدنى: 0.1 مم)
+2025-10-08 15:31:49.452 [http-nio-8080-exec-8] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 15:31:49.462 [http-nio-8080-exec-8] INFO  c.e.b.controllers.InvoiceController - Previewing line calculation for glass type: 1, dimensions: 10.0x3.0, cutting: LASER
+2025-10-08 15:31:49.463 [http-nio-8080-exec-8] DEBUG org.hibernate.SQL - 
+    select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0 
+    where
+        gt1_0.id=?
+2025-10-08 15:31:49.467 [http-nio-8080-exec-8] ERROR c.e.backend.services.InvoiceService - Error calculating line preview: الأبعاد صغيرة جداً (الحد الأدنى: 0.1 مم)
+2025-10-08 15:31:49.469 [http-nio-8080-exec-8] ERROR c.e.b.controllers.InvoiceController - Invalid dimensions: الأبعاد صغيرة جداً (الحد الأدنى: 0.1 مم)
+2025-10-08 17:06:50.042 [HikariPool-1:housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1h22m59s552ms301µs900ns).
+2025-10-08 17:18:44.876 [http-nio-8080-exec-3] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 17:18:44.878 [http-nio-8080-exec-6] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 17:18:44.955 [http-nio-8080-exec-3] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 17:18:44.962 [http-nio-8080-exec-6] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 17:18:44.964 [http-nio-8080-exec-6] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 17:18:45.033 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 17:18:45.040 [http-nio-8080-exec-6] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 17:18:45.047 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        gt1_0.id,
+        gt1_0.calculation_method,
+        gt1_0.color,
+        gt1_0.name,
+        gt1_0.price_per_meter,
+        gt1_0.thickness 
+    from
+        glass_type gt1_0
+2025-10-08 17:18:45.048 [http-nio-8080-exec-8] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 17:18:45.060 [http-nio-8080-exec-8] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 17:18:45.067 [http-nio-8080-exec-8] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 17:18:45.083 [http-nio-8080-exec-8] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 17:18:45.162 [http-nio-8080-exec-1] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id,
+        u1_0.first_name,
+        u1_0.is_active,
+        u1_0.last_name,
+        u1_0.password,
+        u1_0.role,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-10-08 17:18:45.174 [http-nio-8080-exec-1] DEBUG c.e.b.controllers.InvoiceController - Fetching recent invoices (last 30 days)
+2025-10-08 17:18:45.176 [http-nio-8080-exec-1] DEBUG org.hibernate.SQL - 
+    /* SELECT
+        i 
+    FROM
+        Invoice i 
+    WHERE
+        i.issueDate BETWEEN :startDate AND :endDate 
+    ORDER BY
+        i.issueDate DESC,
+        i.issueDate desc */ select
+            i1_0.id,
+            i1_0.customer_id,
+            i1_0.issue_date,
+            i1_0.notes,
+            i1_0.payment_date,
+            i1_0.status,
+            i1_0.total_price 
+        from
+            invoice i1_0 
+        where
+            i1_0.issue_date between ? and ? 
+        order by
+            i1_0.issue_date desc,
+            i1_0.issue_date desc 
+        fetch
+            first ? rows only
+2025-10-08 17:18:45.184 [http-nio-8080-exec-1] INFO  c.e.b.controllers.InvoiceController - Retrieved 0 invoices (page 1 of 0)
+2025-10-08 17:18:52.255 [HikariPool-1:housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=12m2s213ms290µs400ns).
+2025-10-08 17:18:52.813 [SpringApplicationShutdownHook] INFO  o.s.b.w.e.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
+2025-10-08 17:18:52.849 [tomcat-shutdown] INFO  o.s.b.w.e.tomcat.GracefulShutdown - Graceful shutdown complete
+2025-10-08 17:18:52.853 [SpringApplicationShutdownHook] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - Stopping...
+2025-10-08 17:18:52.853 [SpringApplicationShutdownHook] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - BrokerAvailabilityEvent[available=false, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@4bc5b2cf]]
+2025-10-08 17:18:52.853 [SpringApplicationShutdownHook] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - Stopped.
+2025-10-08 17:18:52.864 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-10-08 17:18:52.867 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2025-10-08 17:18:52.870 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
