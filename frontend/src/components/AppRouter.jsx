@@ -151,22 +151,22 @@ const AppRouter = () => {
                                 </RoleRoute>
                             }
                         />
-                        <Route
-                            path="/invoices/new"
-                            element={
-                                <RoleRoute allowedRoles={SALES_ROLES}>
-                                    <CreateInvoicePage/>
-                                </RoleRoute>
-                            }
-                        />
-                        <Route
-                            path="/invoices/:id"
-                            element={
-                                <RoleRoute allowedRoles={SALES_ROLES}>
-                                    <InvoiceDetailPage/>
-                                </RoleRoute>
-                            }
-                        />
+                        {/*<Route*/}
+                        {/*    path="/invoices/new"*/}
+                        {/*    element={*/}
+                        {/*        <RoleRoute allowedRoles={SALES_ROLES}>*/}
+                        {/*            <CreateInvoicePage/>*/}
+                        {/*        </RoleRoute>*/}
+                        {/*    }*/}
+                        {/*/>*/}
+                        {/*<Route*/}
+                        {/*    path="/invoices/:id"*/}
+                        {/*    element={*/}
+                        {/*        <RoleRoute allowedRoles={SALES_ROLES}>*/}
+                        {/*            <InvoiceDetailPage/>*/}
+                        {/*        </RoleRoute>*/}
+                        {/*    }*/}
+                        {/*/>*/}
 
                         {/* Customer Management - Sales roles only */}
                         <Route
