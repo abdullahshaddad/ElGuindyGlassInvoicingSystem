@@ -47745,3 +47745,118 @@ com.example.backend.exceptions.invoice.InvoiceLineCreationException: فشل في
 2025-10-09 20:43:47.589 [main] INFO  c.e.backend.config.DataInitializer - User initialization completed. Default users created if they didn't exist.
 2025-10-09 20:43:47.589 [main] INFO  c.e.backend.config.DataInitializer - IMPORTANT: Please change default passwords after first login for security!
 2025-10-09 20:44:47.059 [MessageBroker-1] INFO  o.s.w.s.c.WebSocketMessageBrokerStats - WebSocketSession[0 current WS(0)-HttpStream(0)-HttpPoll(0), 0 total, 0 closed abnormally (0 connect failure, 0 send limit, 0 transport error)], stompSubProtocol[processed CONNECT(0)-CONNECTED(0)-DISCONNECT(0)], stompBrokerRelay[null], inboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], outboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], sockJsScheduler[pool size = 1, active threads = 1, queued tasks = 0, completed tasks = 0]
+2025-10-09 20:46:42.875 [SpringApplicationShutdownHook] INFO  o.s.b.w.e.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
+2025-10-09 20:46:42.886 [tomcat-shutdown] INFO  o.s.b.w.e.tomcat.GracefulShutdown - Graceful shutdown complete
+2025-10-09 20:46:42.889 [SpringApplicationShutdownHook] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - Stopping...
+2025-10-09 20:46:42.889 [SpringApplicationShutdownHook] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - BrokerAvailabilityEvent[available=false, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@7a7ebcf3]]
+2025-10-09 20:46:42.889 [SpringApplicationShutdownHook] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - Stopped.
+2025-10-09 20:46:42.896 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-10-09 20:46:42.898 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2025-10-09 20:46:42.905 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2025-10-09 20:46:45.595 [main] INFO  c.example.backend.BackendApplication - Starting BackendApplication using Java 23.0.2 with PID 35700 (C:\Users\lenovo\Desktop\Work\ElGuindyGlassInvoicingSystem\backend\target\classes started by lenovo in C:\Users\lenovo\Desktop\Work\ElGuindyGlassInvoicingSystem)
+2025-10-09 20:46:45.596 [main] DEBUG c.example.backend.BackendApplication - Running with Spring Boot v3.5.5, Spring v6.2.10
+2025-10-09 20:46:45.597 [main] INFO  c.example.backend.BackendApplication - No active profile set, falling back to 1 default profile: "default"
+2025-10-09 20:46:46.398 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2025-10-09 20:46:46.400 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JDBC repositories in DEFAULT mode.
+2025-10-09 20:46:46.447 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.CustomerRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-09 20:46:46.449 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.CuttingDetailRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-09 20:46:46.450 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.CuttingRateRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-09 20:46:46.452 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.GlassTypeRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-09 20:46:46.453 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.InvoiceLineRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-09 20:46:46.454 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.InvoiceRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-09 20:46:46.455 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.NotificationRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-09 20:46:46.457 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.PrintJobRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-09 20:46:46.459 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.example.backend.repositories.UserRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2025-10-09 20:46:46.460 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 52 ms. Found 0 JDBC repository interfaces.
+2025-10-09 20:46:46.472 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2025-10-09 20:46:46.472 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-10-09 20:46:46.517 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 40 ms. Found 9 JPA repository interfaces.
+2025-10-09 20:46:47.015 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-10-09 20:46:47.034 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-10-09 20:46:47.034 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.44]
+2025-10-09 20:46:47.089 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-10-09 20:46:47.090 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1422 ms
+2025-10-09 20:46:47.237 [main] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-10-09 20:46:47.288 [main] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.26.Final
+2025-10-09 20:46:47.320 [main] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2025-10-09 20:46:47.569 [main] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-10-09 20:46:47.603 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-10-09 20:46:47.732 [main] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@69a73867
+2025-10-09 20:46:47.734 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2025-10-09 20:46:47.760 [main] WARN  org.hibernate.orm.deprecation - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-10-09 20:46:47.781 [main] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 17.6
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-10-09 20:46:48.812 [main] INFO  o.h.e.t.j.p.i.JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-10-09 20:46:49.298 [main] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-10-09 20:46:49.617 [main] INFO  o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-10-09 20:46:50.878 [main] DEBUG c.e.b.c.s.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
+2025-10-09 20:46:50.949 [main] INFO  o.s.s.c.a.a.c.InitializeAuthenticationProviderBeanManagerConfigurer$InitializeAuthenticationProviderManagerConfigurer - Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2025-10-09 20:46:50.950 [main] WARN  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2025-10-09 20:46:52.095 [main] INFO  c.e.backend.services.StorageService - MinIO bucket already exists: elguindy
+2025-10-09 20:46:52.165 [main] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-10-09 20:46:54.134 [main] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - Starting...
+2025-10-09 20:46:54.135 [main] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@2fe328b9]]
+2025-10-09 20:46:54.138 [main] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - Started.
+2025-10-09 20:46:54.169 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-10-09 20:46:54.181 [main] INFO  c.example.backend.BackendApplication - Started BackendApplication in 9.126 seconds (process running for 10.039)
+2025-10-09 20:46:54.198 [main] INFO  c.e.backend.config.DataInitializer - Starting application data initialization...
+2025-10-09 20:46:54.198 [main] INFO  c.e.backend.config.DataInitializer - Application data initialization completed successfully.
+2025-10-09 20:46:54.412 [main] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id 
+    from
+        users u1_0 
+    where
+        u1_0.username=? 
+    fetch
+        first ? rows only
+2025-10-09 20:46:54.474 [main] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id 
+    from
+        users u1_0 
+    where
+        u1_0.username=? 
+    fetch
+        first ? rows only
+2025-10-09 20:46:54.809 [main] DEBUG org.hibernate.SQL - 
+    /* insert for
+        com.example.backend.models.user.User */insert 
+    into
+        users (first_name, is_active, last_name, password, role, username, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?)
+2025-10-09 20:46:54.832 [main] INFO  org.hibernate.orm.jdbc.batch - HHH100503: On release of batch it still contained JDBC statements
+2025-10-09 20:46:54.834 [main] WARN  o.h.e.jdbc.spi.SqlExceptionHelper - SQL Error: 0, SQLState: 23514
+2025-10-09 20:46:54.834 [main] ERROR o.h.e.jdbc.spi.SqlExceptionHelper - Batch entry 0 /* insert for com.example.backend.models.user.User */insert into users (first_name,is_active,last_name,password,role,username,id) values (('System'),('TRUE'::boolean),('Admin'),('$2a$10$H1gfqTBqqBHRSYVYGLyJiufUxM3BU.a0l4diT/NvthRjcm0jw.0B6'),('ADMIN'),('admin'),('b2dc22a4-8942-4a44-9d6b-46394c416c7a'::uuid)) was aborted: ERROR: new row for relation "users" violates check constraint "users_role_check"
+  Detail: Failing row contains (b2dc22a4-8942-4a44-9d6b-46394c416c7a, System, t, Admin, $2a$10$H1gfqTBqqBHRSYVYGLyJiufUxM3BU.a0l4diT/NvthRjcm0jw.0B6, ADMIN, admin).  Call getNextException to see other errors in the batch.
+2025-10-09 20:46:54.834 [main] ERROR o.h.e.jdbc.spi.SqlExceptionHelper - ERROR: new row for relation "users" violates check constraint "users_role_check"
+  Detail: Failing row contains (b2dc22a4-8942-4a44-9d6b-46394c416c7a, System, t, Admin, $2a$10$H1gfqTBqqBHRSYVYGLyJiufUxM3BU.a0l4diT/NvthRjcm0jw.0B6, ADMIN, admin).
+2025-10-09 20:46:54.853 [main] ERROR c.e.backend.config.DataInitializer - Failed to create default ADMIN user: Username already exists: admin
+2025-10-09 20:46:54.856 [main] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id 
+    from
+        users u1_0 
+    where
+        u1_0.username=? 
+    fetch
+        first ? rows only
+2025-10-09 20:46:54.861 [main] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ select
+        u1_0.id 
+    from
+        users u1_0 
+    where
+        u1_0.username=? 
+    fetch
+        first ? rows only
+2025-10-09 20:46:54.865 [main] INFO  c.e.backend.config.DataInitializer - User initialization completed. Default users created if they didn't exist.
+2025-10-09 20:46:54.865 [main] INFO  c.e.backend.config.DataInitializer - IMPORTANT: Please change default passwords after first login for security!
+2025-10-09 20:47:54.130 [MessageBroker-1] INFO  o.s.w.s.c.WebSocketMessageBrokerStats - WebSocketSession[0 current WS(0)-HttpStream(0)-HttpPoll(0), 0 total, 0 closed abnormally (0 connect failure, 0 send limit, 0 transport error)], stompSubProtocol[processed CONNECT(0)-CONNECTED(0)-DISCONNECT(0)], stompBrokerRelay[null], inboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], outboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], sockJsScheduler[pool size = 1, active threads = 1, queued tasks = 0, completed tasks = 0]
