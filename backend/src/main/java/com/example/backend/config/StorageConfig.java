@@ -1,6 +1,5 @@
 package com.example.backend.config;
 
-import com.example.backend.services.DisabledStorageService;
 import com.example.backend.services.StorageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
