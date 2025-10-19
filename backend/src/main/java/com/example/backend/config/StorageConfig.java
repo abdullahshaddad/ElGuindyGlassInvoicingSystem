@@ -15,8 +15,15 @@ public class StorageConfig {
             havingValue = "false",
             matchIfMissing = true
     )
-    public DisabledStorageService disabledStorageService() {
-        return new DisabledStorageService();
+    public StorageService disabledStorageService() {
+        return new StorageService(
+                "http://localhost:9000",  // endpoint
+                "minioadmin",             // accessKey
+                "minioadmin",             // secretKey
+                "elguindy",               // bucketName
+                "http://localhost:9000",  // publicUrl
+                false                     // enabled
+        );
     }
 
     @Bean
@@ -28,6 +35,13 @@ public class StorageConfig {
             @Value("${minio.bucketName}") String bucketName,
             @Value("${minio.publicUrl}") String publicUrl
     ) {
-        return new StorageService(endpoint, accessKey, secretKey, bucketName, publicUrl);
+        return new StorageService(
+                endpoint,
+                accessKey,
+                secretKey,
+                bucketName,
+                publicUrl,
+                true  // enabled
+        );
     }
 }
