@@ -4,27 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ea39321d-6bb3-415f-bc92-ee442bcbbe19" name="Changes" comment="fixing flow">
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/StorageException.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/bee79f5e-2b0c-43a7-90b6-6ab876e62423.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/bee79f5e-2b0c-43a7-90b6-6ab876e62423/storage_v2/_src_/database/elguindyDB.jc4UoA/schema/public.abK9xQ.meta" beforeDir="false" />
+    <list default="true" id="ea39321d-6bb3-415f-bc92-ee442bcbbe19" name="Changes" comment="add: disable minio service v2">
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/config/StorageConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logs/elguindy-backend.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PrintJobController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PrintJobController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/PrintJobDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/PrintJobDTO.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/PrintJob.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/PrintJob.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/InvoiceRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/InvoiceRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PdfGenerationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PdfGenerationService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PrintJobService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PrintJobService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/ui/ConfirmationDialog.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/ui/ConfirmationDialog.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/FactoryWorkerPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/FactoryWorkerPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/InvoicesPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/InvoicesPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicePage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicePage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceList.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceList.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceViewModal.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceViewModal.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/services/invoiceService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/invoiceService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/services/printJobService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/printJobService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/elguindy-backend.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/elguindy-backend.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/StorageService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/StorageService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/resources/application.properties" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,26 +27,29 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "abdullahshaddad"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;abdullahshaddad&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/abdullahshaddad/ElGuindyGlassInvoicingSystem.git",
-    "accountId": "af309460-3127-4ed4-b77a-170d879aba03"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/abdullahshaddad/ElGuindyGlassInvoicingSystem.git&quot;,
+    &quot;accountId&quot;: &quot;0dcde83b-2707-412c-9fa1-cba3fba26a5c&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectCodeStyleSettingsMigration">
     <option name="version" value="2" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 8
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 8
+}</component>
   <component name="ProjectId" id="33mOVaxuFCYjVSsi0xrxd6aVKsp" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -74,8 +63,9 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "Spring Boot.BackendApplication.executor": "Run",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "Merging main",
     "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/lenovo/Desktop/Work/ElGuindyGlassInvoicingSystem",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
@@ -96,8 +86,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-a94e463ab2e7-intellij.indexing.shared.core-IU-243.25659.59" />
-        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-IU-243.25659.59" />
+        <option value="bundled-jdk-9823dce3aa75-125ca727e0f0-intellij.indexing.shared.core-IU-243.24978.46" />
+        <option value="bundled-js-predefined-d6986cc7102b-76f8388c3a79-JavaScript-IU-243.24978.46" />
       </set>
     </attachedChunks>
   </component>
@@ -110,7 +100,57 @@
       <option name="presentableId" value="Default" />
       <updated>1759918806893</updated>
       <workItem from="1759918809821" duration="1256000" />
+      <workItem from="1760824459340" duration="2966000" />
     </task>
+    <task id="LOCAL-00001" summary="fixing flow">
+      <option name="closed" value="true" />
+      <created>1760031962003</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1760031962003</updated>
+    </task>
+    <task id="LOCAL-00002" summary="fixing flow">
+      <option name="closed" value="true" />
+      <created>1760032630100</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1760032630100</updated>
+    </task>
+    <task id="LOCAL-00003" summary="fix">
+      <option name="closed" value="true" />
+      <created>1760034069347</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1760034069347</updated>
+    </task>
+    <task id="LOCAL-00004" summary="add: disable minio service">
+      <option name="closed" value="true" />
+      <created>1760834099598</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1760834099598</updated>
+    </task>
+    <task id="LOCAL-00005" summary="add: disable minio service v2">
+      <option name="closed" value="true" />
+      <created>1760834675655</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1760834675655</updated>
+    </task>
+    <task id="LOCAL-00006" summary="add: disable minio service v2">
+      <option name="closed" value="true" />
+      <created>1760834867277</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1760834867277</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -118,7 +158,11 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Snackbar.jsx, SnackbarContext.jsx, ConfirmationDialog.jsx" />
+    <MESSAGE value="feat: refactor invoice creation to use customer ID and add DTO layer&#10;&#10;BREAKING CHANGES:&#10;- Invoice creation now requires customerId instead of customer details&#10;- API responses now return DTOs instead of raw entities&#10;&#10;Backend Changes:&#10;- Refactored CreateInvoiceRequest to use customerId for proper customer linking&#10;- Added comprehensive error handling with Arabic error messages&#10;- Implemented InvoiceDTO, CustomerDTO, InvoiceLineDTO, and GlassTypeDTO&#10;- Fixed Hibernate lazy loading serialization issues (ByteBuddyInterceptor error)&#10;- Enhanced invoice retrieval with filtering by customerId, status, and date range&#10;- Added proper input validation and boundary checks&#10;- Improved logging with structured debug and error messages&#10;- Added transaction management and rollback handling&#10;- Separated invoice line processing into dedicated methods&#10;- Implemented partial success handling for invoice lines&#10;&#10;Frontend Changes:&#10;- Fixed DataTable component to handle Spring Boot paginated responses&#10;- Added safe data extraction for various response structures&#10;- Enhanced error handling and null safety in DataTable&#10;- Improved sorting with nested property support and Arabic locale&#10;- Added development debug mode for troubleshooting&#10;&#10;New Exception Classes:&#10;- CustomerNotFoundException, CustomerLookupException&#10;- InvoiceCreationException, InvoiceLineCreationException&#10;- InvoiceUpdateException, InvoiceReloadException&#10;- GlassTypeNotFoundException, InvalidDimensionsException&#10;- CuttingCalculationException, WebSocketException&#10;&#10;Repository Methods:&#10;- findByCustomerId(Long, Pageable)&#10;- findByStatus(InvoiceStatus, Pageable)&#10;- countByCustomerId(Long)&#10;&#10;Performance Improvements:&#10;- DTO conversion prevents N+1 query issues&#10;- List views exclude invoice lines for faster loading&#10;- Detail views use optimized fetch joins&#10;&#10;Benefits:&#10;- Better data integrity with customer FK relationships&#10;- Eliminates duplicate customer records&#10;- Clean, stable JSON API responses&#10;- Improved customer tracking and analytics&#10;- RTL and Arabic-first throughout" />
     <MESSAGE value="fixing flow" />
-    <option name="LAST_COMMIT_MESSAGE" value="fixing flow" />
+    <MESSAGE value="fix" />
+    <MESSAGE value="add: disable minio service" />
+    <MESSAGE value="add: disable minio service v2" />
+    <option name="LAST_COMMIT_MESSAGE" value="add: disable minio service v2" />
   </component>
 </project>
