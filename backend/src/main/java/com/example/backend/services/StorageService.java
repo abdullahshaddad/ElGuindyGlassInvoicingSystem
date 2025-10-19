@@ -11,8 +11,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -24,28 +22,41 @@ public class StorageService {
     private final MinioClient minioClient;
     private final String bucketName;
     private final String publicUrl;
+    private final boolean enabled;
 
     public StorageService(
             @Value("${minio.endpoint:http://localhost:9000}") String endpoint,
             @Value("${minio.accessKey:minioadmin}") String accessKey,
             @Value("${minio.secretKey:minioadmin}") String secretKey,
             @Value("${minio.bucketName:elguindy}") String bucketName,
-            @Value("${minio.publicUrl:http://localhost:9000}") String publicUrl) {
+            @Value("${minio.publicUrl:http://localhost:9000}") String publicUrl,
+            @Value("${minio.enabled:false}") boolean enabled) {
 
-        this.minioClient = MinioClient.builder()
-                .endpoint(endpoint)
-                .credentials(accessKey, secretKey)
-                .build();
-        this.bucketName = bucketName;
-        this.publicUrl = publicUrl;
+        this.enabled = enabled;
 
-        initializeBucket();
+        if (enabled) {
+            this.minioClient = MinioClient.builder()
+                    .endpoint(endpoint)
+                    .credentials(accessKey, secretKey)
+                    .build();
+            this.bucketName = bucketName;
+            this.publicUrl = publicUrl;
+
+            initializeBucket();
+        } else {
+            log.warn("MinIO storage is disabled");
+            this.minioClient = null;
+            this.bucketName = null;
+            this.publicUrl = null;
+        }
     }
 
     /**
      * Initialize MinIO bucket if it doesn't exist
      */
     private void initializeBucket() {
+        if (!enabled) return;
+
         try {
             boolean bucketExists = minioClient.bucketExists(BucketExistsArgs.builder()
                     .bucket(bucketName)
@@ -60,8 +71,7 @@ public class StorageService {
                 log.info("MinIO bucket already exists: {}", bucketName);
             }
         } catch (Exception e) {
-            log.error("Error initializing MinIO bucket: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to initialize storage service", e);
+            log.warn("Could not initialize MinIO bucket: {}", e.getMessage());
         }
     }
 
@@ -73,11 +83,16 @@ public class StorageService {
      * @return Public URL of the stored file
      */
     public String storePdf(byte[] pdfBytes, String fileName, String folder) {
+        if (!enabled) {
+            log.warn("MinIO storage is disabled. Cannot store PDF.");
+            return null;
+        }
+
         try {
             // Generate unique file name with timestamp
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
             String uniqueFileName = String.format("%s_%s_%s",
-                timestamp, UUID.randomUUID().toString().substring(0, 8), fileName);
+                    timestamp, UUID.randomUUID().toString().substring(0, 8), fileName);
 
             String objectName = String.format("%s/%s", folder, uniqueFileName);
 
@@ -108,11 +123,16 @@ public class StorageService {
      * @return Public URL of the stored file
      */
     public String storePdf(InputStream inputStream, String fileName, String folder) {
+        if (!enabled) {
+            log.warn("MinIO storage is disabled. Cannot store PDF.");
+            return null;
+        }
+
         try {
             // Generate unique file name
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
             String uniqueFileName = String.format("%s_%s_%s",
-                timestamp, UUID.randomUUID().toString().substring(0, 8), fileName);
+                    timestamp, UUID.randomUUID().toString().substring(0, 8), fileName);
 
             String objectName = String.format("%s/%s", folder, uniqueFileName);
 
@@ -142,6 +162,11 @@ public class StorageService {
      * @return Public URL of the stored file
      */
     public String storeFile(MultipartFile file, String folder) {
+        if (!enabled) {
+            log.warn("MinIO storage is disabled. Cannot store file.");
+            return null;
+        }
+
         try {
             return storePdf(file.getInputStream(), file.getOriginalFilename(), folder);
         } catch (IOException e) {
@@ -156,6 +181,11 @@ public class StorageService {
      * @return InputStream of the file
      */
     public InputStream getFile(String objectName) {
+        if (!enabled) {
+            log.warn("MinIO storage is disabled. Cannot retrieve file.");
+            return null;
+        }
+
         try {
             return minioClient.getObject(GetObjectArgs.builder()
                     .bucket(bucketName)
@@ -172,6 +202,11 @@ public class StorageService {
      * @param objectName Object name in MinIO
      */
     public void deleteFile(String objectName) {
+        if (!enabled) {
+            log.warn("MinIO storage is disabled. Cannot delete file.");
+            return;
+        }
+
         try {
             minioClient.removeObject(RemoveObjectArgs.builder()
                     .bucket(bucketName)
@@ -190,6 +225,11 @@ public class StorageService {
      * @return true if file exists, false otherwise
      */
     public boolean fileExists(String objectName) {
+        if (!enabled) {
+            log.warn("MinIO storage is disabled. Cannot check file existence.");
+            return false;
+        }
+
         try {
             minioClient.statObject(StatObjectArgs.builder()
                     .bucket(bucketName)
@@ -207,6 +247,11 @@ public class StorageService {
      * @return Public URL
      */
     public String getPublicUrl(String objectName) {
+        if (!enabled) {
+            log.warn("MinIO storage is disabled. Cannot generate public URL.");
+            return null;
+        }
+
         return String.format("%s/%s/%s", publicUrl, bucketName, objectName);
     }
 
