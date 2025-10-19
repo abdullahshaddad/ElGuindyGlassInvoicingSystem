@@ -31,7 +31,7 @@ public class SecurityConfiguration {
                             "http://localhost:5173",
                             "http://localhost:5174",
                             "http://localhost:3000",
-                            "https://elguindyglassinvoicingsystem.onrender.com"
+                            "https://el-guindy.vercel.app"
                     ));
                     configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
