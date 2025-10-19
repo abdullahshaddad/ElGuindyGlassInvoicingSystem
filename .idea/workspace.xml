@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ea39321d-6bb3-415f-bc92-ee442bcbbe19" name="Changes" comment="fixing flow">
+    <list default="true" id="ea39321d-6bb3-415f-bc92-ee442bcbbe19" name="Changes" comment="fix">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -110,7 +110,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760032630100</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="fix">
+      <option name="closed" value="true" />
+      <created>1760034069347</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1760034069347</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -120,6 +128,7 @@
     <MESSAGE value="Snackbar.jsx, SnackbarContext.jsx, ConfirmationDialog.jsx" />
     <MESSAGE value="feat: refactor invoice creation to use customer ID and add DTO layer&#10;&#10;BREAKING CHANGES:&#10;- Invoice creation now requires customerId instead of customer details&#10;- API responses now return DTOs instead of raw entities&#10;&#10;Backend Changes:&#10;- Refactored CreateInvoiceRequest to use customerId for proper customer linking&#10;- Added comprehensive error handling with Arabic error messages&#10;- Implemented InvoiceDTO, CustomerDTO, InvoiceLineDTO, and GlassTypeDTO&#10;- Fixed Hibernate lazy loading serialization issues (ByteBuddyInterceptor error)&#10;- Enhanced invoice retrieval with filtering by customerId, status, and date range&#10;- Added proper input validation and boundary checks&#10;- Improved logging with structured debug and error messages&#10;- Added transaction management and rollback handling&#10;- Separated invoice line processing into dedicated methods&#10;- Implemented partial success handling for invoice lines&#10;&#10;Frontend Changes:&#10;- Fixed DataTable component to handle Spring Boot paginated responses&#10;- Added safe data extraction for various response structures&#10;- Enhanced error handling and null safety in DataTable&#10;- Improved sorting with nested property support and Arabic locale&#10;- Added development debug mode for troubleshooting&#10;&#10;New Exception Classes:&#10;- CustomerNotFoundException, CustomerLookupException&#10;- InvoiceCreationException, InvoiceLineCreationException&#10;- InvoiceUpdateException, InvoiceReloadException&#10;- GlassTypeNotFoundException, InvalidDimensionsException&#10;- CuttingCalculationException, WebSocketException&#10;&#10;Repository Methods:&#10;- findByCustomerId(Long, Pageable)&#10;- findByStatus(InvoiceStatus, Pageable)&#10;- countByCustomerId(Long)&#10;&#10;Performance Improvements:&#10;- DTO conversion prevents N+1 query issues&#10;- List views exclude invoice lines for faster loading&#10;- Detail views use optimized fetch joins&#10;&#10;Benefits:&#10;- Better data integrity with customer FK relationships&#10;- Eliminates duplicate customer records&#10;- Clean, stable JSON API responses&#10;- Improved customer tracking and analytics&#10;- RTL and Arabic-first throughout" />
     <MESSAGE value="fixing flow" />
-    <option name="LAST_COMMIT_MESSAGE" value="fixing flow" />
+    <MESSAGE value="fix" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix" />
   </component>
 </project>
