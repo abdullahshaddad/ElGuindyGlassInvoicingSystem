@@ -46,4 +46,8 @@ public class Invoice {
     public Invoice(Customer customer) {
         this.customer = customer;
     }
+
+    public InvoiceStatus getPaymentStatus() {
+        return this.status;
+    }
 }
