@@ -113,130 +113,189 @@ const LoginPage = () => {
                 backgroundColor: '#ffffff'
             }}
         >
-            {/* Left Side - Brand/Hero Section */}
+            {/* Left Side - Professional Corporate Section */}
             <div
-                className="hidden lg:flex lg:w-1/2 relative bg-cover bg-center"
+                className="hidden lg:flex lg:w-1/2 relative"
                 style={{
-                    background: 'linear-gradient(135deg, #0077B6 0%, #3FA796 100%)'
+                    backgroundColor: '#e3f2fd'
                 }}
             >
-                {/* Decorative Grid Pattern */}
-                <div
-                    className="absolute inset-0"
-                    style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-                        backgroundSize: '60px 60px'
-                    }}
-                />
-
-                {/* Content Overlay */}
-                <div className="relative z-10 flex flex-col justify-center p-16 text-white">
-                    {/* Logo */}
-                    <div className="mb-8">
+                <div className="flex flex-col justify-center items-center w-full p-16">
+                    {/* Logo Container */}
+                    <div className="mb-12">
                         <div
-                            className="inline-flex items-center justify-center mb-6 p-4"
                             style={{
-                                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                                borderRadius: '1.5rem',
-                                backdropFilter: 'blur(10px)',
-                                border: '2px solid rgba(255, 255, 255, 0.3)'
+                                padding: '1.5rem',
+                                backgroundColor: '#ffffff',
+                                borderRadius: '1rem',
+                                border: '2px solid #e5e7eb',
+                                display: 'inline-block'
                             }}
                         >
                             <img
                                 src={logo}
                                 alt="El Guindy Logo"
                                 style={{
-                                    height: '80px',
+                                    height: '100px',
                                     width: 'auto',
-                                    objectFit: 'contain'
+                                    objectFit: 'contain',
+                                    display: 'block'
                                 }}
                             />
                         </div>
-                        <h1
-                            className="text-sm font-medium tracking-widest mb-2"
-                            style={{
-                                fontSize: '0.875rem',
-                                fontWeight: '500',
-                                letterSpacing: '0.2em',
-                                textTransform: 'uppercase'
-                            }}
-                        >
-                            {i18n.language === 'ar' ? 'الجندي للزجاج' : 'ELGUINDY GLASS'}
-                        </h1>
                     </div>
 
-                    {/* Main Content */}
-                    <div className="max-w-md">
-                        <h2
-                            className="text-5xl font-bold leading-tight mb-6"
+                    {/* Company Name */}
+                    <h1
+                        className="text-center mb-4"
+                        style={{
+                            fontSize: '2rem',
+                            fontWeight: '700',
+                            color: '#1f2937',
+                            letterSpacing: '0.025em'
+                        }}
+                    >
+                        {i18n.language === 'ar' ? 'الجندي للزجاج' : 'EL GUINDY GLASS'}
+                    </h1>
+
+                    {/* Tagline */}
+                    <p
+                        className="text-center mb-12"
+                        style={{
+                            fontSize: '1.125rem',
+                            color: '#6b7280',
+                            maxWidth: '500px',
+                            lineHeight: '1.75'
+                        }}
+                    >
+                        {i18n.language === 'ar'
+                            ? 'نظام إدارة متكامل لصناعة الزجاج'
+                            : 'Integrated Management System for Glass Manufacturing'
+                        }
+                    </p>
+
+                    {/* Features */}
+                    <div className="w-full max-w-md space-y-4">
+                        {/* Feature 1 */}
+                        <div
+                            className="flex items-start p-4 rounded-lg"
                             style={{
-                                fontSize: '2.5rem',
-                                fontWeight: '900',
-                                lineHeight: '1.25'
+                                backgroundColor: '#ffffff',
+                                border: '1px solid #e5e7eb'
                             }}
                         >
-                            {i18n.language === 'ar' ? (
-                                <>
-                                    صمم
-                                    <br />
-                                    واصنع
-                                    <br />
-                                    بالزجاج
-                                </>
-                            ) : (
-                                <>
-                                    CRAFT
-                                    <br />
-                                    BEAUTIFUL
-                                    <br />
-                                    GLASS
-                                </>
-                            )}
-                        </h2>
+                            <div
+                                className="flex-shrink-0"
+                                style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    borderRadius: '0.5rem',
+                                    backgroundColor: '#e0f2fe',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginLeft: i18n.language === 'ar' ? '12px' : '0',
+                                    marginRight: i18n.language === 'ar' ? '0' : '12px'
+                                }}
+                            >
+                                <svg style={{ width: '20px', height: '20px', color: '#0077B6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1f2937', marginBottom: '2px' }}>
+                                    {i18n.language === 'ar' ? 'إدارة شاملة' : 'Complete Management'}
+                                </h3>
+                                <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                    {i18n.language === 'ar' ? 'من التصميم إلى التسليم' : 'From design to delivery'}
+                                </p>
+                            </div>
+                        </div>
 
-                        <p
-                            className="text-lg mb-8"
+                        {/* Feature 2 */}
+                        <div
+                            className="flex items-start p-4 rounded-lg"
                             style={{
-                                fontSize: '1.125rem',
-                                lineHeight: '1.625',
-                                opacity: '0.95'
+                                backgroundColor: '#ffffff',
+                                border: '1px solid #e5e7eb'
                             }}
                         >
-                            {i18n.language === 'ar'
-                                ? 'نظام إدارة شامل لمصنع الزجاج، من التصميم إلى التصنيع والتسليم'
-                                : 'Complete management system for glass manufacturing, from design to production and delivery'
-                            }
-                        </p>
+                            <div
+                                className="flex-shrink-0"
+                                style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    borderRadius: '0.5rem',
+                                    backgroundColor: '#e0f2fe',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginLeft: i18n.language === 'ar' ? '12px' : '0',
+                                    marginRight: i18n.language === 'ar' ? '0' : '12px'
+                                }}
+                            >
+                                <svg style={{ width: '20px', height: '20px', color: '#0077B6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1f2937', marginBottom: '2px' }}>
+                                    {i18n.language === 'ar' ? 'كفاءة عالية' : 'High Efficiency'}
+                                </h3>
+                                <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                    {i18n.language === 'ar' ? 'أتمتة العمليات وتوفير الوقت' : 'Process automation and time-saving'}
+                                </p>
+                            </div>
+                        </div>
 
-                        <div className="text-sm" style={{ opacity: '0.85' }}>
-                            {i18n.language === 'ar'
-                                ? 'حيث تتحول رؤيتك إلى واقع زجاجي'
-                                : 'Where Your Vision Becomes Glass Reality'
-                            }
+                        {/* Feature 3 */}
+                        <div
+                            className="flex items-start p-4 rounded-lg"
+                            style={{
+                                backgroundColor: '#ffffff',
+                                border: '1px solid #e5e7eb'
+                            }}
+                        >
+                            <div
+                                className="flex-shrink-0"
+                                style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    borderRadius: '0.5rem',
+                                    backgroundColor: '#e0f2fe',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginLeft: i18n.language === 'ar' ? '12px' : '0',
+                                    marginRight: i18n.language === 'ar' ? '0' : '12px'
+                                }}
+                            >
+                                <svg style={{ width: '20px', height: '20px', color: '#0077B6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1f2937', marginBottom: '2px' }}>
+                                    {i18n.language === 'ar' ? 'تقارير متقدمة' : 'Advanced Reports'}
+                                </h3>
+                                <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                    {i18n.language === 'ar' ? 'تحليلات وتقارير شاملة' : 'Comprehensive analytics and reporting'}
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Decorative Elements */}
-                <div
-                    className="absolute top-20 right-20"
-                    style={{
-                        width: '128px',
-                        height: '128px',
-                        border: '2px solid rgba(255, 255, 255, 0.2)',
-                        borderRadius: '50%'
-                    }}
-                />
-                <div
-                    className="absolute bottom-20 left-20"
-                    style={{
-                        width: '96px',
-                        height: '96px',
-                        border: '2px solid rgba(255, 255, 255, 0.2)',
-                        borderRadius: '0.5rem',
-                        transform: 'rotate(45deg)'
-                    }}
-                />
+                    {/* Bottom Accent */}
+                    <div
+                        className="mt-12"
+                        style={{
+                            width: '60px',
+                            height: '4px',
+                            backgroundColor: '#0077B6',
+                            borderRadius: '2px'
+                        }}
+                    />
+                </div>
             </div>
 
             {/* Right Side - Login Form */}
