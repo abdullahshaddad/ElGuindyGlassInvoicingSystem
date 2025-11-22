@@ -33,4 +33,6 @@ public class CreateInvoiceLineRequest {
     @PositiveOrZero(message = "Manual cutting price cannot be negative")
     private Double manualCuttingPrice; // For laser cutting
 
+    private String notes;
+
 }
