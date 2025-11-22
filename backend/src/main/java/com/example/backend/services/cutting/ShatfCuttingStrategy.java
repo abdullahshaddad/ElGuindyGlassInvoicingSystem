@@ -4,6 +4,7 @@ import com.example.backend.models.CuttingRate;
 import com.example.backend.models.InvoiceLine;
 import com.example.backend.models.enums.CuttingType;
 import com.example.backend.repositories.CuttingRateRepository;
+import com.example.backend.repositories.CuttingStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

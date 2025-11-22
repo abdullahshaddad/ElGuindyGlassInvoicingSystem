@@ -2,6 +2,7 @@ package com.example.backend.services.cutting;
 
 import com.example.backend.models.InvoiceLine;
 import com.example.backend.models.enums.CuttingType;
+import com.example.backend.repositories.CuttingStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

@@ -1,6 +1,7 @@
 package com.example.backend.services.cutting;
 
 import com.example.backend.models.InvoiceLine;
+import com.example.backend.repositories.CuttingStrategy;
 import org.springframework.stereotype.Component;
 
 @Component
