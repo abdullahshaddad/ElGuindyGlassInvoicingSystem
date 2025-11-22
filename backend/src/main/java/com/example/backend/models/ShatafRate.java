@@ -74,8 +74,21 @@ public class ShatafRate {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    /**
+     * JPA lifecycle callback - automatically set createdAt on entity creation
+     */
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+    }
+
+    /**
+     * JPA lifecycle callback - automatically update updatedAt on entity update
+     */
     @PreUpdate
-    public void preUpdate() {
+    protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
 
@@ -88,33 +101,37 @@ public class ShatafRate {
 
     /**
      * Validate rate configuration
+     * Ensures min/max thickness are valid and rate is positive
      */
-    @PrePersist
-    @PreUpdate
-    public void validateRate() {
+    public void validate() {
         if (minThickness == null || maxThickness == null) {
-            throw new IllegalStateException("نطاق السماكة مطلوب");
+            throw new IllegalArgumentException("يجب تحديد السماكة الدنيا والعليا");
         }
-
-        if (minThickness < 0 || maxThickness < 0) {
-            throw new IllegalStateException("السماكة لا يمكن أن تكون سالبة");
+        if (minThickness < 0) {
+            throw new IllegalArgumentException("السماكة الدنيا يجب أن تكون موجبة");
         }
-
-        if (minThickness > maxThickness) {
-            throw new IllegalStateException("الحد الأدنى للسماكة لا يمكن أن يكون أكبر من الحد الأقصى");
+        if (maxThickness <= minThickness) {
+            throw new IllegalArgumentException("السماكة العليا يجب أن تكون أكبر من السماكة الدنيا");
         }
-
         if (ratePerMeter == null || ratePerMeter < 0) {
-            throw new IllegalStateException("السعر لكل متر مطلوب ولا يمكن أن يكون سالباً");
+            throw new IllegalArgumentException("السعر يجب أن يكون موجباً");
         }
-
         if (shatafType == null) {
-            throw new IllegalStateException("نوع الشطف مطلوب");
+            throw new IllegalArgumentException("يجب تحديد نوع الشطف");
         }
+    }
 
-        // Manual types should not have rates in this table
-        if (shatafType.isManualInput()) {
-            throw new IllegalStateException("الأنواع اليدوية (" + shatafType.getArabicName() + ") لا تستخدم جدول الأسعار");
-        }
+    /**
+     * Get a display string for the thickness range
+     */
+    public String getThicknessRangeDisplay() {
+        return String.format("%.1f - %.1f mm", minThickness, maxThickness);
+    }
+
+    /**
+     * Check if this rate overlaps with another rate for the same shataf type
+     */
+    public boolean overlapsWithRange(double otherMin, double otherMax) {
+        return !(maxThickness < otherMin || minThickness > otherMax);
     }
 }
