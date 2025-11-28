@@ -16,6 +16,7 @@ const Select = ({
                     dir,
                     id,
                     name,
+                    children, // NEW: allow manual <option> children
                     ...props
                 }) => {
     const selectId = id || name || `select-${Math.random().toString(36).substr(2, 9)}`;
@@ -41,9 +42,7 @@ const Select = ({
                 >
                     {label}
                     {required && (
-                        <span className="text-red-500 ml-1" aria-label="required">
-              *
-            </span>
+                        <span className="text-red-500 ml-1" aria-label="required">*</span>
                     )}
                 </label>
             )}
@@ -61,34 +60,40 @@ const Select = ({
                     aria-describedby={helperText ? `${selectId}-helper` : undefined}
                     {...props}
                 >
+                    {/* Placeholder */}
                     {placeholder && (
                         <option value="" disabled>
                             {placeholder}
                         </option>
                     )}
-                    {options.map((option) => (
-                        <option
-                            key={option.value}
-                            value={option.value}
-                            disabled={option.disabled}
-                        >
-                            {option.label}
-                        </option>
-                    ))}
+
+                    {/* options=[] prop */}
+                    {options.length > 0 &&
+                        options.map((option) => (
+                            <option
+                                key={option.value}
+                                value={option.value}
+                                disabled={option.disabled}
+                            >
+                                {option.label}
+                            </option>
+                        ))}
+
+                    {/* children options (NEW) */}
+                    {children}
                 </select>
 
-                {/* Custom dropdown arrow */}
+                {/* Arrow */}
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none rtl:right-auto rtl:left-0 rtl:pl-3">
                     <svg
                         className="h-4 w-4 text-gray-400"
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 20 20"
                         fill="currentColor"
-                        aria-hidden="true"
                     >
                         <path
                             fillRule="evenodd"
-                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0-1.414z"
                             clipRule="evenodd"
                         />
                     </svg>

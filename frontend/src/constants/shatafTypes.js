@@ -25,6 +25,7 @@ export const SHATAF_TYPES = {
         category: SHATAF_CATEGORIES.FORMULA_BASED,
         requiresThicknessRate: true,
         requiresManualPrice: false,
+        requiresFarma: true,  // ✅ ADDED
         usesAreaCalculation: false
     },
     SHAMBORLEH: {
@@ -33,6 +34,7 @@ export const SHATAF_TYPES = {
         category: SHATAF_CATEGORIES.FORMULA_BASED,
         requiresThicknessRate: true,
         requiresManualPrice: false,
+        requiresFarma: true,  // ✅ ADDED
         usesAreaCalculation: false
     },
     ONE_CM: {
@@ -41,6 +43,7 @@ export const SHATAF_TYPES = {
         category: SHATAF_CATEGORIES.FORMULA_BASED,
         requiresThicknessRate: true,
         requiresManualPrice: false,
+        requiresFarma: true,  // ✅ ADDED
         usesAreaCalculation: false
     },
     TWO_CM: {
@@ -49,6 +52,7 @@ export const SHATAF_TYPES = {
         category: SHATAF_CATEGORIES.FORMULA_BASED,
         requiresThicknessRate: true,
         requiresManualPrice: false,
+        requiresFarma: true,  // ✅ ADDED
         usesAreaCalculation: false
     },
     THREE_CM: {
@@ -57,6 +61,7 @@ export const SHATAF_TYPES = {
         category: SHATAF_CATEGORIES.FORMULA_BASED,
         requiresThicknessRate: true,
         requiresManualPrice: false,
+        requiresFarma: true,  // ✅ ADDED
         usesAreaCalculation: false
     },
     JULIA: {
@@ -65,6 +70,7 @@ export const SHATAF_TYPES = {
         category: SHATAF_CATEGORIES.FORMULA_BASED,
         requiresThicknessRate: true,
         requiresManualPrice: false,
+        requiresFarma: true,  // ✅ ADDED
         usesAreaCalculation: false
     },
 
@@ -75,6 +81,7 @@ export const SHATAF_TYPES = {
         category: SHATAF_CATEGORIES.MANUAL_INPUT,
         requiresThicknessRate: false,
         requiresManualPrice: true,
+        requiresFarma: false,  // ✅ ADDED
         usesAreaCalculation: false
     },
     ROTATION: {
@@ -83,6 +90,7 @@ export const SHATAF_TYPES = {
         category: SHATAF_CATEGORIES.MANUAL_INPUT,
         requiresThicknessRate: false,
         requiresManualPrice: true,
+        requiresFarma: false,  // ✅ ADDED
         usesAreaCalculation: false
     },
     TABLEAUX: {
@@ -91,6 +99,7 @@ export const SHATAF_TYPES = {
         category: SHATAF_CATEGORIES.MANUAL_INPUT,
         requiresThicknessRate: false,
         requiresManualPrice: true,
+        requiresFarma: false,  // ✅ ADDED
         usesAreaCalculation: false
     },
 
@@ -101,6 +110,7 @@ export const SHATAF_TYPES = {
         category: SHATAF_CATEGORIES.AREA_BASED,
         requiresThicknessRate: true,  // Rate per square meter
         requiresManualPrice: false,
+        requiresFarma: false,  // ✅ ADDED - Sanding doesn't require farma
         usesAreaCalculation: true
     }
 };

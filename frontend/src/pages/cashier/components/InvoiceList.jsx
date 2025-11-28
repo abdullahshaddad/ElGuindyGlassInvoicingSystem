@@ -23,30 +23,75 @@ const InvoiceList = ({
     // Table columns for invoice list
     const columns = [
         {
-            key: 'id',
             header: 'رقم الفاتورة',
-            sortable: true,
-            render: (value, invoice) => (
-                <span className="font-mono font-semibold text-primary-600 dark:text-primary-400">
-                    #{value}
-                </span>
+            accessor: 'id',
+            cell: (invoice) => (
+                <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold">#{invoice.id}</span>
+                    <Badge variant={invoice.status === 'PAID' ? 'success' : 'warning'} className="text-xs">
+                        {invoice.status === 'PAID' ? 'مدفوعة' : 'معلقة'}
+                    </Badge>
+                </div>
             )
         },
         {
-            key: 'customer',
             header: 'العميل',
-            sortable: false,
-            render: (value, invoice) => (
-                <div className="text-right">
-                    <div className="font-medium text-gray-900 dark:text-white">
-                        {invoice?.customer?.name || 'غير محدد'}
+            accessor: 'customer',
+            cell: (invoice) => (
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium">{invoice.customer?.name}</span>
+                        <Badge
+                            variant={
+                                invoice.customer?.customerType === 'CASH' ? 'success' :
+                                    invoice.customer?.customerType === 'COMPANY' ? 'info' : 'default'
+                            }
+                            className="text-xs"
+                        >
+                            {invoice.customer?.customerType === 'CASH' ? 'نقدي' :
+                                invoice.customer?.customerType === 'COMPANY' ? 'شركة' : 'عادي'}
+                        </Badge>
                     </div>
-                    {invoice?.customer?.phone && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400 font-mono">
-                            {invoice.customer.phone}
+                    {invoice.customer?.phone && (
+                        <span className="text-xs text-gray-500 font-mono" dir="ltr">
+                        {invoice.customer.phone}
+                    </span>
+                    )}
+                </div>
+            )
+        },
+        {
+            header: 'الإجمالي',
+            accessor: 'totalPrice',
+            cell: (invoice) => (
+                <span className="font-bold font-mono">
+                {invoice.totalPrice?.toFixed(2)} جنيه
+            </span>
+            )
+        },
+        {
+            header: 'المدفوع',
+            accessor: 'amountPaidNow',
+            cell: (invoice) => (
+                <div className="text-left">
+                <span className="font-mono text-green-600 dark:text-green-400">
+                    {invoice.amountPaidNow?.toFixed(2)} جنيه
+                </span>
+                    {invoice.remainingBalance > 0 && (
+                        <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                            متبقي: {invoice.remainingBalance?.toFixed(2)}
                         </div>
                     )}
                 </div>
+            )
+        },
+        {
+            header: 'التاريخ',
+            accessor: 'issueDate',
+            cell: (invoice) => (
+                <span className="text-sm">
+                {new Date(invoice.issueDate).toLocaleDateString('ar-EG')}
+            </span>
             )
         },
         {

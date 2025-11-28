@@ -24,12 +24,28 @@ const PricingBreakdown = ({ item, glassTypes, isDetailed = false, onRemove, onUp
     // Fetch backend preview whenever relevant fields change
     useEffect(() => {
         const fetchPreview = async () => {
-            if (!item.glassTypeId || !item.width || !item.height || !item.cuttingType) {
+            // UPDATED: Support both old cuttingType and new shatafType/farmaType fields
+            const hasOldFields = item.cuttingType;
+            const hasNewFields = item.shatafType;
+
+            if (!item.glassTypeId || !item.width || !item.height || (!hasOldFields && !hasNewFields)) {
                 setCalculations(null);
                 return;
             }
 
-            if (item.cuttingType === 'LASER' && !item.manualCuttingPrice) {
+            // Validate manual price for manual types
+            if (hasOldFields && item.cuttingType === 'LASER' && !item.manualCuttingPrice) {
+                setCalculations(null);
+                return;
+            }
+            const manualShatafTypes = ['LASER', 'ROTATION', 'TABLEAUX'];
+            if (hasNewFields && manualShatafTypes.includes(item.shatafType) && !item.manualCuttingPrice) {
+                setCalculations(null);
+                return;
+            }
+
+            // Validate diameter for WHEEL_CUT farma type
+            if (hasNewFields && item.farmaType === 'WHEEL_CUT' && !item.diameter) {
                 setCalculations(null);
                 return;
             }
@@ -43,7 +59,9 @@ const PricingBreakdown = ({ item, glassTypes, isDetailed = false, onRemove, onUp
                     width: parseFloat(item.width),
                     height: parseFloat(item.height),
                     dimensionUnit: item.dimensionUnit || 'MM',
-                    cuttingType: item.cuttingType,
+                    shatafType: item.shatafType || (item.cuttingType === 'LASER' ? 'LASER' : 'KHARAZAN'),
+                    farmaType: item.farmaType || 'NORMAL_SHATAF',
+                    diameter: item.diameter ? parseFloat(item.diameter) : null,
                     manualCuttingPrice: item.manualCuttingPrice ? parseFloat(item.manualCuttingPrice) : null
                 });
 

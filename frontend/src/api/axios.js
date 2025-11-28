@@ -32,7 +32,7 @@ api.interceptors.request.use(
 
         // Log request for debugging in development
         if (import.meta.env.DEV) {
-            console.log(`🚀 ${config.method?.toUpperCase()} ${config.url}`, {
+            console.log(`🚀 ${config.method?.toUpperCase()} ${ config.url}`, {
                 headers: config.headers,
                 data: config.data,
             });
@@ -51,7 +51,8 @@ api.interceptors.response.use(
     (response) => {
         // Log successful responses in development
         if (import.meta.env.DEV) {
-            console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url}`, {
+            console.log(`
+            ✅ ${response.config.method?.toUpperCase()} ${response.config.url}`, {
                 status: response.status,
                 data: response.data,
             });

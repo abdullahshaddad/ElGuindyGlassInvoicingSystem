@@ -1,9 +1,14 @@
-import React, { useRef } from 'react';
-import { FiUser, FiEdit3, FiSearch, FiPlus } from 'react-icons/fi';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import React from 'react';
+import { FiUser, FiSearch, FiX, FiPlus, FiDollarSign } from 'react-icons/fi';
+import Input from '@components/ui/Input.jsx';
+import Button from '@components/ui/Button.jsx';
+import LoadingSpinner from '@components/ui/LoadingSpinner.jsx';
+import Badge from '@components/ui/Badge.jsx';
 
+/**
+ * CustomerSelection Component
+ * Enhanced with customer type display and balance information
+ */
 const CustomerSelection = ({
                                selectedCustomer,
                                customerSearch,
@@ -14,81 +19,207 @@ const CustomerSelection = ({
                                onStartNewCustomer,
                                onClearSelection
                            }) => {
-    const customerSearchRef = useRef(null);
+    // Get customer type badge variant
+    const getCustomerTypeBadge = (customerType) => {
+        switch (customerType) {
+            case 'CASH':
+                return { variant: 'success', label: 'عميل نقدي' };
+            case 'COMPANY':
+                return { variant: 'info', label: 'شركة' };
+            case 'REGULAR':
+            default:
+                return { variant: 'default', label: 'عميل عادي' };
+        }
+    };
 
     return (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                    <FiUser className="text-blue-600" size={20}/>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                    <FiUser className="text-blue-600 dark:text-blue-400" size={20}/>
                 </div>
                 اختيار العميل
+                {selectedCustomer && (
+                    <span className="mr-auto text-sm font-normal">
+                        <Badge
+                            variant={getCustomerTypeBadge(selectedCustomer.customerType).variant}
+                            className="text-xs"
+                        >
+                            {getCustomerTypeBadge(selectedCustomer.customerType).label}
+                        </Badge>
+                    </span>
+                )}
             </h3>
 
             {selectedCustomer ? (
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between">
-                    <div>
-                        <div className="font-semibold text-emerald-900">{selectedCustomer.name}</div>
-                        {selectedCustomer.phone && (
-                            <div className="text-sm text-emerald-700 font-mono">{selectedCustomer.phone}</div>
+                // Selected Customer Display
+                <div className="space-y-3">
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <h4 className="text-lg font-bold text-gray-900 dark:text-white">
+                                        {selectedCustomer.name}
+                                    </h4>
+                                    <Badge
+                                        variant={getCustomerTypeBadge(selectedCustomer.customerType).variant}
+                                        className="text-xs"
+                                    >
+                                        {getCustomerTypeBadge(selectedCustomer.customerType).label}
+                                    </Badge>
+                                </div>
+
+                                {selectedCustomer.phone && (
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 font-mono mb-1" dir="ltr">
+                                        {selectedCustomer.phone}
+                                    </p>
+                                )}
+
+                                {selectedCustomer.address && (
+                                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                                        {selectedCustomer.address}
+                                    </p>
+                                )}
+                            </div>
+
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={onClearSelection}
+                                className="text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
+                            >
+                                <FiX size={20} />
+                            </Button>
+                        </div>
+
+                        {/* Customer Balance (for REGULAR and COMPANY only) */}
+                        {selectedCustomer.customerType !== 'CASH' && (
+                            <div className="pt-3 border-t border-blue-200 dark:border-blue-800">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                        <FiDollarSign size={16} />
+                                        <span>الرصيد الحالي:</span>
+                                    </div>
+                                    <span className={`text-base font-bold font-mono ${
+                                        (selectedCustomer.balance || 0) > 0
+                                            ? 'text-orange-600 dark:text-orange-400'
+                                            : 'text-green-600 dark:text-green-400'
+                                    }`}>
+                                        {(selectedCustomer.balance || 0).toFixed(2)} جنيه
+                                    </span>
+                                </div>
+                                {(selectedCustomer.balance || 0) > 0 && (
+                                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                                        لدى العميل رصيد مستحق
+                                    </p>
+                                )}
+                            </div>
                         )}
-                        {selectedCustomer.address && (
-                            <div className="text-sm text-emerald-600">{selectedCustomer.address}</div>
+
+                        {/* Cash Customer Info */}
+                        {selectedCustomer.customerType === 'CASH' && (
+                            <div className="pt-3 border-t border-blue-200 dark:border-blue-800">
+                                <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 rounded px-3 py-2">
+                                    <span>✓</span>
+                                    <span>عميل نقدي - يدفع كامل المبلغ عند الشراء</span>
+                                </div>
+                            </div>
                         )}
                     </div>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={onClearSelection}
-                        className="text-emerald-600 hover:text-emerald-800 hover:bg-emerald-100"
-                    >
-                        <FiEdit3/>
-                    </Button>
                 </div>
             ) : (
+                // Customer Search
                 <div className="space-y-3">
                     <div className="relative">
                         <Input
-                            ref={customerSearchRef}
-                            placeholder="البحث بالاسم أو رقم الهاتف..."
+                            placeholder="ابحث عن عميل بالاسم أو الهاتف..."
                             value={customerSearch}
                             onChange={(e) => onCustomerSearchChange(e.target.value)}
-                            icon={isSearchingCustomers ? <LoadingSpinner size="sm"/> : <FiSearch/>}
-                            className="border-blue-200 focus:border-blue-500 focus:ring-blue-500/20"
+                            icon={<FiSearch />}
+                            className="w-full"
                         />
-
-                        {/* Customer Search Results */}
-                        {customerResults.length > 0 && (
-                            <div className="absolute bg-white z-10 w-full mt-1 border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                                {customerResults.map((customer) => (
-                                    <button
-                                        key={customer.id}
-                                        onClick={() => onSelectCustomer(customer)}
-                                        className="w-full p-4 text-right hover:bg-blue-50 hover:text-blue-900 border-b border-gray-200 last:border-b-0 transition-all duration-200"
-                                    >
-                                        <div className="font-medium text-gray-900">{customer.name}</div>
-                                        {customer.phone && (
-                                            <div className="text-sm text-gray-500 font-mono">{customer.phone}</div>
-                                        )}
-                                        {customer.address && (
-                                            <div className="text-xs text-gray-500">{customer.address}</div>
-                                        )}
-                                    </button>
-                                ))}
+                        {isSearchingCustomers && (
+                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                                <LoadingSpinner size="sm" />
                             </div>
                         )}
                     </div>
 
-                    {/* Add New Customer Button */}
-                    {customerSearch.length >= 2 && customerResults.length === 0 && !isSearchingCustomers && (
-                        <Button
-                            variant="outline"
-                            onClick={onStartNewCustomer}
-                            className="w-full border-dashed border-2 border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400 transition-all duration-200"
-                        >
-                            <FiPlus className="ml-2"/>
-                            إضافة عميل جديد: "{customerSearch}"
-                        </Button>
+                    {/* Search Results */}
+                    {customerResults.length > 0 && (
+                        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+                            {customerResults.map((customer) => {
+                                const typeBadge = getCustomerTypeBadge(customer.customerType);
+
+                                return (
+                                    <div
+                                        key={customer.id}
+                                        onClick={() => onSelectCustomer(customer)}
+                                        className="p-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer border-b border-gray-100 dark:border-gray-800 last:border-b-0 transition-colors"
+                                    >
+                                        <div className="flex items-start justify-between mb-1">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <p className="font-semibold text-gray-900 dark:text-white">
+                                                        {customer.name}
+                                                    </p>
+                                                    <Badge variant={typeBadge.variant} className="text-xs">
+                                                        {typeBadge.label}
+                                                    </Badge>
+                                                </div>
+
+                                                {customer.phone && (
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400 font-mono" dir="ltr">
+                                                        {customer.phone}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {/* Balance indicator for REGULAR/COMPANY */}
+                                            {customer.customerType !== 'CASH' && customer.balance > 0 && (
+                                                <div className="text-left mr-2">
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">رصيد:</p>
+                                                    <p className="text-sm font-bold text-orange-600 dark:text-orange-400 font-mono">
+                                                        {customer.balance.toFixed(2)}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* No Results */}
+                    {customerSearch.length >= 2 && !isSearchingCustomers && customerResults.length === 0 && (
+                        <div className="text-center py-8 bg-gray-50 dark:bg-gray-900 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
+                            <div className="p-3 bg-gray-200 dark:bg-gray-800 rounded-full w-fit mx-auto mb-3">
+                                <FiUser size={32} className="text-gray-400 dark:text-gray-600"/>
+                            </div>
+                            <p className="text-gray-600 dark:text-gray-400 mb-3">
+                                لم يتم العثور على عميل بهذا الاسم
+                            </p>
+                            <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => onStartNewCustomer(customerSearch)}
+                                className="mx-auto"
+                            >
+                                <FiPlus className="ml-2" />
+                                إضافة عميل جديد: {customerSearch}
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Instructions */}
+                    {customerSearch.length === 0 && (
+                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full w-fit mx-auto mb-3">
+                                <FiSearch size={32} className="text-gray-400 dark:text-gray-600"/>
+                            </div>
+                            <p className="text-sm">ابحث عن عميل أو أضف عميل جديد</p>
+                        </div>
                     )}
                 </div>
             )}

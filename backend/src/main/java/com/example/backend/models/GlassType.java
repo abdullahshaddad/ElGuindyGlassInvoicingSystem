@@ -27,9 +27,13 @@ public class GlassType {
 
     @Column(name = "price_per_meter", nullable = false)
     private Double pricePerMeter;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "calculation_method", nullable = false)
     private CalculationMethod calculationMethod = CalculationMethod.AREA;
+
+    @Column(name = "active")
+    private Boolean active = true;
 
     public GlassType(String name, Double thickness, String color, Double pricePerMeter) {
         this.name = name;
@@ -37,7 +41,6 @@ public class GlassType {
         this.color = color;
         this.pricePerMeter = pricePerMeter;
         this.calculationMethod = CalculationMethod.AREA; // Default to area calculation
-
+        this.active = true;
     }
-
 }

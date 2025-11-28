@@ -2,6 +2,8 @@ import React from 'react';
 import { FiUser, FiPackage, FiPrinter, FiCreditCard, FiSend } from 'react-icons/fi';
 import Button from '@/components/ui/Button';
 import Modal from '@components/ui/Modal.jsx';
+import { SHATAF_TYPES } from '@/constants/shatafTypes.js';
+import { FARMA_TYPES } from '@/constants/farmaTypes.js';
 
 const InvoiceViewModal = ({
                               isOpen,
@@ -115,7 +117,13 @@ const InvoiceViewModal = ({
                                                 {line.glassType?.thickness && (
                                                     <span>• {line.glassType.thickness} مم</span>
                                                 )}
-                                                <span>• {line.cuttingType === 'SHATF' ? 'شطف' : 'ليزر'}</span>
+                                                <span>• {line.shatafType ?
+                                                    (SHATAF_TYPES[line.shatafType]?.arabicName || line.shatafType) :
+                                                    (line.cuttingType === 'SHATF' ? 'شطف' : 'ليزر')
+                                                }</span>
+                                                {line.farmaType && (
+                                                    <span>• {FARMA_TYPES[line.farmaType]?.arabicName || line.farmaType}</span>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="text-right">

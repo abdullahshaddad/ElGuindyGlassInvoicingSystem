@@ -262,10 +262,6 @@ const InvoicesPage = () => {
         }
     };
 
-// If you need to check what getPdfUrl returns
-    console.log('Testing getPdfUrl function:');
-    const testJob = { pdfPath: '/api/pdfs/test.pdf' };
-    console.log('getPdfUrl result:', printJobService.getPdfUrl(testJob));
     const handleSendToFactory = async (invoice) => {
         if (!invoice || !invoice.id) {
             showError('معلومات الفاتورة غير صحيحة');
@@ -353,6 +349,40 @@ const InvoicesPage = () => {
     });
 
     const formatCurrency = (amount) => `${parseFloat(amount || 0).toFixed(2)} ج.م`;
+
+    const getShatafTypeName = (shatafType) => {
+        const names = {
+            'KHARAZAN': 'خرازان',
+            'SHAMBORLEH': 'شمبورليه',
+            'ONE_CM': '1 سم',
+            'TWO_CM': '2 سم',
+            'THREE_CM': '3 سم',
+            'JULIA': 'جوليا',
+            'LASER': 'ليزر',
+            'ROTATION': 'دوران',
+            'TABLEAUX': 'تابلوهات',
+            'SANDING': 'صنفرة'
+        };
+        return names[shatafType] || shatafType;
+    };
+
+    const getFarmaTypeName = (farmaType) => {
+        const names = {
+            'NORMAL_SHATAF': 'شطف عادي',
+            'ONE_HEAD_FARMA': 'رأس فارمة',
+            'TWO_HEAD_FARMA': '2 رأس فارمة',
+            'ONE_SIDE_FARMA': 'جنب فارمة',
+            'TWO_SIDE_FARMA': '2 جنب فارمة',
+            'HEAD_SIDE_FARMA': 'رأس + جنب',
+            'TWO_HEAD_ONE_SIDE_FARMA': '2 رأس + جنب',
+            'TWO_SIDE_ONE_HEAD_FARMA': '2 جنب + رأس',
+            'FULL_FARMA': 'فارمة كاملة',
+            'WHEEL_CUT': 'عجلة',
+            'ROTATION': 'دوران',
+            'TABLEAUX': 'تابلوهات'
+        };
+        return names[farmaType] || farmaType;
+    };
 
     const columns = [
         {
@@ -706,10 +736,32 @@ const InvoicesPage = () => {
                                                     <h5 className="font-medium text-gray-900 dark:text-white">
                                                         {line.glassType?.name || 'نوع غير محدد'}
                                                     </h5>
+                                                    <div className="flex items-center gap-2 flex-wrap mt-1">
+                                                        {line.shatafType && (
+                                                            <Badge variant="info" className="text-xs">
+                                                                {getShatafTypeName(line.shatafType)}
+                                                            </Badge>
+                                                        )}
+                                                        {line.farmaType && line.farmaType !== 'NORMAL_SHATAF' && (
+                                                            <Badge variant="success" className="text-xs">
+                                                                {getFarmaTypeName(line.farmaType)}
+                                                            </Badge>
+                                                        )}
+                                                        {line.manualCuttingPrice && (
+                                                            <Badge variant="warning" className="text-xs">
+                                                                سعر يدوي
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                     <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                                        <span>{line.width?.toFixed(2)} × {line.height?.toFixed(2)} متر</span>
+                                                        <span>
+                                                            {line.dimensionUnit === 'MM'
+                                                                ? `${line.width?.toFixed(0)} × ${line.height?.toFixed(0)} مم`
+                                                                : `${(line.width * 1000)?.toFixed(0)} × ${(line.height * 1000)?.toFixed(0)} مم`
+                                                            }
+                                                            {' '}({line.areaM2?.toFixed(3)} م²)
+                                                        </span>
                                                         {line.glassType?.thickness && <span> • {line.glassType.thickness} مم</span>}
-                                                        <span> • {line.cuttingType === 'SHATF' ? 'شطف' : 'ليزر'}</span>
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
@@ -718,22 +770,55 @@ const InvoicesPage = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-3 gap-2 text-sm mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                                                <div>
-                                                    <span className="text-gray-500 dark:text-gray-400">المساحة: </span>
-                                                    <span className="text-gray-900 dark:text-white font-mono">{line.areaM2?.toFixed(3)} م²</span>
+                                            <div className="grid grid-cols-2 gap-3 text-sm mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                                                {/* Left Column */}
+                                                <div className="space-y-2">
+                                                    <div>
+                                                        <span className="text-gray-500 dark:text-gray-400">المساحة: </span>
+                                                        <span className="text-gray-900 dark:text-white font-mono">
+                                                            {line.areaM2?.toFixed(3)} م²
+                                                        </span>
+                                                    </div>
+                                                    {line.shatafMeters && (
+                                                        <div>
+                                                            <span className="text-gray-500 dark:text-gray-400">أمتار الشطف: </span>
+                                                            <span className="text-gray-900 dark:text-white font-mono">
+                                                                {line.shatafMeters.toFixed(2)} م
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {line.diameter && (
+                                                        <div>
+                                                            <span className="text-gray-500 dark:text-gray-400">القطر: </span>
+                                                            <span className="text-gray-900 dark:text-white font-mono">
+                                                                {line.diameter} مم
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div>
-                                                    <span className="text-gray-500 dark:text-gray-400">سعر الزجاج: </span>
-                                                    <span className="text-emerald-600 dark:text-emerald-400 font-mono">
-                                                        {formatCurrency((line.lineTotal || 0) - (line.cuttingPrice || 0))}
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-gray-500 dark:text-gray-400">سعر القطع: </span>
-                                                    <span className="text-orange-600 dark:text-orange-400 font-mono">
-                                                        {formatCurrency(line.cuttingPrice)}
-                                                    </span>
+
+                                                {/* Right Column */}
+                                                <div className="space-y-2">
+                                                    <div>
+                                                        <span className="text-gray-500 dark:text-gray-400">سعر الزجاج: </span>
+                                                        <span className="text-emerald-600 dark:text-emerald-400 font-mono">
+                                                            {formatCurrency(line.glassPrice || 0)}
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-gray-500 dark:text-gray-400">سعر القطع: </span>
+                                                        <span className="text-orange-600 dark:text-orange-400 font-mono">
+                                                            {formatCurrency(line.cuttingPrice || 0)}
+                                                        </span>
+                                                    </div>
+                                                    {line.manualCuttingPrice && (
+                                                        <div>
+                                                            <span className="text-gray-500 dark:text-gray-400">سعر يدوي: </span>
+                                                            <span className="text-purple-600 dark:text-purple-400 font-mono">
+                                                                {formatCurrency(line.manualCuttingPrice)}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
