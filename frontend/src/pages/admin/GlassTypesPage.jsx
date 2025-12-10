@@ -289,8 +289,26 @@ const GlassTypesPage = () => {
                 onClose={handleCloseModal}
                 title={editingItem ? 'تعديل نوع الزجاج' : 'إضافة نوع زجاج جديد'}
                 size="md"
+                footer={(
+                    <div className="flex justify-end space-x-3 rtl:space-x-reverse w-full">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleCloseModal}
+                        >
+                            إلغاء
+                        </Button>
+                        <Button
+                            form="glass-type-form"
+                            type="submit"
+                            variant="primary"
+                        >
+                            {editingItem ? 'تحديث' : 'إضافة'}
+                        </Button>
+                    </div>
+                )}
             >
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form id="glass-type-form" onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 gap-4">
                         <Input
                             label="اسم نوع الزجاج"
@@ -340,22 +358,6 @@ const GlassTypesPage = () => {
                             onChange={handleInputChange}
                             placeholder="شفاف، أزرق، أخضر..."
                         />
-                    </div>
-
-                    <div className="flex justify-end space-x-3 rtl:space-x-reverse pt-4">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleCloseModal}
-                        >
-                            إلغاء
-                        </Button>
-                        <Button
-                            type="submit"
-                            variant="primary"
-                        >
-                            {editingItem ? 'تحديث' : 'إضافة'}
-                        </Button>
                     </div>
                 </form>
             </Modal>

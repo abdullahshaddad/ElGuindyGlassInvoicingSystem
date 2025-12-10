@@ -11,14 +11,14 @@ import Badge from '@components/ui/Badge.jsx';
  * - REGULAR/COMPANY: Can pay partially, balance tracked
  */
 const PaymentPanel = ({
-                          customer,
-                          totalAmount,
-                          amountPaidNow,
-                          onAmountPaidNowChange,
-                          paymentMethod,
-                          onPaymentMethodChange,
-                          disabled = false
-                      }) => {
+    customer,
+    totalAmount,
+    amountPaidNow,
+    onAmountPaidNowChange,
+    paymentMethod,
+    onPaymentMethodChange,
+    disabled = false
+}) => {
     const [validation, setValidation] = useState({ isValid: true, message: '' });
     const [customerPreviousBalance, setCustomerPreviousBalance] = useState(0);
 
@@ -103,7 +103,7 @@ const PaymentPanel = ({
                     variant={isCashCustomer ? 'success' : 'info'}
                     className="text-xs"
                 >
-                    {isCashCustomer ? 'عميل نقدي' : customer.customerType === 'COMPANY' ? 'شركة' : 'عميل عادي'}
+                    {isCashCustomer ? 'عميل نقدي' : customer.customerType === 'COMPANY' ? 'شركة' : 'عميل'}
                 </Badge>
             </div>
 
@@ -127,7 +127,7 @@ const PaymentPanel = ({
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         إجمالي الفاتورة
                     </label>
-                    <div className="relative">
+                    <div className="relative rounded-lg">
                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
                             <FiDollarSign size={18} />
                         </div>
@@ -208,11 +208,10 @@ const PaymentPanel = ({
                             <span className="text-sm text-gray-600 dark:text-gray-400">
                                 الرصيد الحالي للعميل:
                             </span>
-                            <span className={`text-sm font-mono ${
-                                customerPreviousBalance > 0
+                            <span className={`text-sm font-mono ${customerPreviousBalance > 0
                                     ? 'text-orange-600 dark:text-orange-400'
                                     : 'text-green-600 dark:text-green-400'
-                            }`}>
+                                }`}>
                                 {customerPreviousBalance.toFixed(2)} جنيه
                             </span>
                         </div>

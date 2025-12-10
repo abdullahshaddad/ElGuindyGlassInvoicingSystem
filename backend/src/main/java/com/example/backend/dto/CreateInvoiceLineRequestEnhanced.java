@@ -15,21 +15,21 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateInvoiceLineRequestEnhanced {
-    
+
     // Glass selection
     private Long glassTypeId;
-    
+
     // Dimensions
     private Double width;
     private Double height;
     private DimensionUnit dimensionUnit;
     private Double diameter; // For WHEEL_CUT farma type
-    
+
     // Cutting configuration
-    private ShatafType shatafType;     // New: Enhanced shataf type
-    private FarmaType farmaType;       // New: Farma formula type
-    private CuttingType cuttingType;   // Legacy: For backward compatibility
-    
+    private ShatafType shatafType; // New: Enhanced shataf type
+    private FarmaType farmaType; // New: Farma formula type
+    private CuttingType cuttingType; // Legacy: For backward compatibility
+
     // Manual price (for LASER, ROTATION, TABLEAUX)
     private Double manualCuttingPrice;
 
@@ -94,7 +94,7 @@ public class CreateInvoiceLineRequestEnhanced {
 
         // Convert legacy cutting type to shataf type
         if (cuttingType == CuttingType.LASER) {
-            return ShatafType.LASER;
+            return null; // Laser is no longer a ShatafType
         } else if (cuttingType == CuttingType.SHATF) {
             // Default to KHARAZAN for legacy SHATF
             return ShatafType.KHARAZAN;

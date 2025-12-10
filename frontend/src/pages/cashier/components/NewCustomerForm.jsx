@@ -6,27 +6,27 @@ import Badge from '@/components/ui/Badge';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const NewCustomerForm = ({
-                             newCustomer,
-                             isAddingCustomer,
-                             onCustomerChange,
-                             onSave,
-                             onCancel
-                         }) => {
+    newCustomer,
+    isAddingCustomer,
+    onCustomerChange,
+    onSave,
+    onCancel
+}) => {
     return (
         <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center gap-3 mb-4">
-                <FiUser className="text-blue-600 dark:text-blue-400" size={20}/>
+                <FiUser className="text-blue-600 dark:text-blue-400" size={20} />
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">إضافة عميل جديد</h2>
                 {newCustomer.customerType && (
                     <Badge
                         variant={
                             newCustomer.customerType === 'CASH' ? 'success' :
-                            newCustomer.customerType === 'COMPANY' ? 'info' : 'default'
+                                newCustomer.customerType === 'COMPANY' ? 'info' : 'default'
                         }
                         className="text-xs"
                     >
                         {newCustomer.customerType === 'CASH' ? 'نقدي' :
-                         newCustomer.customerType === 'COMPANY' ? 'شركة' : 'عادي'}
+                            newCustomer.customerType === 'COMPANY' ? 'شركة' : 'عميل'}
                     </Badge>
                 )}
             </div>
@@ -39,7 +39,7 @@ const NewCustomerForm = ({
                         ...newCustomer,
                         name: e.target.value
                     })}
-                    icon={<FiUser/>}
+                    icon={<FiUser />}
                     required
                 />
                 <Input
@@ -49,7 +49,7 @@ const NewCustomerForm = ({
                         ...newCustomer,
                         phone: e.target.value
                     })}
-                    icon={<FiPhone/>}
+                    icon={<FiPhone />}
                 />
                 <Input
                     placeholder="العنوان"
@@ -58,7 +58,7 @@ const NewCustomerForm = ({
                         ...newCustomer,
                         address: e.target.value
                     })}
-                    icon={<FiMapPin/>}
+                    icon={<FiMapPin />}
                 />
                 <Input
                     placeholder="البريد الإلكتروني"
@@ -82,7 +82,7 @@ const NewCustomerForm = ({
                         })}
                         className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                     >
-                        <option value="REGULAR">عميل عادي</option>
+                        <option value="REGULAR">عميل</option>
                         <option value="CASH">عميل نقدي</option>
                         <option value="COMPANY">شركة</option>
                     </select>
@@ -95,8 +95,8 @@ const NewCustomerForm = ({
                     disabled={isAddingCustomer || !newCustomer.name.trim()}
                     className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white"
                 >
-                    {isAddingCustomer ? <LoadingSpinner size="sm" className="ml-2"/> :
-                        <FiSave className="ml-2"/>}
+                    {isAddingCustomer ? <LoadingSpinner size="sm" className="ml-2" /> :
+                        <FiSave className="ml-2" />}
                     {isAddingCustomer ? 'جارٍ الحفظ...' : 'حفظ العميل'}
                 </Button>
                 <Button

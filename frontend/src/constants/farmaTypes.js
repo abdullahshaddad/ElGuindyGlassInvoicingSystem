@@ -83,6 +83,13 @@ export const FARMA_TYPES = {
         isManual: false,
         requiresDiameter: true
     },
+    HAND_SHATAF: {
+        value: 'HAND_SHATAF',
+        arabicName: 'ليزر يدوي',
+        formula: '2 × (الطول + العرض)',
+        isManual: false,
+        requiresDiameter: false
+    },
     ROTATION: {
         value: 'ROTATION',
         arabicName: 'دوران',
@@ -143,6 +150,6 @@ export const getFarmaTypesByCategory = () => {
             FARMA_TYPES.TWO_SIDE_ONE_HEAD_FARMA,
             FARMA_TYPES.FULL_FARMA
         ],
-        special: [FARMA_TYPES.WHEEL_CUT, FARMA_TYPES.ROTATION, FARMA_TYPES.TABLEAUX]
+        special: [FARMA_TYPES.WHEEL_CUT, FARMA_TYPES.HAND_SHATAF, FARMA_TYPES.ROTATION, FARMA_TYPES.TABLEAUX]
     };
 };

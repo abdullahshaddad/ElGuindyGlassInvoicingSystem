@@ -3,18 +3,19 @@ import React, { useEffect } from 'react';
 import clsx from 'clsx';
 
 const Modal = ({
-                   isOpen = false,
-                   onClose,
-                   children,
-                   title,
-                   size = 'md',
-                   closeOnBackdrop = true,
-                   closeButton = true,
-                   className = '',
-                   dir,
-                   ...props
-               }) => {
-    // Handle escape key press
+    isOpen = false,
+    onClose,
+    children,
+    title,
+    size = 'md',
+    closeOnBackdrop = true,
+    closeButton = true,
+    footer,
+    className = '',
+    dir,
+    ...props
+}) => {
+    // Handle escape key press and scroll locking
     useEffect(() => {
         const handleEscape = (event) => {
             if (event.key === 'Escape' && isOpen && onClose) {
@@ -24,13 +25,20 @@ const Modal = ({
 
         if (isOpen) {
             document.addEventListener('keydown', handleEscape);
-            // Prevent body scroll when modal is open
+
+            // Prevent body scroll and compensate for scrollbar width
+            const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
             document.body.style.overflow = 'hidden';
+            if (scrollbarWidth > 0) {
+                document.body.style.paddingRight = `${scrollbarWidth}px`;
+            }
         }
 
         return () => {
             document.removeEventListener('keydown', handleEscape);
-            document.body.style.overflow = 'unset';
+            // Restore body scroll and padding
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
         };
     }, [isOpen, onClose]);
 
@@ -52,7 +60,7 @@ const Modal = ({
 
     return (
         <div
-            className="fixed inset-0 z-50 overflow-y-auto"
+            className="fixed inset-0 z-50 overflow-hidden"
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? 'modal-title' : undefined}
@@ -67,10 +75,10 @@ const Modal = ({
             />
 
             {/* Modal Container */}
-            <div className="flex min-h-full items-center justify-center p-4">
+            <div className="flex h-full items-center justify-center p-4">
                 <div
                     className={clsx(
-                        'relative w-full transform overflow-hidden rounded-lg bg-white',
+                        'relative w-full max-h-[90vh] flex flex-col transform rounded-lg bg-white',
                         'dark:bg-gray-800 shadow-xl transition-all',
                         modalSizes[size],
                         className
@@ -78,7 +86,7 @@ const Modal = ({
                 >
                     {/* Header */}
                     {(title || closeButton) && (
-                        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex-none flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                             {title && (
                                 <h3
                                     id="modal-title"
@@ -116,9 +124,16 @@ const Modal = ({
                     )}
 
                     {/* Content */}
-                    <div className="p-4">
+                    <div className="flex-1 overflow-y-auto p-4">
                         {children}
                     </div>
+
+                    {/* Footer */}
+                    {footer && (
+                        <div className="flex-none border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg">
+                            {footer}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

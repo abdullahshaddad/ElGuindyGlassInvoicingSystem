@@ -21,6 +21,8 @@ public class InvoiceDTO {
     private String notes;
     private CustomerDTO customer;
     private List<InvoiceLineDTO> invoiceLines;
+    private Double amountPaidNow;
+    private Double remainingBalance;
 
     /**
      * Convert Invoice entity to DTO
@@ -40,9 +42,11 @@ public class InvoiceDTO {
                 .customer(CustomerDTO.from(invoice.getCustomer()))
                 .invoiceLines(invoice.getInvoiceLines() != null
                         ? invoice.getInvoiceLines().stream()
-                        .map(InvoiceLineDTO::from)
-                        .collect(Collectors.toList())
+                                .map(InvoiceLineDTO::from)
+                                .collect(Collectors.toList())
                         : List.of())
+                .amountPaidNow(invoice.getAmountPaidNow())
+                .remainingBalance(invoice.getRemainingBalance())
                 .build();
     }
 
@@ -63,6 +67,8 @@ public class InvoiceDTO {
                 .notes(invoice.getNotes())
                 .customer(CustomerDTO.from(invoice.getCustomer()))
                 .invoiceLines(List.of()) // Empty list for performance
+                .amountPaidNow(invoice.getAmountPaidNow())
+                .remainingBalance(invoice.getRemainingBalance())
                 .build();
     }
 }

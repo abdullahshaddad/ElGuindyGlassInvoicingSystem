@@ -25,13 +25,13 @@ import java.util.Map;
  * REST Controller for payment operations
  */
 @RestController
-@RequestMapping("/api/payments")
+@RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
 @Slf4j
 public class PaymentController {
-    
+
     private final PaymentService paymentService;
-    
+
     /**
      * Record a new payment
      */
@@ -39,11 +39,10 @@ public class PaymentController {
     @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER')")
     public ResponseEntity<?> recordPayment(
             @RequestBody RecordPaymentRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         try {
             String username = authentication != null ? authentication.getName() : "system";
-            
+
             PaymentDTO payment = paymentService.recordPayment(
                     request.getCustomerId(),
                     request.getInvoiceId(),
@@ -51,15 +50,14 @@ public class PaymentController {
                     request.getPaymentMethod(),
                     request.getReferenceNumber(),
                     request.getNotes(),
-                    username
-            );
-            
+                    username);
+
             Map<String, Object> response = new HashMap<>();
             response.put("payment", payment);
             response.put("message", "تم تسجيل الدفعة بنجاح");
-            
+
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
-            
+
         } catch (Exception e) {
             log.error("Error recording payment: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
@@ -67,7 +65,7 @@ public class PaymentController {
             return ResponseEntity.badRequest().body(error);
         }
     }
-    
+
     /**
      * Get payment by ID
      */
@@ -82,7 +80,7 @@ public class PaymentController {
             return ResponseEntity.notFound().build();
         }
     }
-    
+
     /**
      * Get all payments for a customer
      */
@@ -95,11 +93,10 @@ public class PaymentController {
         } catch (Exception e) {
             log.error("Error retrieving customer payments: {}", e.getMessage());
             return ResponseEntity.badRequest().body(
-                Map.of("error", e.getMessage())
-            );
+                    Map.of("error", e.getMessage()));
         }
     }
-    
+
     /**
      * Get all payments for an invoice
      */
@@ -112,11 +109,10 @@ public class PaymentController {
         } catch (Exception e) {
             log.error("Error retrieving invoice payments: {}", e.getMessage());
             return ResponseEntity.badRequest().body(
-                Map.of("error", e.getMessage())
-            );
+                    Map.of("error", e.getMessage()));
         }
     }
-    
+
     /**
      * Get payments within date range
      */
@@ -124,19 +120,17 @@ public class PaymentController {
     @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER')")
     public ResponseEntity<?> getPaymentsInRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate
-    ) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
             List<PaymentDTO> payments = paymentService.getPaymentsBetweenDates(startDate, endDate);
             return ResponseEntity.ok(payments);
         } catch (Exception e) {
             log.error("Error retrieving payments in range: {}", e.getMessage());
             return ResponseEntity.badRequest().body(
-                Map.of("error", e.getMessage())
-            );
+                    Map.of("error", e.getMessage()));
         }
     }
-    
+
     /**
      * Get customer payments within date range
      */
@@ -145,8 +139,7 @@ public class PaymentController {
     public ResponseEntity<?> getCustomerPaymentsInRange(
             @PathVariable Long customerId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate
-    ) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
             List<PaymentDTO> payments = paymentService.getCustomerPaymentsBetweenDates(
                     customerId, startDate, endDate);
@@ -154,11 +147,10 @@ public class PaymentController {
         } catch (Exception e) {
             log.error("Error retrieving customer payments in range: {}", e.getMessage());
             return ResponseEntity.badRequest().body(
-                Map.of("error", e.getMessage())
-            );
+                    Map.of("error", e.getMessage()));
         }
     }
-    
+
     /**
      * Delete payment (admin only)
      */
@@ -171,9 +163,7 @@ public class PaymentController {
         } catch (Exception e) {
             log.error("Error deleting payment: {}", e.getMessage());
             return ResponseEntity.badRequest().body(
-                Map.of("error", e.getMessage())
-            );
+                    Map.of("error", e.getMessage()));
         }
     }
 }
-

@@ -43,7 +43,8 @@ public class CreateInvoiceLineRequest {
     @Builder.Default
     private List<OperationRequest> operations = new ArrayList<>();
 
-    // LEGACY: Single operation fields (for backward compatibility - will be deprecated)
+    // LEGACY: Single operation fields (for backward compatibility - will be
+    // deprecated)
     private ShatafType shatafType;
     private FarmaType farmaType;
     private Double diameter; // For wheel cut (العجلة)
@@ -64,7 +65,7 @@ public class CreateInvoiceLineRequest {
 
         // Convert legacy cutting type
         if (cuttingType == CuttingType.LASER) {
-            return ShatafType.LASER;
+            return null; // Laser is no longer a ShatafType
         } else if (cuttingType == CuttingType.SHATF) {
             return ShatafType.KHARAZAN; // Default
         }

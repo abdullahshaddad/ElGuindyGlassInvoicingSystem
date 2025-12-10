@@ -55,10 +55,6 @@ const FarmaTypeSelector = ({
 
     return (
         <div className={`space-y-2 ${className}`}>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                نوع الفارمة
-                <span className="text-red-500 mr-1">*</span>
-            </label>
 
             {/* Dropdown Selection */}
             <Select

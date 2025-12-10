@@ -1,46 +1,62 @@
 import React from 'react';
 import { FiSearch, FiClock, FiEye, FiPrinter, FiCreditCard, FiPackage } from 'react-icons/fi';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import DataTable from '@/components/ui/DataTable';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { Link } from 'react-router-dom';
+import {
+    Button,
+    Input,
+    Modal,
+    DataTable,
+    PageHeader,
+    Badge,
+    Select
+} from '@/components';
 
 const InvoiceList = ({
-                         invoices,
-                         loading,
-                         searchTerm,
-                         currentPage,
-                         totalPages,
-                         isPrinting = false,
-                         isSendingToFactory = false,
-                         onSearchChange,
-                         onPageChange,
-                         onViewInvoice,
-                         onPrintInvoice,
-                         onSendToFactory,
-                         onMarkAsPaid
-                     }) => {
+    invoices,
+    loading,
+    searchTerm,
+    currentPage,
+    totalPages,
+    isPrinting = false,
+    isSendingToFactory = false,
+    onSearchChange,
+    onPageChange,
+    onViewInvoice,
+    onPrintInvoice,
+    onSendToFactory,
+    onMarkAsPaid
+}) => {
     // Table columns for invoice list
     const columns = [
         {
+            key: 'id',
             header: 'رقم الفاتورة',
-            accessor: 'id',
-            cell: (invoice) => (
+            sortable: true,
+            render: (value, invoice) => (
                 <div className="flex items-center gap-2">
                     <span className="font-mono font-bold">#{invoice.id}</span>
-                    <Badge variant={invoice.status === 'PAID' ? 'success' : 'warning'} className="text-xs">
-                        {invoice.status === 'PAID' ? 'مدفوعة' : 'معلقة'}
-                    </Badge>
                 </div>
             )
         },
         {
+            key: 'customer',
             header: 'العميل',
-            accessor: 'customer',
-            cell: (invoice) => (
+            sortable: true,
+            render: (value, invoice) => (
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium">{invoice.customer?.name}</span>
+                        {['REGULAR', 'COMPANY'].includes(invoice.customer?.customerType) ? (
+                            <Link
+                                to={`/customers/${invoice.customer.id}`}
+                                className="font-medium text-primary-600 hover:underline dark:text-primary-400"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {invoice.customer?.name || 'غير محدد'}
+                            </Link>
+                        ) : (
+                            <span className="font-medium">{invoice.customer?.name || 'غير محدد'}</span>
+                        )}
                         <Badge
                             variant={
                                 invoice.customer?.customerType === 'CASH' ? 'success' :
@@ -49,49 +65,42 @@ const InvoiceList = ({
                             className="text-xs"
                         >
                             {invoice.customer?.customerType === 'CASH' ? 'نقدي' :
-                                invoice.customer?.customerType === 'COMPANY' ? 'شركة' : 'عادي'}
+                                invoice.customer?.customerType === 'COMPANY' ? 'شركة' : 'عميل'}
                         </Badge>
                     </div>
                     {invoice.customer?.phone && (
                         <span className="text-xs text-gray-500 font-mono" dir="ltr">
-                        {invoice.customer.phone}
-                    </span>
+                            {invoice.customer.phone}
+                        </span>
                     )}
                 </div>
             )
         },
         {
+            key: 'totalPrice',
             header: 'الإجمالي',
-            accessor: 'totalPrice',
-            cell: (invoice) => (
-                <span className="font-bold font-mono">
-                {invoice.totalPrice?.toFixed(2)} جنيه
-            </span>
+            sortable: true,
+            render: (value, invoice) => (
+                <span className="font-bold font-mono text-green-600 dark:text-green-400">
+                    {parseFloat(value || 0).toFixed(2)} جنيه
+                </span>
             )
         },
         {
+            key: 'amountPaidNow',
             header: 'المدفوع',
-            accessor: 'amountPaidNow',
-            cell: (invoice) => (
+            sortable: true,
+            render: (value, invoice) => (
                 <div className="text-left">
-                <span className="font-mono text-green-600 dark:text-green-400">
-                    {invoice.amountPaidNow?.toFixed(2)} جنيه
-                </span>
+                    <span className="font-mono text-green-600 dark:text-green-400">
+                        {parseFloat(value || 0).toFixed(2)} جنيه
+                    </span>
                     {invoice.remainingBalance > 0 && (
                         <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
                             متبقي: {invoice.remainingBalance?.toFixed(2)}
                         </div>
                     )}
                 </div>
-            )
-        },
-        {
-            header: 'التاريخ',
-            accessor: 'issueDate',
-            cell: (invoice) => (
-                <span className="text-sm">
-                {new Date(invoice.issueDate).toLocaleDateString('ar-EG')}
-            </span>
             )
         },
         {
@@ -113,28 +122,16 @@ const InvoiceList = ({
             )
         },
         {
-            key: 'totalPrice',
-            header: 'المبلغ',
-            sortable: true,
-            align: 'right',
-            render: (value) => (
-                <span className="font-semibold text-lg text-green-600 dark:text-green-400">
-                    {parseFloat(value || 0).toFixed(2)} ج.م
-                </span>
-            )
-        },
-        {
             key: 'status',
             header: 'الحالة',
             sortable: true,
             render: (value, invoice) => (
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                    value === 'PAID'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-                        : value === 'CANCELLED'
-                            ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
-                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
-                }`}>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${value === 'PAID'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                    : value === 'CANCELLED'
+                        ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
+                    }`}>
                     {value === 'PAID' ? 'مدفوعة' :
                         value === 'CANCELLED' ? 'ملغاة' : 'قيد الانتظار'}
                 </span>
@@ -146,22 +143,14 @@ const InvoiceList = ({
             sortable: false,
             render: (value, invoice) => (
                 <div className="flex items-center gap-1 justify-end">
-                    {/* View Button */}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onViewInvoice(invoice)}
-                        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                        title="عرض التفاصيل"
-                    >
-                        <FiEye size={16}/>
-                    </Button>
-
                     {/* Print Button */}
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onPrintInvoice(invoice)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onPrintInvoice(invoice);
+                        }}
                         disabled={isPrinting}
                         className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="طباعة"
@@ -177,7 +166,10 @@ const InvoiceList = ({
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onSendToFactory(invoice)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onSendToFactory(invoice);
+                        }}
                         disabled={isSendingToFactory}
                         className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="إرسال للمصنع"
@@ -188,19 +180,6 @@ const InvoiceList = ({
                             <FiPackage size={16} />
                         )}
                     </Button>
-
-                    {/*/!* Mark as Paid Button *!/*/}
-                    {/*{invoice?.status === 'PENDING' && (*/}
-                    {/*    <Button*/}
-                    {/*        variant="ghost"*/}
-                    {/*        size="sm"*/}
-                    {/*        onClick={() => onMarkAsPaid(invoice)}*/}
-                    {/*        className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20"*/}
-                    {/*        title="تسديد"*/}
-                    {/*    >*/}
-                    {/*        <FiCreditCard size={16}/>*/}
-                    {/*    </Button>*/}
-                    {/*)}*/}
                 </div>
             )
         }
@@ -216,12 +195,12 @@ const InvoiceList = ({
                             placeholder="البحث في الفواتير..."
                             value={searchTerm}
                             onChange={(e) => onSearchChange(e.target.value)}
-                            icon={<FiSearch/>}
+                            icon={<FiSearch />}
                             className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
                         />
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                        <FiClock/>
+                        <FiClock />
                         <span>آخر تحديث: {new Date().toLocaleTimeString('ar-EG', {
                             hour: '2-digit',
                             minute: '2-digit'
@@ -234,7 +213,7 @@ const InvoiceList = ({
             <div className="overflow-hidden">
                 {loading ? (
                     <div className="flex justify-center py-12">
-                        <LoadingSpinner size="lg"/>
+                        <LoadingSpinner size="lg" />
                     </div>
                 ) : (
                     <DataTable
@@ -244,6 +223,7 @@ const InvoiceList = ({
                         currentPage={currentPage}
                         totalPages={totalPages}
                         onPageChange={onPageChange}
+                        onRowClick={onViewInvoice}
                     />
                 )}
             </div>

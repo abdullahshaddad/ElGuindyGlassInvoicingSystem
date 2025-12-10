@@ -23,9 +23,11 @@ class InvoiceLineDTO {
     private Double cuttingPrice;
     private Double lineTotal;
     private GlassTypeDTO glassType;
+    private java.util.List<InvoiceLineOperationDTO> operations;
 
     public static InvoiceLineDTO from(InvoiceLine line) {
-        if (line == null) return null;
+        if (line == null)
+            return null;
 
         return InvoiceLineDTO.builder()
                 .id(line.getId())
@@ -38,6 +40,10 @@ class InvoiceLineDTO {
                 .cuttingPrice(line.getCuttingPrice())
                 .lineTotal(line.getLineTotal())
                 .glassType(GlassTypeDTO.from(line.getGlassType()))
+                .operations(line.getOperations() != null ? line.getOperations().stream()
+                        .map(InvoiceLineOperationDTO::from)
+                        .collect(java.util.stream.Collectors.toList())
+                        : java.util.List.of())
                 .build();
     }
 }

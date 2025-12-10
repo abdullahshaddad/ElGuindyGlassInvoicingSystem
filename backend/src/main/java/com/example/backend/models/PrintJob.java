@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class PrintJob {
 
     @Id
@@ -23,7 +23,8 @@ public class PrintJob {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "invoice_id", nullable = false)
-    @JsonIgnoreProperties({"invoiceLines", "printJobs", "hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({ "invoiceLines", "printJobs", "payments", "customer", "hibernateLazyInitializer",
+            "handler" })
     private Invoice invoice;
 
     @Enumerated(EnumType.STRING)
@@ -64,7 +65,6 @@ public class PrintJob {
         this.status = PrintStatus.QUEUED;
         this.createdAt = LocalDateTime.now();
     }
-
 
     public PrintType getPrintType() {
         return this.type;

@@ -289,6 +289,42 @@ export const invoiceService = {
         }
     },
 
+    /**
+     * Preview line total before creating invoice (legacy, uses cuttingType)
+     * @param {number} glassTypeId - Glass type ID
+     * @param {number} width - Width in selected unit
+     * @param {number} height - Height in selected unit
+     * @param {string} cuttingType - Cutting type (SHATAF, FARMA, etc.)
+     * @param {string} [dimensionUnit='MM'] - MM, CM, or M
+     * @returns {Promise<number>}
+     */
+    async previewLineTotal(glassTypeId, width, height, cuttingType, dimensionUnit = 'MM') {
+        try {
+            const response = await post('/invoices/preview-line-total', {
+                glassTypeId,
+                width,
+                height,
+                cuttingType,
+                dimensionUnit
+            });
+            return response;
+        } catch (error) {
+            console.error('Preview line total error:', error);
+            throw error;
+        }
+    },
+
+    // Get basic stats for dashboard
+    async getStats() {
+        try {
+            const response = await get('/invoices/stats/basic');
+            return response;
+        } catch (error) {
+            console.error('Get basic stats error:', error);
+            throw error;
+        }
+    },
+
     // ===== LINE PREVIEW =====
 
     /**
@@ -313,6 +349,7 @@ export const invoiceService = {
                 width: lineData.width,
                 height: lineData.height,
                 dimensionUnit: lineData.dimensionUnit || 'MM',
+                operations: lineData.operations || undefined,
                 shatafType: lineData.shatafType,
                 farmaType: lineData.farmaType,
                 diameter: lineData.diameter || null,

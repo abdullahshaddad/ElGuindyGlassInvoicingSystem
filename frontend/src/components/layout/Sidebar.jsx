@@ -15,7 +15,8 @@ import {
     FiX,
     FiUserCheck,
     FiDollarSign,
-    FiLayers
+    FiLayers,
+    FiActivity
 } from 'react-icons/fi';
 
 // Professional icon mapping using React Icons
@@ -30,6 +31,7 @@ const icons = {
     settings: FiSettings,
     userManagement: FiUserCheck,
     cuttingPrices: FiDollarSign,
+    operationPrices: FiActivity,
     tools: FiTool,
     cashierInvoice: FiFileText,
 };
@@ -124,6 +126,13 @@ const getSidebarItems = (t) => [
                 label: t('navigation.cuttingPrices', 'أسعار القطع'),
                 roles: ['OWNER'],
                 badge: 'جديد'
+            },
+            {
+                id: 'operation-prices',
+                to: '/admin/operation-prices',
+                icon: icons.operationPrices,
+                label: t('navigation.operationPrices', 'أسعار العمليات'),
+                roles: ['OWNER', 'ADMIN']
             }
         ]
     },

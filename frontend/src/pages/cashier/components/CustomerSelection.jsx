@@ -10,15 +10,15 @@ import Badge from '@components/ui/Badge.jsx';
  * Enhanced with customer type display and balance information
  */
 const CustomerSelection = ({
-                               selectedCustomer,
-                               customerSearch,
-                               customerResults,
-                               isSearchingCustomers,
-                               onCustomerSearchChange,
-                               onSelectCustomer,
-                               onStartNewCustomer,
-                               onClearSelection
-                           }) => {
+    selectedCustomer,
+    customerSearch,
+    customerResults,
+    isSearchingCustomers,
+    onCustomerSearchChange,
+    onSelectCustomer,
+    onStartNewCustomer,
+    onClearSelection
+}) => {
     // Get customer type badge variant
     const getCustomerTypeBadge = (customerType) => {
         switch (customerType) {
@@ -28,7 +28,7 @@ const CustomerSelection = ({
                 return { variant: 'info', label: 'شركة' };
             case 'REGULAR':
             default:
-                return { variant: 'default', label: 'عميل عادي' };
+                return { variant: 'default', label: 'عميل' };
         }
     };
 
@@ -36,7 +36,7 @@ const CustomerSelection = ({
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                    <FiUser className="text-blue-600 dark:text-blue-400" size={20}/>
+                    <FiUser className="text-blue-600 dark:text-blue-400" size={20} />
                 </div>
                 اختيار العميل
                 {selectedCustomer && (
@@ -100,11 +100,10 @@ const CustomerSelection = ({
                                         <FiDollarSign size={16} />
                                         <span>الرصيد الحالي:</span>
                                     </div>
-                                    <span className={`text-base font-bold font-mono ${
-                                        (selectedCustomer.balance || 0) > 0
+                                    <span className={`text-base font-bold font-mono ${(selectedCustomer.balance || 0) > 0
                                             ? 'text-orange-600 dark:text-orange-400'
                                             : 'text-green-600 dark:text-green-400'
-                                    }`}>
+                                        }`}>
                                         {(selectedCustomer.balance || 0).toFixed(2)} جنيه
                                     </span>
                                 </div>
@@ -195,7 +194,7 @@ const CustomerSelection = ({
                     {customerSearch.length >= 2 && !isSearchingCustomers && customerResults.length === 0 && (
                         <div className="text-center py-8 bg-gray-50 dark:bg-gray-900 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
                             <div className="p-3 bg-gray-200 dark:bg-gray-800 rounded-full w-fit mx-auto mb-3">
-                                <FiUser size={32} className="text-gray-400 dark:text-gray-600"/>
+                                <FiUser size={32} className="text-gray-400 dark:text-gray-600" />
                             </div>
                             <p className="text-gray-600 dark:text-gray-400 mb-3">
                                 لم يتم العثور على عميل بهذا الاسم
@@ -216,7 +215,7 @@ const CustomerSelection = ({
                     {customerSearch.length === 0 && (
                         <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                             <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full w-fit mx-auto mb-3">
-                                <FiSearch size={32} className="text-gray-400 dark:text-gray-600"/>
+                                <FiSearch size={32} className="text-gray-400 dark:text-gray-600" />
                             </div>
                             <p className="text-sm">ابحث عن عميل أو أضف عميل جديد</p>
                         </div>

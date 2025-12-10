@@ -7,10 +7,13 @@ import com.example.backend.models.enums.FarmaType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+import com.example.backend.dto.OperationRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 /**
  * Preview Line Request DTO
@@ -39,6 +42,9 @@ public class PreviewLineRequest {
     private CuttingType cuttingType;
 
     // NEW: Enhanced shataf/farma support
+    private List<OperationRequest> operations;
+
+    // LEGACY: Kept for backward compatibility
     private ShatafType shatafType;
     private FarmaType farmaType;
     private Double diameter; // For wheel cut (العجلة)
@@ -48,6 +54,7 @@ public class PreviewLineRequest {
 
     /**
      * Get effective cutting type for legacy preview calculation
+     * 
      * @return CuttingType for calculation, defaults to SHATF if shatafType is set
      */
     public CuttingType getEffectiveCuttingType() {

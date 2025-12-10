@@ -65,7 +65,8 @@ public class CustomerService {
     }
 
     private String cleanPhoneNumber(String phone) {
-        if (phone == null) return null;
+        if (phone == null)
+            return null;
         // Remove all non-digit characters and normalize Egyptian phone numbers
         String cleaned = phone.replaceAll("[^0-9]", "");
 
@@ -83,6 +84,18 @@ public class CustomerService {
         return cleaned;
     }
 
+    public void updateCustomerBalance(Long customerId, Double amountToAdd) {
+        Optional<Customer> customerOpt = customerRepository.findById(customerId);
+        if (customerOpt.isPresent()) {
+            Customer customer = customerOpt.get();
+            if (customer.getCustomerType() != com.example.backend.models.enums.CustomerType.CASH) {
+                customer.addToBalance(amountToAdd);
+                customerRepository.save(customer);
+            }
+        }
+    }
+
     public void updateCustomer(Customer customer) {
+        customerRepository.save(customer);
     }
 }

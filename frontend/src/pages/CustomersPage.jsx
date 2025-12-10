@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiEye } from 'react-icons/fi';
 import {
@@ -20,12 +21,13 @@ const CUSTOMER_TYPES = {
 
 const CUSTOMER_TYPE_LABEL = {
     [CUSTOMER_TYPES.CASH]: 'نقدي',
-    [CUSTOMER_TYPES.REGULAR]: 'عادي',
+    [CUSTOMER_TYPES.REGULAR]: 'عميل',
     [CUSTOMER_TYPES.COMPANY]: 'شركة'
 };
 
 const CustomersPage = () => {
     const { t, i18n } = useTranslation();
+    const navigate = useNavigate();
     const { isAuthorized, isLoading: authLoading } = useAuthorized(['CASHIER', 'OWNER']);
 
     const [customers, setCustomers] = useState([]);
@@ -300,16 +302,10 @@ const CustomersPage = () => {
             <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => handleViewDetails(customer)}
-                className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                title={t('common.actions.view', 'عرض')}
-            >
-                <FiEye size={16} />
-            </Button>
-            <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleEdit(customer)}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    handleEdit(customer);
+                }}
                 className="text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
                 title={t('common.actions.edit', 'تعديل')}
             >
@@ -318,7 +314,10 @@ const CustomersPage = () => {
             <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => handleDelete(customer.id)}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(customer.id);
+                }}
                 className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                 title={t('common.actions.delete', 'حذف')}
             >
@@ -364,7 +363,7 @@ const CustomersPage = () => {
 
     if (authLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+            <div className="flex items-center justify-center   dark:bg-gray-900">
                 <div className="text-gray-600 dark:text-gray-400">
                     {t('common.loading', 'جاري التحميل...')}
                 </div>
@@ -374,7 +373,7 @@ const CustomersPage = () => {
 
     if (!isAuthorized) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+            <div className="flex items-center justify-center min-h-screen  dark:bg-gray-900">
                 <div className="text-red-600 dark:text-red-400">
                     {t('common.unauthorized', 'غير مصرح لك بالوصول')}
                 </div>
@@ -383,7 +382,7 @@ const CustomersPage = () => {
     }
 
     return (
-        <div className="space-y-6 p-6 bg-gray-50 dark:bg-gray-900 ">
+        <div className="space-y-6 p-6  dark:bg-gray-900 ">
             <PageHeader
                 title={t('customers.title', 'إدارة العملاء')}
                 subtitle={t('customers.subtitle', 'عرض وإدارة بيانات العملاء')}
@@ -432,6 +431,7 @@ const CustomersPage = () => {
                 emptyMessage={t('customers.no_customers_found', 'لا توجد عملاء')}
                 loadingMessage={t('customers.messages.loading', 'جاري تحميل العملاء...')}
                 className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+                onRowClick={(customer) => navigate(`/customers/${customer.id}`)}
             />
 
             <Modal
@@ -440,9 +440,36 @@ const CustomersPage = () => {
                 title={editingCustomer ? t('customers.edit_customer', 'تعديل العميل') : t('customers.create_customer', 'إضافة عميل جديد')}
                 size="md"
                 className="dark:bg-gray-800 dark:border-gray-700"
+                footer={(
+                    <div className="flex gap-3 w-full">
+                        <Button
+                            form="customer-form"
+                            type="submit"
+                            variant="primary"
+                            disabled={isSubmitting}
+                            className="flex-1"
+                        >
+                            {isSubmitting
+                                ? t('common.loading', 'جاري الحفظ...')
+                                : editingCustomer
+                                    ? t('common.actions.update', 'تحديث')
+                                    : t('common.actions.create', 'إنشاء')
+                            }
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleCloseModal}
+                            disabled={isSubmitting}
+                            className="flex-1"
+                        >
+                            {t('common.actions.cancel', 'إلغاء')}
+                        </Button>
+                    </div>
+                )}
             >
                 <div className="bg-white dark:bg-gray-800">
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form id="customer-form" onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 {t('customers.fields.name', 'الاسم')} *
@@ -542,31 +569,6 @@ const CustomersPage = () => {
 
                         {/* Note: balance is not editable here to avoid accidental manipulation.
                             If you want a balance-edit feature, create a separate controlled flow. */}
-
-                        <div className="flex gap-3 pt-4">
-                            <Button
-                                type="submit"
-                                variant="primary"
-                                disabled={isSubmitting}
-                                className="flex-1"
-                            >
-                                {isSubmitting
-                                    ? t('common.loading', 'جاري الحفظ...')
-                                    : editingCustomer
-                                        ? t('common.actions.update', 'تحديث')
-                                        : t('common.actions.create', 'إنشاء')
-                                }
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleCloseModal}
-                                disabled={isSubmitting}
-                                className="flex-1"
-                            >
-                                {t('common.actions.cancel', 'إلغاء')}
-                            </Button>
-                        </div>
                     </form>
                 </div>
             </Modal>

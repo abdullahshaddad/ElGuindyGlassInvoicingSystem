@@ -74,34 +74,7 @@ export const SHATAF_TYPES = {
         usesAreaCalculation: false
     },
 
-    // Manual input types
-    LASER: {
-        value: 'LASER',
-        arabicName: 'ليزر',
-        category: SHATAF_CATEGORIES.MANUAL_INPUT,
-        requiresThicknessRate: false,
-        requiresManualPrice: true,
-        requiresFarma: false,  // ✅ ADDED
-        usesAreaCalculation: false
-    },
-    ROTATION: {
-        value: 'ROTATION',
-        arabicName: 'الدوران',
-        category: SHATAF_CATEGORIES.MANUAL_INPUT,
-        requiresThicknessRate: false,
-        requiresManualPrice: true,
-        requiresFarma: false,  // ✅ ADDED
-        usesAreaCalculation: false
-    },
-    TABLEAUX: {
-        value: 'TABLEAUX',
-        arabicName: 'التابلوهات',
-        category: SHATAF_CATEGORIES.MANUAL_INPUT,
-        requiresThicknessRate: false,
-        requiresManualPrice: true,
-        requiresFarma: false,  // ✅ ADDED
-        usesAreaCalculation: false
-    },
+    // Manual input types removed (Laser is separate op, Rotation/Tableaux are Farma types)
 
     // Area-based type
     SANDING: {
@@ -112,6 +85,35 @@ export const SHATAF_TYPES = {
         requiresManualPrice: false,
         requiresFarma: false,  // ✅ ADDED - Sanding doesn't require farma
         usesAreaCalculation: true
+    },
+
+    // Manual Types
+    LASER: {
+        value: 'LASER',
+        arabicName: 'ليزر (يدوي)',
+        category: SHATAF_CATEGORIES.MANUAL_INPUT,
+        requiresThicknessRate: false,
+        requiresManualPrice: true,
+        requiresFarma: false,
+        usesAreaCalculation: false
+    },
+    ROTATION: {
+        value: 'ROTATION',
+        arabicName: 'دوران (يدوي)',
+        category: SHATAF_CATEGORIES.MANUAL_INPUT,
+        requiresThicknessRate: false,
+        requiresManualPrice: true,
+        requiresFarma: false,
+        usesAreaCalculation: false
+    },
+    TABLEAUX: {
+        value: 'TABLEAUX',
+        arabicName: 'تابلوهات (يدوي)',
+        category: SHATAF_CATEGORIES.MANUAL_INPUT,
+        requiresThicknessRate: false,
+        requiresManualPrice: true,
+        requiresFarma: false,
+        usesAreaCalculation: false
     }
 };
 

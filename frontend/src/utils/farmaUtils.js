@@ -23,6 +23,7 @@ export const calculateFarmaMeters = (farmaType, length, width, diameter = null) 
 
     switch (farmaType) {
         case 'NORMAL_SHATAF':
+        case 'HAND_SHATAF':
             // 2 × (length + width)
             return 2 * (length + width);
 
@@ -67,8 +68,9 @@ export const calculateFarmaMeters = (farmaType, length, width, diameter = null) 
 
         case 'ROTATION':
         case 'TABLEAUX':
-            // Manual types don't have automatic calculation
-            throw new Error('هذا النوع يتطلب إدخال يدوي');
+            // Manual types don't have automatic calculation, return 0
+            // This allows the flow to continue, and the manual price will be used
+            return 0;
 
         default:
             throw new Error(`نوع فارمة غير معروف: ${farmaType}`);
@@ -83,6 +85,7 @@ export const calculateFarmaMeters = (farmaType, length, width, diameter = null) 
 export const getFarmaFormulaDescription = (farmaType) => {
     const formulas = {
         'NORMAL_SHATAF': '2 × (الطول + العرض)',
+        'HAND_SHATAF': '2 × (الطول + العرض)',
         'ONE_HEAD_FARMA': '(3 × 2) + (الطول × العرض)',
         'TWO_HEAD_FARMA': '(4 × 2) + (الطول × العرض)',
         'ONE_SIDE_FARMA': '(2 × 3) + (الطول × العرض)',
@@ -116,6 +119,7 @@ export const getFarmaCalculationBreakdown = (farmaType, length, width, diameter 
 
         switch (farmaType) {
             case 'NORMAL_SHATAF':
+            case 'HAND_SHATAF':
                 steps = [
                     `الطول + العرض = ${length.toFixed(2)} + ${width.toFixed(2)} = ${(length + width).toFixed(2)} م`,
                     `2 × ${(length + width).toFixed(2)} = ${result.toFixed(2)} متر`
@@ -135,6 +139,11 @@ export const getFarmaCalculationBreakdown = (farmaType, length, width, diameter 
                     `القطر = ${diameter.toFixed(2)} م`,
                     `6 × ${diameter.toFixed(2)} = ${result.toFixed(2)} متر`
                 ];
+                break;
+
+            case 'ROTATION':
+            case 'TABLEAUX':
+                steps = ['يتم تحديد السعر يدوياً'];
                 break;
 
             // Add more detailed breakdowns as needed

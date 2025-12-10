@@ -25,7 +25,7 @@ import CustomerSelection from './components/CustomerSelection';
 import ShoppingCart from './components/ShoppingCart';
 import NewCustomerForm from './components/NewCustomerForm';
 import InvoiceList from './components/InvoiceList';
-import InvoiceViewModal from './components/InvoiceViewModal';
+import { InvoiceViewModal } from '@components';
 import PrintJobStatusModal from './components/PrintJobStatusModal';
 
 // Import NEW ENHANCED components
@@ -48,6 +48,7 @@ const CashierInvoicesPage = () => {
     const [customerSearch, setCustomerSearch] = useState('');
     const [customerResults, setCustomerResults] = useState([]);
     const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
+    const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
     const [glassTypes, setGlassTypes] = useState([]);
 
     // Enhanced line item state with operations array
@@ -309,58 +310,33 @@ const CashierInvoicesPage = () => {
             return;
         }
 
+        setIsCalculatingPrice(true);
+
         try {
-            // Calculate glass price (client-side estimate)
-            const dimensionMultiplier = currentLine.dimensionUnit === 'MM' ? 0.001 :
-                                       currentLine.dimensionUnit === 'CM' ? 0.01 : 1;
-            const widthM = parseFloat(currentLine.width) * dimensionMultiplier;
-            const heightM = parseFloat(currentLine.height) * dimensionMultiplier;
-            const areaM2 = widthM * heightM;
+            // Prepare request for backend calculation
+            const previewRequest = {
+                glassTypeId: parseInt(currentLine.glassTypeId),
+                width: parseFloat(currentLine.width),
+                height: parseFloat(currentLine.height),
+                dimensionUnit: currentLine.dimensionUnit || 'MM',
+                operations: operations.map(op => ({
+                    type: op.type,
+                    shatafType: op.shatafType || null,
+                    farmaType: op.farmaType || null,
+                    laserType: op.laserType || null,
+                    diameter: op.diameter ? parseFloat(op.diameter) : null,
+                    manualPrice: op.manualPrice ? parseFloat(op.manualPrice) : null,
+                    manualCuttingPrice: op.manualCuttingPrice ? parseFloat(op.manualCuttingPrice) : null,
+                    notes: op.notes || null
+                }))
+            };
 
-            // Calculate glass price based on glass type calculation method
-            let glassPrice = 0;
-            if (glassType.calculationMethod === 'AREA') {
-                glassPrice = areaM2 * (glassType.pricePerMeter || 0);
-            } else if (glassType.calculationMethod === 'LENGTH') {
-                const lengthM = Math.max(widthM, heightM);
-                glassPrice = lengthM * (glassType.pricePerMeter || 0);
-            } else {
-                // Default to area
-                glassPrice = areaM2 * (glassType.pricePerMeter || 0);
-            }
+            // Call backend preview endpoint
+            const preview = await invoiceService.previewLineCalculation(previewRequest);
 
-            // Process operations - estimate prices (final calculation on backend)
-            const processedOperations = operations.map(op => {
-                let estimatedPrice = 0;
+            console.log('✅ Price Calculated:', preview);
 
-                if (op.type === 'SHATAF') {
-                    // Estimate: For formula-based shataf, we don't have rates client-side
-                    // Just mark as "to be calculated"
-                    estimatedPrice = 0; // Backend will calculate
-                } else if (op.type === 'FARMA') {
-                    // Use manual price if provided
-                    estimatedPrice = op.manualPrice ? parseFloat(op.manualPrice) : 0;
-                } else if (op.type === 'LASER') {
-                    // Use manual price
-                    estimatedPrice = op.manualPrice ? parseFloat(op.manualPrice) : 0;
-                }
-
-                return {
-                    ...op,
-                    calculatedPrice: estimatedPrice
-                };
-            });
-
-            const totalOperationsPrice = processedOperations.reduce(
-                (sum, op) => sum + (op.calculatedPrice || 0),
-                0
-            );
-
-            // Note: For SHATAF operations, the price will be calculated by backend
-            // This is just an estimate for display
-            const lineTotal = glassPrice + totalOperationsPrice;
-
-            // Create cart item
+            // Create cart item with calculated prices
             const cartItem = {
                 id: Date.now(),
                 glassTypeId: currentLine.glassTypeId,
@@ -368,21 +344,15 @@ const CashierInvoicesPage = () => {
                 width: parseFloat(currentLine.width),
                 height: parseFloat(currentLine.height),
                 dimensionUnit: currentLine.dimensionUnit || 'MM',
-                operations: processedOperations,
-                glassPrice: glassPrice,
-                operationsPrice: totalOperationsPrice,
-                areaM2: areaM2,
-                lineTotal: lineTotal
+                operations: preview.operations || operations, // Use backend returned ops if available
+                glassPrice: preview.glassPrice,
+                operationsPrice: preview.cuttingPrice, // Backend returns total operations price as cuttingPrice currently
+                cuttingPrice: preview.cuttingPrice, // Keep for backward compatibility
+                areaM2: preview.areaM2,
+                lineTotal: preview.lineTotal,
+                // Store raw operations too for editing/re-calc
+                rawOperations: operations
             };
-
-            console.log('🛒 Adding to cart:', {
-                glassType: glassType.name,
-                dimensions: `${currentLine.width}x${currentLine.height}`,
-                operationsCount: processedOperations.length,
-                glassPrice,
-                operationsPrice: totalOperationsPrice,
-                lineTotal
-            });
 
             setCart(prev => [...prev, cartItem]);
 
@@ -395,18 +365,14 @@ const CashierInvoicesPage = () => {
                 operations: []
             });
 
-            // Check if there are SHATAF operations
-            const hasShataf = operations.some(op => op.type === 'SHATAF');
-            if (hasShataf) {
-                showInfo('تم اضافة المنتج الى السلة - سيتم حساب سعر الشطف النهائي عند انشاء الفاتورة');
-            } else {
-                showSuccess('تم اضافة المنتج الى السلة');
-            }
+            showSuccess('تم اضافة المنتج الى السلة مع حساب الاسعار');
             setTimeout(() => glassTypeRef.current?.focus(), 100);
 
         } catch (err) {
-            console.error('Add to cart error:', err);
-            showError(err.response?.data?.message || 'فشل في حساب السعر');
+            console.error('Calculate price error:', err);
+            showError(err.response?.data?.message || 'فشل في حساب السعر من الخادم');
+        } finally {
+            setIsCalculatingPrice(false);
         }
     };
 
@@ -544,17 +510,19 @@ const CashierInvoicesPage = () => {
     };
 
     // Print and factory operations
-    const handlePrintInvoice = async (invoice) => {
+    const handlePrintInvoice = async (invoice, type = 'CLIENT') => {
         setIsPrinting(true);
         try {
-            const pdfBlob = await printJobService.printInvoice(invoice.id);
-            const url = window.URL.createObjectURL(pdfBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `invoice-${invoice.id}.pdf`;
-            link.click();
-            window.URL.revokeObjectURL(url);
-            showSuccess(`تم طباعة الفاتورة ${invoice.id} بنجاح`);
+            // Create or get the specific print job
+            const response = await printJobService.createSinglePrintJob(invoice.id, type);
+
+            if (response && response.printJob) {
+                // Open PDF in new tab
+                printJobService.openPdf(response.printJob);
+                showSuccess(`تم فتح ${printJobService.getTypeText(type)} للفاتورة ${invoice.id}`);
+            } else {
+                throw new Error("لم يتم استلام ملف الطباعة");
+            }
         } catch (err) {
             console.error('Print invoice error:', err);
             showError('فشل في طباعة الفاتورة');
@@ -643,7 +611,7 @@ const CashierInvoicesPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="dark:bg-gray-900">
             {/* Header */}
             <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                 <PageHeader
@@ -708,6 +676,7 @@ const CashierInvoicesPage = () => {
                                 onLineChange={setCurrentLine}
                                 onAddToCart={handleAddLineToCart}
                                 glassTypeRef={glassTypeRef}
+                                loading={isCalculatingPrice}
                             />
                         </div>
 
@@ -808,10 +777,13 @@ const CashierInvoicesPage = () => {
                 )}
             </div>
 
-            {/* Invoice View Modal */}
             <InvoiceViewModal
+                key={selectedInvoice?.id || 'modal'}
                 isOpen={isViewModalOpen}
-                onClose={() => setIsViewModalOpen(false)}
+                onClose={() => {
+                    setIsViewModalOpen(false);
+                    setSelectedInvoice(null);
+                }}
                 invoice={selectedInvoice}
                 glassTypes={glassTypes}
                 onPrint={handlePrintInvoice}

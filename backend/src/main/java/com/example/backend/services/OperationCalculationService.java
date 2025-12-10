@@ -13,7 +13,8 @@ import org.springframework.stereotype.Service;
 
 /**
  * Operation Calculation Service
- * Handles price calculations for different operation types (SHATAF, FARMA, LASER)
+ * Handles price calculations for different operation types (SHATAF, FARMA,
+ * LASER)
  */
 @Service
 @Slf4j
@@ -39,8 +40,7 @@ public class OperationCalculationService {
             OperationRequest request,
             Double widthM,
             Double heightM,
-            Double thickness
-    ) {
+            Double thickness) {
         log.debug("Creating operation: type={}, width={}m, height={}m, thickness={}mm",
                 request.getType(), widthM, heightM, thickness);
 
@@ -77,13 +77,15 @@ public class OperationCalculationService {
     /**
      * Configure and calculate SHATAF operation
      */
+    /**
+     * Configure and calculate SHATAF operation
+     */
     private void configureShatafOperation(
             InvoiceLineOperation operation,
             OperationRequest request,
             Double widthM,
             Double heightM,
-            Double thickness
-    ) {
+            Double thickness) {
         ShatafType shatafType = request.getShatafType();
         FarmaType farmaType = request.getFarmaType();
         Double diameter = request.getDiameter();
@@ -94,52 +96,72 @@ public class OperationCalculationService {
         operation.setDiameter(diameter);
         operation.setManualCuttingPrice(request.getManualCuttingPrice());
 
-        // Calculate price
-        if (shatafType.isManualInput()) {
-            // Manual price
-            if (request.getManualCuttingPrice() == null || request.getManualCuttingPrice() < 0) {
-                throw new CuttingCalculationException(
-                        "سعر القطع اليدوي مطلوب للنوع: " + shatafType.getArabicName()
-                );
-            }
-            operation.setOperationPrice(request.getManualCuttingPrice());
-        } else if (shatafType.isFormulaBased()) {
-            // Formula-based calculation
+        if (shatafType.isFormulaBased()) {
+            // Formula-based calculation (Kharazan, Shamborleh, etc.)
             if (farmaType == null) {
+                // If no farma type specified, default to NORMAL_SHATAF (Edl)
+                // or throw exception depending on strictness.
+                // Given the requirement "Shatf must specify Calculation Method", we should
+                // enforce it.
+                // However, for backward compatibility or ease, defaulting to Normal is common.
+                // Let's enforce it as per plan.
                 throw new CuttingCalculationException(
-                        "نوع الفارمة مطلوب لنوع الشطف: " + shatafType.getArabicName()
-                );
+                        "نوع الفارمة مطلوب لنوع الشطف: " + shatafType.getArabicName());
             }
 
-            // Calculate shataf meters
-            operation.calculateShatafMeters(widthM, heightM);
-            double shatafMeters = operation.getShatafMeters();
+            if (farmaType.isManual()) {
+                // Manual Farma (Rotation, Tableaux)
+                // If the calculation method is manual, we expect a manual PRICE input for now
+                // (overriding the Rate * Meters logic as we don't have manual meters input)
+                if (request.getManualCuttingPrice() == null || request.getManualCuttingPrice() < 0) {
+                    throw new CuttingCalculationException(
+                            "السعر اليدوي مطلوب لنوع الفارمة: " + farmaType.getArabicName());
+                }
+                operation.setOperationPrice(request.getManualCuttingPrice());
+                operation.setShatafMeters(0.0); // No automatic meters
+            } else {
+                // Standard Formula Farma (Edl, Wheel, etc.)
+                // Calculate shataf meters
+                operation.calculateShatafMeters(widthM, heightM);
+                double shatafMeters = operation.getShatafMeters();
 
-            // Get rate per meter from database using shataf type and thickness
-            Double ratePerMeter = shatafRateService.getRateForThickness(shatafType, thickness);
-            operation.setRatePerMeter(ratePerMeter);
+                // Get rate per meter from database using shataf type and thickness
+                Double ratePerMeter = shatafRateService.getRateForThickness(shatafType, thickness);
+                operation.setRatePerMeter(ratePerMeter);
 
-            // Calculate price: shatafMeters × ratePerMeter
-            double price = shatafMeters * ratePerMeter;
-            operation.setOperationPrice(price);
+                // Calculate price: shatafMeters × ratePerMeter
+                double price = shatafMeters * ratePerMeter;
+                operation.setOperationPrice(price);
 
-            log.debug("Shataf calculation: shatafMeters={}, rate={}, price={}",
-                    shatafMeters, ratePerMeter, price);
+                log.debug("Shataf calculation: shatafMeters={}, rate={}, price={}",
+                        shatafMeters, ratePerMeter, price);
+            }
         } else if (shatafType.isAreaBased()) {
             // Area-based calculation (like SANDING)
             double areaM2 = widthM * heightM;
             Double ratePerM2 = shatafRateService.getRateForThickness(shatafType, thickness);
-            operation.setRatePerMeter(ratePerM2);
+            operation.setRatePerMeter(ratePerM2); // Storing rate/m2 in ratePerMeter field
 
             double price = areaM2 * ratePerM2;
             operation.setOperationPrice(price);
 
             log.debug("Area-based shataf calculation: area={}m², rate={}, price={}",
                     areaM2, ratePerM2, price);
+        } else if (shatafType.isManualInput()) {
+            // Manual types (Tableaux, Rotation, etc.)
+            if (request.getManualCuttingPrice() == null || request.getManualCuttingPrice() < 0) {
+                throw new CuttingCalculationException(
+                        "سعر القطع اليدوي مطلوب للنوع: " + shatafType.getArabicName());
+            }
+            operation.setOperationPrice(request.getManualCuttingPrice());
+            operation.setShatafMeters(0.0);
+
+            log.debug("Manual shataf calculation: type={}, price={}",
+                    shatafType, request.getManualCuttingPrice());
         } else {
+            // Should not happen
             throw new CuttingCalculationException(
-                    "نوع شطف غير مدعوم: " + shatafType.getArabicName()
-            );
+                    "نوع شطف غير مدعوم: " + shatafType.getArabicName());
         }
     }
 
@@ -151,8 +173,7 @@ public class OperationCalculationService {
             OperationRequest request,
             Double widthM,
             Double heightM,
-            Double thickness
-    ) {
+            Double thickness) {
         FarmaType farmaType = request.getFarmaType();
         Double diameter = request.getDiameter();
 
@@ -165,8 +186,7 @@ public class OperationCalculationService {
             // Manual price
             if (request.getManualPrice() == null || request.getManualPrice() < 0) {
                 throw new CuttingCalculationException(
-                        "السعر اليدوي مطلوب لنوع الفارمة: " + farmaType.getArabicName()
-                );
+                        "السعر اليدوي مطلوب لنوع الفارمة: " + farmaType.getArabicName());
             }
             operation.setManualPrice(request.getManualPrice());
             operation.setOperationPrice(request.getManualPrice());
@@ -176,8 +196,10 @@ public class OperationCalculationService {
             operation.calculateShatafMeters(widthM, heightM);
             double shatafMeters = operation.getShatafMeters();
 
-            // Get rate per meter - use a default shataf type for standalone farma operations
-            // Since standalone FARMA doesn't have a shatafType, we use NORMAL_SHATAF as default
+            // Get rate per meter - use a default shataf type for standalone farma
+            // operations
+            // Since standalone FARMA doesn't have a shatafType, we use NORMAL_SHATAF as
+            // default
             ShatafType defaultShatafType = ShatafType.KHARAZAN; // Default for farma calculations
             Double ratePerMeter = shatafRateService.getRateForThickness(defaultShatafType, thickness);
             operation.setRatePerMeter(ratePerMeter);
@@ -196,8 +218,7 @@ public class OperationCalculationService {
      */
     private void configureLaserOperation(
             InvoiceLineOperation operation,
-            OperationRequest request
-    ) {
+            OperationRequest request) {
         // Validate laser type
         if (request.getLaserType() == null || request.getLaserType().trim().isEmpty()) {
             throw new CuttingCalculationException("نوع الليزر مطلوب لعمليات الليزر");
@@ -224,8 +245,7 @@ public class OperationCalculationService {
             InvoiceLineOperation operation,
             Double widthM,
             Double heightM,
-            Double thickness
-    ) {
+            Double thickness) {
         log.debug("Recalculating operation price: type={}", operation.getOperationType());
 
         switch (operation.getOperationType()) {
@@ -249,13 +269,28 @@ public class OperationCalculationService {
             InvoiceLineOperation operation,
             Double widthM,
             Double heightM,
-            Double thickness
-    ) {
-        if (operation.getShatafType().isManualInput()) {
-            // Manual price doesn't change
+            Double thickness) {
+        // If it's pure area based (like SANDING)
+        if (operation.getShatafType().isAreaBased()) {
+            double areaM2 = widthM * heightM;
+            // Update rate if thickness changed
+            Double ratePerM2 = shatafRateService.getRateForThickness(operation.getShatafType(), thickness);
+            operation.setRatePerMeter(ratePerM2);
+
+            double price = areaM2 * ratePerM2;
+            operation.setOperationPrice(price);
             return;
         }
 
+        // If Manual Farma (Rotation/Tableaux) - Price is set manually, generally not
+        // recalculated
+        // unless we want to clear it or ask for re-input. For now, assume it stays
+        // fixed.
+        if (operation.getFarmaType() != null && operation.getFarmaType().isManual()) {
+            return;
+        }
+
+        // Formula based
         // Recalculate shataf meters
         operation.calculateShatafMeters(widthM, heightM);
         double shatafMeters = operation.getShatafMeters();
@@ -276,8 +311,7 @@ public class OperationCalculationService {
             InvoiceLineOperation operation,
             Double widthM,
             Double heightM,
-            Double thickness
-    ) {
+            Double thickness) {
         if (operation.getFarmaType().isManual()) {
             // Manual price doesn't change
             return;

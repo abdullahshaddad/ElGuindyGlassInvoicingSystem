@@ -30,13 +30,13 @@ const LASER_TYPES = {
 };
 
 const EnhancedProductEntry = ({
-                                  glassTypes = [],
-                                  currentLine = {},
-                                  onLineChange,
-                                  onAddToCart,
-                                  disabled = false,
-                                  glassTypeRef
-                              }) => {
+    glassTypes = [],
+    currentLine = {},
+    onLineChange,
+    onAddToCart,
+    disabled = false,
+    glassTypeRef
+}) => {
     // Ensure operations array exists
     const operations = currentLine.operations || [];
 
@@ -79,7 +79,7 @@ const EnhancedProductEntry = ({
 
         // Must have at least one operation
         if (operations.length === 0) {
-            errors.push('يجب إضافة عملية واحدة على الأقل (شطف، فارمة، أو ليزر)');
+            errors.push('يجب إضافة عملية واحدة على الأقل (شطف أو ليزر)');
         }
 
         // Validate each operation
@@ -91,29 +91,25 @@ const EnhancedProductEntry = ({
                     errors.push(prefix + 'نوع الشطف مطلوب');
                 } else {
                     const st = SHATAF_TYPES[op.shatafType];
-                    if (st?.requiresManualPrice && (op.manualCuttingPrice === null || op.manualCuttingPrice === undefined || op.manualCuttingPrice === '')) {
-                        errors.push(prefix + 'سعر القطع اليدوي مطلوب لهذا النوع من الشطف');
-                    }
-                    if (st?.requiresFarma && !op.farmaType) {
-                        errors.push(prefix + 'نوع الفارمة مطلوب لهذا الشطف');
-                    }
-                    if (op.farmaType) {
-                        const ft = FARMA_TYPES[op.farmaType];
-                        if (ft?.requiresDiameter && (!op.diameter || Number(op.diameter) <= 0)) {
-                            errors.push(prefix + 'القطر مطلوب لنوع الفارمة المحدد');
+
+                    // Validate Farma / Calculation Method
+                    if (st?.requiresFarma) {
+                        if (!op.farmaType) {
+                            errors.push(prefix + 'طريقة الحساب (الفارمة) مطلوبة');
+                        } else {
+                            const ft = FARMA_TYPES[op.farmaType];
+                            if (ft?.requiresDiameter && (!op.diameter || Number(op.diameter) <= 0)) {
+                                errors.push(prefix + 'القطر مطلوب لطريقة الحساب المحددة');
+                            }
+                            if (ft?.isManual && (op.manualCuttingPrice === null || op.manualCuttingPrice === undefined || op.manualCuttingPrice === '')) {
+                                errors.push(prefix + 'السعر اليدوي مطلوب لطريقة الحساب اليدوية');
+                            }
                         }
                     }
-                }
-            } else if (op.type === 'FARMA') {
-                if (!op.farmaType) {
-                    errors.push(prefix + 'نوع الفارمة مطلوب');
-                } else {
-                    const ft = FARMA_TYPES[op.farmaType];
-                    if (ft?.isManual && (op.manualPrice === null || op.manualPrice === undefined || op.manualPrice === '')) {
-                        errors.push(prefix + 'السعر اليدوي مطلوب لنوع الفارمة');
-                    }
-                    if (ft?.requiresDiameter && (!op.diameter || Number(op.diameter) <= 0)) {
-                        errors.push(prefix + 'القطر مطلوب لنوع الفارمة');
+
+                    if (st?.requiresManualPrice && (op.manualCuttingPrice === null || op.manualCuttingPrice === undefined || op.manualCuttingPrice === '')) {
+                        // This is likely deprecated for new types but kept for safety
+                        errors.push(prefix + 'سعر القطع اليدوي مطلوب');
                     }
                 }
             } else if (op.type === 'LASER') {
@@ -144,13 +140,9 @@ const EnhancedProductEntry = ({
 
         if (type === 'SHATAF') {
             base.shatafType = '';
-            base.farmaType = null;
+            base.farmaType = null; // Default null, force user to select
             base.diameter = null;
             base.manualCuttingPrice = null;
-        } else if (type === 'FARMA') {
-            base.farmaType = '';
-            base.diameter = null;
-            base.manualPrice = null;
         } else if (type === 'LASER') {
             base.laserType = '';
             base.manualPrice = null;
@@ -176,8 +168,9 @@ const EnhancedProductEntry = ({
         const typeInfo = SHATAF_TYPES[newShatafType];
         const patch = {
             shatafType: newShatafType,
-            manualCuttingPrice: typeInfo?.requiresManualPrice ? '' : null,
-            farmaType: typeInfo?.requiresFarma ? '' : null,
+            manualCuttingPrice: null, // Reset manual price
+            // Reset farma but keep calculation method selection open
+            farmaType: '',
             diameter: null
         };
         patchOperation(opId, patch);
@@ -209,6 +202,16 @@ const EnhancedProductEntry = ({
     const ShatafCard = ({ op }) => {
         const st = op.shatafType ? SHATAF_TYPES[op.shatafType] : null;
 
+        // Define if we should show calculation method (Farma) selector
+        // Show for formula based types
+        const showCalculationMethod = st?.requiresFarma;
+
+        // Check if selected calculation method is Manual (Rotation/Tableaux)
+        const isManualMethod = op.farmaType ? FARMA_TYPES[op.farmaType]?.isManual : false;
+
+        // Check if selected method requires diameter
+        const requiresDiameter = op.farmaType ? FARMA_TYPES[op.farmaType]?.requiresDiameter : false;
+
         return (
             <div className="bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-lg p-4 space-y-3 shadow-sm">
                 <div className="flex justify-between items-center">
@@ -234,6 +237,10 @@ const EnhancedProductEntry = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {/* Shataf Type Selector */}
                     <div>
+                        {/*<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">*/}
+                        {/*    نوع الشطف*/}
+                        {/*    <span className="text-red-500 mr-1">*</span>*/}
+                        {/*</label>*/}
                         <ShatafTypeSelector
                             value={op.shatafType || ''}
                             onChange={(v) => handleShatafTypeChange(op.id, v)}
@@ -242,9 +249,13 @@ const EnhancedProductEntry = ({
                         />
                     </div>
 
-                    {/* Farma Type (if required) */}
-                    {st?.requiresFarma && (
+                    {/* Calculation Method (Farma) Selector */}
+                    {showCalculationMethod && (
                         <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                طريقة الحساب
+                                <span className="text-red-500 mr-1">*</span>
+                            </label>
                             <FarmaTypeSelector
                                 value={op.farmaType || ''}
                                 onChange={(v) => patchOperation(op.id, { farmaType: v })}
@@ -258,7 +269,7 @@ const EnhancedProductEntry = ({
                     )}
 
                     {/* Diameter (if farma requires it) */}
-                    {op.farmaType && FARMA_TYPES[op.farmaType]?.requiresDiameter && (
+                    {requiresDiameter && (
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 القطر (مم)
@@ -276,98 +287,17 @@ const EnhancedProductEntry = ({
                         </div>
                     )}
 
-                    {/* Manual Price (if required) */}
-                    {st?.requiresManualPrice && (
+                    {/* Manual Price (if required by Manual Shataf OR Manual Calculation Method) */}
+                    {(st?.requiresManualPrice || isManualMethod) && (
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                سعر القطع اليدوي
+                                {isManualMethod ? 'سعر الحساب اليدوي' : 'سعر القطع اليدوي'}
                                 <span className="text-red-500 mr-1">*</span>
                             </label>
                             <Input
                                 type="number"
                                 value={op.manualCuttingPrice ?? ''}
                                 onChange={(e) => patchOperation(op.id, { manualCuttingPrice: e.target.value })}
-                                placeholder="0.00"
-                                step="0.01"
-                                min="0"
-                                disabled={disabled}
-                            />
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    };
-
-    const FarmaCard = ({ op }) => {
-        const ft = op.farmaType ? FARMA_TYPES[op.farmaType] : null;
-
-        return (
-            <div className="bg-white dark:bg-gray-800 border border-green-200 dark:border-green-800 rounded-lg p-4 space-y-3 shadow-sm">
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <Badge variant="success" className="text-xs">فارمة</Badge>
-                        {ft && (
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                                {ft.arabicName}
-                            </span>
-                        )}
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => removeOperation(op.id)}
-                        disabled={disabled}
-                        className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
-                        title="حذف العملية"
-                    >
-                        <FiTrash2 size={16} />
-                    </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {/* Farma Type Selector */}
-                    <div>
-                        <FarmaTypeSelector
-                            value={op.farmaType || ''}
-                            onChange={(v) => patchOperation(op.id, { farmaType: v })}
-                            width={currentLine.width}
-                            height={currentLine.height}
-                            diameter={op.diameter}
-                            disabled={disabled}
-                            showCalculationPreview={showAdvanced}
-                        />
-                    </div>
-
-                    {/* Diameter (if required) */}
-                    {ft?.requiresDiameter && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                القطر (مم)
-                                <span className="text-red-500 mr-1">*</span>
-                            </label>
-                            <Input
-                                type="number"
-                                value={op.diameter || ''}
-                                onChange={(e) => patchOperation(op.id, { diameter: e.target.value })}
-                                placeholder="0"
-                                step="1"
-                                min="1"
-                                disabled={disabled}
-                            />
-                        </div>
-                    )}
-
-                    {/* Manual Price (if manual type) */}
-                    {ft?.isManual && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                السعر اليدوي
-                                <span className="text-red-500 mr-1">*</span>
-                            </label>
-                            <Input
-                                type="number"
-                                value={op.manualPrice ?? ''}
-                                onChange={(e) => patchOperation(op.id, { manualPrice: e.target.value })}
                                 placeholder="0.00"
                                 step="0.01"
                                 min="0"
@@ -551,16 +481,6 @@ const EnhancedProductEntry = ({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => addOperation('FARMA')}
-                            disabled={disabled}
-                            className="text-green-600 border-green-300 hover:bg-green-50"
-                        >
-                            <FiPlus className="ml-1" size={14} />
-                            فارمة
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
                             onClick={() => addOperation('LASER')}
                             disabled={disabled}
                             className="text-purple-600 border-purple-300 hover:bg-purple-50"
@@ -579,7 +499,7 @@ const EnhancedProductEntry = ({
                             لم تقم باضافة اي عملية بعد
                         </p>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                            اضغط على احد الازرار اعلاه لاضافة شطف او فارمة او ليزر
+                            اضغط على احد الازرار اعلاه لاضافة شطف او ليزر
                         </p>
                     </div>
                 ) : (
@@ -587,7 +507,6 @@ const EnhancedProductEntry = ({
                         {operations.map((op) => (
                             <div key={op.id}>
                                 {op.type === 'SHATAF' && <ShatafCard op={op} />}
-                                {op.type === 'FARMA' && <FarmaCard op={op} />}
                                 {op.type === 'LASER' && <LaserCard op={op} />}
                             </div>
                         ))}

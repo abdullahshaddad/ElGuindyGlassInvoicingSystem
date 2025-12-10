@@ -157,8 +157,8 @@ public class InvoiceLine {
      * Legacy constructor for backward compatibility
      */
     public InvoiceLine(Invoice invoice, GlassType glassType,
-                       Double width, Double height,
-                       DimensionUnit unit, CuttingType cuttingType) {
+            Double width, Double height,
+            DimensionUnit unit, CuttingType cuttingType) {
         this.invoice = invoice;
         this.glassType = glassType;
         this.width = width;
@@ -176,9 +176,9 @@ public class InvoiceLine {
      * New constructor with enhanced shataf support
      */
     public InvoiceLine(Invoice invoice, GlassType glassType,
-                       Double width, Double height,
-                       DimensionUnit unit, ShatafType shatafType,
-                       FarmaType farmaType, Double diameter) {
+            Double width, Double height,
+            DimensionUnit unit, ShatafType shatafType,
+            FarmaType farmaType, Double diameter) {
         this.invoice = invoice;
         this.glassType = glassType;
         this.width = width;
@@ -196,12 +196,29 @@ public class InvoiceLine {
      */
     @Transient
     public Double getQuantityForPricing() {
-        if (glassType == null) return 0.0;
+        if (glassType == null)
+            return 0.0;
 
         CalculationMethod method = glassType.getCalculationMethod();
-        if (method == null) method = CalculationMethod.AREA;
+        if (method == null)
+            method = CalculationMethod.AREA;
 
         return method == CalculationMethod.LENGTH ? lengthM : areaM2;
+    }
+
+    /**
+     * Get quantity unit for display
+     */
+    @Transient
+    public String getQuantityUnit() {
+        if (glassType == null)
+            return "";
+
+        CalculationMethod method = glassType.getCalculationMethod();
+        if (method == null)
+            method = CalculationMethod.AREA;
+
+        return method == CalculationMethod.LENGTH ? "متر طولي" : "متر مربع";
     }
 
     /**
@@ -222,9 +239,9 @@ public class InvoiceLine {
         // Calculate length (for length-based pricing)
         this.lengthM = Math.max(widthM, heightM);
 
-        // Store converted dimensions
-        this.width = widthM;
-        this.height = heightM;
+        // NOTE: We do NOT overwrite this.width/this.height with meters
+        // We keep the original input values and the original dimensionUnit
+        // converted dimensions are stored in areaM2 and lengthM only
     }
 
     /**
@@ -244,10 +261,9 @@ public class InvoiceLine {
 
         // Use farma formula
         this.shatafMeters = farmaType.calculateShatafMeters(
-                width,  // Already in meters after calculateDimensions()
+                width, // Already in meters after calculateDimensions()
                 height, // Already in meters after calculateDimensions()
-                diameter
-        );
+                diameter);
     }
 
     /**
@@ -313,15 +329,24 @@ public class InvoiceLine {
     /**
      * Calculate total cutting price from all operations
      */
+    /**
+     * Calculate total cutting price from all operations (Using BigDecimal)
+     */
     @Transient
     public Double calculateTotalOperationsPrice() {
         if (operations == null || operations.isEmpty()) {
             // Fallback to legacy cutting price if no operations
             return cuttingPrice != null ? cuttingPrice : 0.0;
         }
-        return operations.stream()
-                .mapToDouble(op -> op.getOperationPrice() != null ? op.getOperationPrice() : 0.0)
-                .sum();
+
+        java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+        for (InvoiceLineOperation op : operations) {
+            if (op.getOperationPrice() != null) {
+                total = total.add(java.math.BigDecimal.valueOf(op.getOperationPrice()));
+            }
+        }
+
+        return total.setScale(2, java.math.RoundingMode.HALF_UP).doubleValue();
     }
 
     /**
@@ -329,15 +354,17 @@ public class InvoiceLine {
      */
     public void recalculateLineTotal() {
         // Glass price (already set)
-        double glassCost = glassPrice != null ? glassPrice : 0.0;
+        java.math.BigDecimal glassCost = java.math.BigDecimal.valueOf(glassPrice != null ? glassPrice : 0.0);
 
         // Operations price
-        double operationsCost = calculateTotalOperationsPrice();
+        java.math.BigDecimal operationsCost = java.math.BigDecimal.valueOf(calculateTotalOperationsPrice());
 
         // Update cutting price to match operations total
-        this.cuttingPrice = operationsCost;
+        this.cuttingPrice = operationsCost.doubleValue();
 
         // Update line total
-        this.lineTotal = glassCost + operationsCost;
+        this.lineTotal = glassCost.add(operationsCost)
+                .setScale(2, java.math.RoundingMode.HALF_UP)
+                .doubleValue();
     }
 }

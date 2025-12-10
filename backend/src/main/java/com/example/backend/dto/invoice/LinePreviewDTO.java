@@ -28,4 +28,5 @@ public class LinePreviewDTO {
     private Double lineTotal;
     private String quantityUnit;
     private String calculationDescription;
+    private java.util.List<OperationPreviewDTO> operations;
 }

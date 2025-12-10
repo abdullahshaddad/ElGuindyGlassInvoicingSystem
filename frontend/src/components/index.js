@@ -9,3 +9,4 @@ export { default as Sidebar } from './ui/Sidebar.jsx';
 export { default as Topbar } from './ui/Topbar.jsx';
 export { default as Badge } from './ui/Badge';
 export { default as Icon } from './ui/Icon.jsx';
+export { default as InvoiceViewModal } from './InvoiceViewModal';

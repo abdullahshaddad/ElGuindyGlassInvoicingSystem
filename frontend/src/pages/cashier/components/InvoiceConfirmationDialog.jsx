@@ -9,15 +9,15 @@ import Badge from '@components/ui/Badge.jsx';
  * Shows confirmation with customer type-specific messaging
  */
 const InvoiceConfirmationDialog = ({
-                                       isOpen,
-                                       onClose,
-                                       onConfirm,
-                                       customer,
-                                       totalAmount,
-                                       amountPaidNow,
-                                       remainingBalance,
-                                       isCreating = false
-                                   }) => {
+    isOpen,
+    onClose,
+    onConfirm,
+    customer,
+    totalAmount,
+    amountPaidNow,
+    remainingBalance,
+    isCreating = false
+}) => {
     if (!customer) return null;
 
     const isCashCustomer = customer.customerType === 'CASH';
@@ -43,7 +43,7 @@ const InvoiceConfirmationDialog = ({
                             variant={isCashCustomer ? 'success' : 'info'}
                             className="text-xs"
                         >
-                            {isCashCustomer ? 'عميل نقدي' : customer.customerType === 'COMPANY' ? 'شركة' : 'عميل عادي'}
+                            {isCashCustomer ? 'عميل نقدي' : customer.customerType === 'COMPANY' ? 'شركة' : 'عميل'}
                         </Badge>
                     </div>
                     <div className="space-y-2 text-sm">
@@ -110,13 +110,12 @@ const InvoiceConfirmationDialog = ({
                 </div>
 
                 {/* Confirmation Message */}
-                <div className={`${
-                    isCashCustomer
+                <div className={`${isCashCustomer
                         ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
                         : isPaidInFull
                             ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
                             : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                } border rounded-lg p-4`}>
+                    } border rounded-lg p-4`}>
                     <div className="flex items-start gap-3">
                         {isCashCustomer || isPaidInFull ? (
                             <FiCheckCircle className="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" size={20} />
