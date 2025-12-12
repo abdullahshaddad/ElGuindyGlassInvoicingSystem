@@ -25,7 +25,9 @@ const InvoiceList = ({
     onViewInvoice,
     onPrintInvoice,
     onSendToFactory,
-    onMarkAsPaid
+    onMarkAsPaid,
+    filters,
+    onFilterChange
 }) => {
     // Table columns for invoice list
     const columns = [
@@ -190,18 +192,43 @@ const InvoiceList = ({
             {/* List Controls */}
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                    <div className="flex-1 max-w-md">
-                        <Input
-                            placeholder="البحث في الفواتير..."
-                            value={searchTerm}
-                            onChange={(e) => onSearchChange(e.target.value)}
-                            icon={<FiSearch />}
-                            className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-                        />
+                    <div className="flex-1 w-full">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <Input
+                                placeholder="رقم الفاتورة..."
+                                value={filters?.invoiceId || ''}
+                                onChange={(e) => onFilterChange && onFilterChange('invoiceId', e.target.value)}
+                                className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                            />
+                            <Input
+                                placeholder="اسم العميل..."
+                                value={filters?.customerName || ''}
+                                onChange={(e) => onFilterChange && onFilterChange('customerName', e.target.value)}
+                                icon={<FiSearch />}
+                                className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                            />
+                            <Input
+                                type="date"
+                                value={filters?.startDate || ''}
+                                onChange={(e) => onFilterChange && onFilterChange('startDate', e.target.value)}
+                                className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                            />
+                            <Select
+                                value={filters?.status || ''}
+                                onChange={(e) => onFilterChange && onFilterChange('status', e.target.value)}
+                                className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                                options={[
+                                    { value: '', label: 'جميع الحالات' },
+                                    { value: 'PAID', label: 'مدفوعة' },
+                                    { value: 'PENDING', label: 'قيد الانتظار' },
+                                    { value: 'CANCELLED', label: 'ملغاة' }
+                                ]}
+                            />
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="hidden sm:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                         <FiClock />
-                        <span>آخر تحديث: {new Date().toLocaleTimeString('ar-EG', {
+                        <span>{new Date().toLocaleTimeString('ar-EG', {
                             hour: '2-digit',
                             minute: '2-digit'
                         })}</span>

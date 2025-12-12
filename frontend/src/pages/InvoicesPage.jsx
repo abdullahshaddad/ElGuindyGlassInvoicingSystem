@@ -354,18 +354,18 @@ const InvoicesPage = () => {
                         )}
                     </Button>
 
-                    {/* Mark as Paid Button */}
-                    {invoice.status === 'PENDING' && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleMarkAsPaid(invoice)}
-                            className="text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
-                            title={t('invoices.actions.mark_paid', 'تسديد')}
-                        >
-                            <FiDollarSign size={16} />
-                        </Button>
-                    )}
+                    {/*/!* Mark as Paid Button *!/*/}
+                    {/*{invoice.status === 'PENDING' && (*/}
+                    {/*    <Button*/}
+                    {/*        variant="ghost"*/}
+                    {/*        size="sm"*/}
+                    {/*        onClick={() => handleMarkAsPaid(invoice)}*/}
+                    {/*        className="text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"*/}
+                    {/*        title={t('invoices.actions.mark_paid', 'تسديد')}*/}
+                    {/*    >*/}
+                    {/*        <FiDollarSign size={16} />*/}
+                    {/*    </Button>*/}
+                    {/*)}*/}
                 </div>
             )
         }

@@ -203,7 +203,7 @@ public class InvoiceLineOperation {
     }
 
     /**
-     * Get a human-readable description of this operation
+     * Get a human-readable description of this operation (Arabic)
      */
     @Transient
     public String getDescription() {

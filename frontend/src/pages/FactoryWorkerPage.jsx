@@ -320,10 +320,11 @@ const FactoryWorkerPage = () => {
         );
     };
 
+    // Updated columns with 'header' instead of 'label'
     const columns = [
         {
             key: 'id',
-            label: t('factory.fields.job_id', 'رقم المهمة'),
+            header: t('factory.fields.job_id', 'رقم المهمة'),
             render: (value) => (
                 <div className="font-mono font-bold text-primary-600 dark:text-primary-400">
                     #{value}
@@ -332,7 +333,7 @@ const FactoryWorkerPage = () => {
         },
         {
             key: 'invoiceId',
-            label: t('factory.fields.invoice', 'الفاتورة'),
+            header: t('factory.fields.invoice', 'الفاتورة'),
             render: (value, job) => (
                 <div>
                     <div className="font-semibold text-gray-900 dark:text-white">
@@ -343,17 +344,17 @@ const FactoryWorkerPage = () => {
         },
         {
             key: 'type',
-            label: t('factory.fields.type', 'النوع'),
+            header: t('factory.fields.type', 'النوع'),
             render: (value) => getTypeBadge(value)
         },
         {
             key: 'status',
-            label: t('factory.fields.status', 'الحالة'),
+            header: t('factory.fields.status', 'الحالة'),
             render: (value) => getStatusBadge(value)
         },
         {
             key: 'createdAt',
-            label: t('factory.fields.created_at', 'وقت الإنشاء'),
+            header: t('factory.fields.created_at', 'وقت الإنشاء'),
             render: (value) => (
                 <div className="text-sm">
                     <div className="text-gray-900 dark:text-white">
@@ -370,7 +371,7 @@ const FactoryWorkerPage = () => {
         },
         {
             key: 'actions',
-            label: t('factory.fields.actions', 'الإجراءات'),
+            header: t('factory.fields.actions', 'الإجراءات'),
             render: (_, job) => (
                 <div className="flex items-center gap-2">
                     {job.status === 'QUEUED' && (
@@ -481,7 +482,7 @@ const FactoryWorkerPage = () => {
     }
 
     return (
-        <div className="space-y-6 p-6 dark:bg-gray-900 min-h-screen">
+        <div className="space-y-6 p-6 dark:bg-gray-900">
             <PageHeader
                 title={t('factory.title', 'قائمة الطباعة - المصنع')}
                 subtitle={t('factory.subtitle', 'إدارة طباعة الملصقات والفواتير')}

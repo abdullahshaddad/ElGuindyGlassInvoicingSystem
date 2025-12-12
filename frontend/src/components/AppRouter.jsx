@@ -20,6 +20,8 @@ const AdminGlassTypesPage = React.lazy(() => import('@/pages/admin/GlassTypesPag
 const CustomersPage = React.lazy(() => import('@/pages/CustomersPage'));
 const NotFoundPage = React.lazy(() => import('@/pages/errors/NotFoundPage'));
 const UnauthorizedPage = React.lazy(() => import('@/pages/errors/UnauthorizedPage'));
+// Added Company Profile Page
+const CompanyProfilePage = React.lazy(() => import('@/pages/admin/CompanyProfilePage'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -185,6 +187,16 @@ const AppRouter = () => {
 
                         {/* Admin Routes */}
                         <Route path="admin">
+                            {/* Company Profile - OWNER only */}
+                            <Route
+                                path="company-profile"
+                                element={
+                                    <RoleRoute allowedRoles={[OWNER]}>
+                                        <CompanyProfilePage />
+                                    </RoleRoute>
+                                }
+                            />
+
                             {/* User Management - OWNER and ADMIN only */}
                             <Route
                                 path="users"

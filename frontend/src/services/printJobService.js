@@ -56,6 +56,7 @@ export const printJobService = {
 
     // ===== PRINT JOB STATUS =====
 
+
     /**
      * Get print job status for an invoice
      * @param {string|number} invoiceId - Invoice ID
@@ -69,6 +70,15 @@ export const printJobService = {
             console.error('Get print job status error:', error);
             throw error;
         }
+    },
+
+    /**
+     * Alias for getPrintJobStatus to support existing calls
+     * @param {string|number} invoiceId - Invoice ID
+     * @returns {Promise<PrintJobStatus>}
+     */
+    async checkPrintJobStatus(invoiceId) {
+        return this.getPrintJobStatus(invoiceId);
     },
 
     /**
@@ -356,7 +366,7 @@ export const printJobService = {
             // Open in new window and trigger print
             const printWindow = window.open(url, '_blank');
             if (printWindow) {
-                printWindow.onload = function() {
+                printWindow.onload = function () {
                     printWindow.print();
                 };
             }

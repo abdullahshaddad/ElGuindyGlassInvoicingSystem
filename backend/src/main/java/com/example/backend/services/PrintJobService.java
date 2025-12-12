@@ -42,13 +42,12 @@ public class PrintJobService {
     private final PrintJobRepository printJobRepository;
     private final PdfGenerationService pdfGenerationService;
     private final WebSocketNotificationService webSocketService;
-private final InvoiceRepository invoiceRepository;
-
+    private final InvoiceRepository invoiceRepository;
 
     @Autowired
     public PrintJobService(PrintJobRepository printJobRepository,
-                           PdfGenerationService pdfGenerationService,
-                           WebSocketNotificationService webSocketService, InvoiceRepository invoiceRepository) {
+            PdfGenerationService pdfGenerationService,
+            WebSocketNotificationService webSocketService, InvoiceRepository invoiceRepository) {
         this.printJobRepository = printJobRepository;
         this.pdfGenerationService = pdfGenerationService;
         this.webSocketService = webSocketService;
@@ -158,7 +157,7 @@ private final InvoiceRepository invoiceRepository;
     /**
      * Create a single print job by type - exposed for controller use
      *
-     * @param invoice Invoice with loaded lines
+     * @param invoice   Invoice with loaded lines
      * @param printType Type of print job to create
      * @return Created PrintJob with MinIO URL
      */
@@ -169,7 +168,6 @@ private final InvoiceRepository invoiceRepository;
             return createSinglePrintJob(invoice, printType);
         }
     }
-
 
     /**
      * Create a single print job (CLIENT or OWNER type)
@@ -222,6 +220,7 @@ private final InvoiceRepository invoiceRepository;
                     "خطأ غير متوقع في إنشاء مهمة طباعة " + printType, e);
         }
     }
+
     /**
      * Create sticker print job (special handling)
      */
@@ -249,6 +248,15 @@ private final InvoiceRepository invoiceRepository;
             try {
                 PrintJob savedJob = printJobRepository.save(stickerJob);
                 log.debug("Sticker print job saved to database (ID: {})", savedJob.getId());
+
+                // NOTIFY FACTORY (WebSocket)
+                try {
+                    String message = "تم إرسال أمر جديد للمصنع (فاتورة " + invoice.getId() + ")";
+                    webSocketService.notifyPrintJobUpdate(invoice.getId(), message);
+                } catch (Exception e) {
+                    log.warn("Failed to send WebSocket notification for sticker job: {}", e.getMessage());
+                }
+
                 return savedJob;
             } catch (DataAccessException e) {
                 log.error("Database error saving sticker print job: {}", e.getMessage());
@@ -374,6 +382,7 @@ private final InvoiceRepository invoiceRepository;
 
     /**
      * Get all queued print jobs ordered by creation time
+     * 
      * @return List of queued print jobs, empty list if none found
      * @throws PrintJobException if database error occurs
      */
@@ -403,7 +412,6 @@ private final InvoiceRepository invoiceRepository;
     /**
      * Custom exception for print job operations
      */
-
 
     public PrintJob markAsPrinting(Long jobId) {
         PrintJob job = printJobRepository.findById(jobId)
@@ -459,6 +467,7 @@ private final InvoiceRepository invoiceRepository;
         stickerJob.setPdfPath(pdfGenerationService.generateStickerPdf(invoice));
         return printJobRepository.save(stickerJob);
     }
+
     public List<PrintJob> findFailedJobs() {
         return printJobRepository.findByStatus(PrintStatus.FAILED);
     }
@@ -481,10 +490,6 @@ private final InvoiceRepository invoiceRepository;
         // Notify print agent about retry
         webSocketService.notifyPrintJobUpdate(job.getInvoice().getId(), "RETRY_REQUESTED");
     }
-
-
-
-
 
     // أضف هذه الدوال في PrintJobService.java
 

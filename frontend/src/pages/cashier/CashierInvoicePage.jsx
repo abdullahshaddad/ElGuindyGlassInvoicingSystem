@@ -110,7 +110,14 @@ const CashierInvoicesPage = () => {
     // Pagination for invoice list
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
-    const [searchTerm, setSearchTerm] = useState('');
+
+    // Filters State replaces simple searchTerm
+    const [filters, setFilters] = useState({
+        customerName: '',
+        invoiceId: '',
+        startDate: '',
+        status: ''
+    });
 
     // Load initial data
     useEffect(() => {
@@ -139,6 +146,14 @@ const CashierInvoicesPage = () => {
         return () => clearTimeout(timeoutId);
     }, [customerSearch]);
 
+    // Debounce filters for invoice list loading
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            loadInvoices(0);
+        }, 500);
+        return () => clearTimeout(timeoutId);
+    }, [filters]);
+
     // Keyboard shortcuts for POS workflow
     useEffect(() => {
         const handleKeyPress = (e) => {
@@ -159,25 +174,30 @@ const CashierInvoicesPage = () => {
         return () => window.removeEventListener('keydown', handleKeyPress);
     }, [currentMode, cart, selectedCustomer, isViewModalOpen]);
 
-    // Load functions
-    const loadInvoices = async (page = 0, search = '') => {
+    // Load functions with filters
+    const loadInvoices = async (page = 0) => {
         setLoading(true);
         try {
             const params = {
                 page,
                 size: 20,
-                ...(search && { customerName: search })
+                ...filters
             };
 
             const response = await invoiceService.listInvoices(params);
             setInvoices(response.content || []);
             setTotalPages(response.totalPages || 0);
+            setCurrentPage(page);
         } catch (err) {
             console.error('Load invoices error:', err);
             showError('فشل في تحميل الفواتير');
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleFilterChange = (key, value) => {
+        setFilters(prev => ({ ...prev, [key]: value }));
     };
 
     const loadGlassTypes = async () => {
@@ -499,7 +519,7 @@ const CashierInvoicesPage = () => {
             handleResetPOS();
 
             // Reload invoices
-            loadInvoices(currentPage, searchTerm);
+            loadInvoices(0);
 
         } catch (error) {
             console.error('Create invoice error:', error);
@@ -548,13 +568,16 @@ const CashierInvoicesPage = () => {
         try {
             const status = await printJobService.checkPrintJobStatus(invoice.id);
 
-            if (!status.hasAllPrintJobs) {
-                showWarning('بعض مهام الطباعة مفقودة. سيتم انشاؤها الان...');
-                await printJobService.createAllPrintJobs(invoice.id);
+            // Check if STICKER is missing
+            const isStickerMissing = status.missingJobTypes && status.missingJobTypes.includes('STICKER');
+
+            if (isStickerMissing) {
+                // Create ONLY sticker
+                await printJobService.createSinglePrintJob(invoice.id, 'STICKER');
             }
 
             showSuccess(`تم ارسال الفاتورة ${invoice.id} الى المصنع بنجاح`);
-            loadInvoices(currentPage, searchTerm);
+            loadInvoices(currentPage);
         } catch (err) {
             console.error('Send to factory error:', err);
             showError('فشل في ارسال الفاتورة الى المصنع');
@@ -579,7 +602,7 @@ const CashierInvoicesPage = () => {
         try {
             await invoiceService.markAsPaid(invoice.id);
             showSuccess(`تم تسديد الفاتورة ${invoice.id} بنجاح`);
-            loadInvoices(currentPage, searchTerm);
+            loadInvoices(currentPage);
         } catch (err) {
             console.error('Mark as paid error:', err);
             showError('فشل في تسديد الفاتورة');
@@ -761,14 +784,13 @@ const CashierInvoicesPage = () => {
                         isSendingToFactory={isSendingToFactory}
                         invoices={invoices}
                         loading={loading}
-                        searchTerm={searchTerm}
+                        searchTerm={filters.customerName}
+                        filters={filters}
+                        onFilterChange={handleFilterChange}
                         currentPage={currentPage}
                         totalPages={totalPages}
-                        onSearchChange={setSearchTerm}
-                        onPageChange={(page) => {
-                            setCurrentPage(page);
-                            loadInvoices(page, searchTerm);
-                        }}
+                        onSearchChange={(val) => handleFilterChange('customerName', val)}
+                        onPageChange={(page) => loadInvoices(page)}
                         onViewInvoice={handleViewInvoice}
                         onPrintInvoice={handlePrintInvoice}
                         onSendToFactory={handleSendToFactory}
