@@ -19,10 +19,13 @@ export const invoiceUtils = {
     calculateLineTotal(line, glassType) {
         if (!line.width || !line.height || !glassType) return 0;
 
-        // **FIX 1: Determine input unit and convert to meters**
-        // Assume input is in cm (clarify with your UI)
-        const widthM = line.width / 100;   // cm to m
-        const heightM = line.height / 100; // cm to m
+        // Uses backend-calculated total if available and authoritative
+        if (line.lineTotal && line.operations) {
+            return line.lineTotal;
+        }
+
+        const widthM = this.toMeters(line.width, line.dimensionUnit || 'MM');
+        const heightM = this.toMeters(line.height, line.dimensionUnit || 'MM');
 
         // Calculate glass price
         const area = widthM * heightM;
@@ -32,21 +35,30 @@ export const invoiceUtils = {
             : area;
         const glassPrice = quantityForPricing * (glassType.pricePerMeter || 0);
 
-        // **FIX 2: Use proper cutting calculation**
-        let cuttingPrice = 0;
-        if (line.cuttingType === 'LASER' && line.manualCuttingPrice) {
-            cuttingPrice = parseFloat(line.manualCuttingPrice);
-        } else if (line.cuttingType === 'SHATF') {
-            // Use cuttingUtils with correct units and thickness
-            cuttingPrice = calculateShatafWithCustomRates(
-                glassType.thickness,
-                line.width,   // Already in cm as per cuttingUtils
-                line.height,
-                null  // Use default rates
-            );
+        // Calculate operations price
+        let operationsPrice = 0;
+        if (line.operations && Array.isArray(line.operations)) {
+            // New structure: Sum of all operations
+            operationsPrice = line.operations.reduce((sum, op) => {
+                return sum + (parseFloat(op.operationPrice || op.calculatedPrice || op.manualPrice || 0));
+            }, 0);
+        } else {
+            // Legacy structure
+            if (line.cuttingType === 'LASER' && line.manualCuttingPrice) {
+                operationsPrice = parseFloat(line.manualCuttingPrice);
+            } else if (line.cuttingType === 'SHATF') {
+                // Use legacy cuttingUtils
+                // NOTE: This assumes Normal Shataf logic. 
+                operationsPrice = calculateShatafWithCustomRates(
+                    glassType.thickness,
+                    line.width,
+                    line.height,
+                    null
+                );
+            }
         }
 
-        return glassPrice + cuttingPrice;
+        return glassPrice + operationsPrice;
     },
     /**
      * Calculate detailed breakdown for display
@@ -79,11 +91,21 @@ export const invoiceUtils = {
         const glassPrice = quantity * glassPricePerMeter;
 
         let cuttingPrice = 0;
-        if (line.cuttingType === 'LASER' && line.manualCuttingPrice) {
-            cuttingPrice = parseFloat(line.manualCuttingPrice);
+
+        // Handle new multi-operation structure
+        if (line.operations && Array.isArray(line.operations)) {
+            cuttingPrice = line.operations.reduce((sum, op) => {
+                return sum + (parseFloat(op.operationPrice || op.calculatedPrice || op.manualPrice || 0));
+            }, 0);
         } else {
-            const cuttingRate = line.cuttingType === 'LASER' ? 50 : 25;
-            cuttingPrice = quantity * cuttingRate;
+            // Legacy handling
+            if (line.cuttingType === 'LASER' && line.manualCuttingPrice) {
+                cuttingPrice = parseFloat(line.manualCuttingPrice);
+            } else if (line.cuttingType === 'SHATF') {
+                // Approximate for display if not calculated
+                const cuttingRate = 25; // Default fallback
+                cuttingPrice = quantity * cuttingRate;
+            }
         }
 
         return {
@@ -92,7 +114,7 @@ export const invoiceUtils = {
             quantity,
             quantityUnit: calculationMethod === 'LENGTH' ? 'متر طولي' : 'متر مربع',
             glassPrice,
-            cuttingPrice,
+            cuttingPrice, // Represents total operations price now
             lineTotal: glassPrice + cuttingPrice
         };
     },

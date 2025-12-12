@@ -22,19 +22,23 @@ import { useSnackbar } from "@contexts/SnackbarContext.jsx";
 import PricingBreakdown from './components/PricingBreakdown.jsx';
 import EnhancedOrderSummary from './components/EnhancedOrderSummary';
 import CustomerSelection from './components/CustomerSelection';
-import ProductEntry from './components/ProductEntry';
 import ShoppingCart from './components/ShoppingCart';
 import NewCustomerForm from './components/NewCustomerForm';
 import InvoiceList from './components/InvoiceList';
-import InvoiceViewModal from './components/InvoiceViewModal';
+import { InvoiceViewModal } from '@components';
 import PrintJobStatusModal from './components/PrintJobStatusModal';
+
+// Import NEW ENHANCED components
+import EnhancedProductEntry from './components/EnhancedProductEntry.jsx';
+import PaymentPanel from './components/PaymentPanel.jsx';
+import InvoiceConfirmationDialog from './components/InvoiceConfirmationDialog.jsx';
 
 const CashierInvoicesPage = () => {
     const { t } = useTranslation();
     const { showSuccess, showError, showInfo, showWarning } = useSnackbar();
 
     // Main states
-    const [currentMode, setCurrentMode] = useState('list');
+    const [currentMode, setCurrentMode] = useState('list'); // 'list', 'create', 'addCustomer'
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -44,15 +48,22 @@ const CashierInvoicesPage = () => {
     const [customerSearch, setCustomerSearch] = useState('');
     const [customerResults, setCustomerResults] = useState([]);
     const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
+    const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
     const [glassTypes, setGlassTypes] = useState([]);
+
+    // Enhanced line item state with operations array
     const [currentLine, setCurrentLine] = useState({
         glassTypeId: '',
         width: '',
         height: '',
         dimensionUnit: 'MM',
-        cuttingType: 'SHATF',
-        manualCuttingPrice: ''
+        operations: [] // Array of operations (SHATAF, FARMA, LASER)
     });
+
+    // Payment states
+    const [amountPaidNow, setAmountPaidNow] = useState(0);
+    const [paymentMethod, setPaymentMethod] = useState('CASH');
+    const [showConfirmation, setShowConfirmation] = useState(false);
 
     // Print job states
     const [isPrinting, setIsPrinting] = useState(false);
@@ -78,7 +89,8 @@ const CashierInvoicesPage = () => {
         name: '',
         phone: '',
         address: '',
-        email: ''
+        email: '',
+        customerType: 'REGULAR'
     });
 
     // View invoice modal
@@ -106,6 +118,14 @@ const CashierInvoicesPage = () => {
         loadGlassTypes();
     }, []);
 
+    // Auto-set payment for CASH customers
+    useEffect(() => {
+        if (selectedCustomer?.customerType === 'CASH') {
+            const total = calculateCartTotal();
+            setAmountPaidNow(total);
+        }
+    }, [selectedCustomer, cart]);
+
     // Customer search with debouncing
     useEffect(() => {
         const timeoutId = setTimeout(() => {
@@ -119,16 +139,27 @@ const CashierInvoicesPage = () => {
         return () => clearTimeout(timeoutId);
     }, [customerSearch]);
 
-    // Invoice list search
+    // Keyboard shortcuts for POS workflow
     useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            loadInvoices(0, searchTerm);
-        }, 300);
+        const handleKeyPress = (e) => {
+            if (currentMode === 'create' && !isViewModalOpen) {
+                if (e.key === 'F2') {
+                    e.preventDefault();
+                    if (cart.length > 0 && selectedCustomer) {
+                        handleCreateInvoice();
+                    }
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleResetPOS();
+                }
+            }
+        };
 
-        return () => clearTimeout(timeoutId);
-    }, [searchTerm]);
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [currentMode, cart, selectedCustomer, isViewModalOpen]);
 
-    // Data loading functions
+    // Load functions
     const loadInvoices = async (page = 0, search = '') => {
         setLoading(true);
         try {
@@ -140,7 +171,6 @@ const CashierInvoicesPage = () => {
 
             const response = await invoiceService.listInvoices(params);
             setInvoices(response.content || []);
-            setCurrentPage(response.number || 0);
             setTotalPages(response.totalPages || 0);
         } catch (err) {
             console.error('Load invoices error:', err);
@@ -153,9 +183,10 @@ const CashierInvoicesPage = () => {
     const loadGlassTypes = async () => {
         try {
             const types = await glassTypeService.getAllGlassTypes();
-            setGlassTypes(types || []);
+            setGlassTypes(types);
         } catch (err) {
             console.error('Load glass types error:', err);
+            showError('فشل في تحميل انواع الزجاج');
         }
     };
 
@@ -163,16 +194,16 @@ const CashierInvoicesPage = () => {
         setIsSearchingCustomers(true);
         try {
             const results = await customerService.searchCustomers(query);
-            setCustomerResults(results || []);
+            setCustomerResults(results);
         } catch (err) {
-            console.error('Customer search error:', err);
+            console.error('Search customers error:', err);
             setCustomerResults([]);
         } finally {
             setIsSearchingCustomers(false);
         }
     };
 
-    // Customer management handlers
+    // Customer handlers
     const handleSelectCustomer = (customer) => {
         setSelectedCustomer(customer);
         setCustomerSearch('');
@@ -180,12 +211,8 @@ const CashierInvoicesPage = () => {
         setTimeout(() => glassTypeRef.current?.focus(), 100);
     };
 
-    const handleStartNewCustomer = () => {
-        const searchValue = customerSearch.trim();
-        const phonePattern = /^\d+$/;
-        if (phonePattern.test(searchValue)) {
-            setNewCustomer(prev => ({ ...prev, phone: searchValue }));
-        } else {
+    const handleStartNewCustomer = (searchValue) => {
+        if (searchValue) {
             setNewCustomer(prev => ({ ...prev, name: searchValue }));
         }
         setCurrentMode('addCustomer');
@@ -204,12 +231,18 @@ const CashierInvoicesPage = () => {
             const savedCustomer = await customerService.createCustomer(newCustomer);
             setSelectedCustomer(savedCustomer);
             setCurrentMode('create');
-            setNewCustomer({ name: '', phone: '', address: '', email: '' });
-            showSuccess(`تم إضافة العميل ${savedCustomer.name} بنجاح`);
+            setNewCustomer({
+                name: '',
+                phone: '',
+                address: '',
+                email: '',
+                customerType: 'REGULAR'
+            });
+            showSuccess(`تم اضافة العميل ${savedCustomer.name} بنجاح`);
             setTimeout(() => glassTypeRef.current?.focus(), 100);
         } catch (err) {
             console.error('Create customer error:', err);
-            showError('فشل في إضافة العميل');
+            showError('فشل في اضافة العميل');
         } finally {
             setIsAddingCustomer(false);
         }
@@ -217,14 +250,58 @@ const CashierInvoicesPage = () => {
 
     const handleCancelNewCustomer = () => {
         setCurrentMode('create');
-        setNewCustomer({ name: '', phone: '', address: '', email: '' });
+        setNewCustomer({
+            name: '',
+            phone: '',
+            address: '',
+            email: '',
+            customerType: 'REGULAR'
+        });
     };
 
-    // Cart/Invoice line management
+    // ============================================================
+    // MULTI-OPERATION Cart Handler
+    // ============================================================
     const handleAddLineToCart = async () => {
+        const operations = currentLine.operations || [];
+
+        // Validation: Basic fields
         if (!currentLine.glassTypeId || !currentLine.width || !currentLine.height) {
-            showError('يرجى ملء جميع البيانات المطلوبة');
+            showError('يرجى ملء جميع البيانات المطلوبة (نوع الزجاج، العرض، الارتفاع)');
             return;
+        }
+
+        // Validation: Must have at least one operation
+        if (operations.length === 0) {
+            showError('يجب اضافة عملية واحدة على الاقل (شطف، فارمة، او ليزر)');
+            return;
+        }
+
+        // Validate operations
+        for (let i = 0; i < operations.length; i++) {
+            const op = operations[i];
+            const prefix = `العملية ${i + 1}: `;
+
+            if (op.type === 'SHATAF') {
+                if (!op.shatafType) {
+                    showError(prefix + 'يرجى اختيار نوع الشطف');
+                    return;
+                }
+            } else if (op.type === 'FARMA') {
+                if (!op.farmaType) {
+                    showError(prefix + 'يرجى اختيار نوع الفارمة');
+                    return;
+                }
+            } else if (op.type === 'LASER') {
+                if (!op.laserType) {
+                    showError(prefix + 'يرجى اختيار نوع الليزر');
+                    return;
+                }
+                if (op.manualPrice === null || op.manualPrice === undefined || op.manualPrice === '') {
+                    showError(prefix + 'يرجى ادخال سعر الليزر');
+                    return;
+                }
+            }
         }
 
         const glassType = glassTypes.find(gt => gt.id == currentLine.glassTypeId);
@@ -233,266 +310,232 @@ const CashierInvoicesPage = () => {
             return;
         }
 
-        if (currentLine.cuttingType === 'LASER' && !currentLine.manualCuttingPrice) {
-            showError('يرجى إدخال سعر القطع للقطع بالليزر');
-            return;
-        }
+        setIsCalculatingPrice(true);
 
         try {
-            const preview = await invoiceService.previewLineCalculation({
-                glassTypeId: currentLine.glassTypeId,
+            // Prepare request for backend calculation
+            const previewRequest = {
+                glassTypeId: parseInt(currentLine.glassTypeId),
                 width: parseFloat(currentLine.width),
                 height: parseFloat(currentLine.height),
                 dimensionUnit: currentLine.dimensionUnit || 'MM',
-                cuttingType: currentLine.cuttingType,
-                manualCuttingPrice: currentLine.manualCuttingPrice ? parseFloat(currentLine.manualCuttingPrice) : null
-            });
-
-            const newCartItem = {
-                id: Date.now(),
-                ...currentLine,
-                glassType,
-                lineTotal: preview.lineTotal,
-                glassPrice: preview.glassPrice,
-                cuttingPrice: preview.cuttingPrice,
-                backendPreview: preview
+                operations: operations.map(op => ({
+                    type: op.type,
+                    shatafType: op.shatafType || null,
+                    farmaType: op.farmaType || null,
+                    laserType: op.laserType || null,
+                    diameter: op.diameter ? parseFloat(op.diameter) : null,
+                    manualPrice: op.manualPrice ? parseFloat(op.manualPrice) : null,
+                    manualCuttingPrice: op.manualCuttingPrice ? parseFloat(op.manualCuttingPrice) : null,
+                    notes: op.notes || null
+                }))
             };
 
-            setCart(prev => [...prev, newCartItem]);
+            // Call backend preview endpoint
+            const preview = await invoiceService.previewLineCalculation(previewRequest);
 
-            setCurrentLine({
+            console.log('✅ Price Calculated:', preview);
+
+            // Create cart item with calculated prices
+            const cartItem = {
+                id: Date.now(),
                 glassTypeId: currentLine.glassTypeId,
+                glassType: glassType,
+                width: parseFloat(currentLine.width),
+                height: parseFloat(currentLine.height),
+                dimensionUnit: currentLine.dimensionUnit || 'MM',
+                operations: preview.operations || operations, // Use backend returned ops if available
+                glassPrice: preview.glassPrice,
+                operationsPrice: preview.cuttingPrice, // Backend returns total operations price as cuttingPrice currently
+                cuttingPrice: preview.cuttingPrice, // Keep for backward compatibility
+                areaM2: preview.areaM2,
+                lineTotal: preview.lineTotal,
+                // Store raw operations too for editing/re-calc
+                rawOperations: operations
+            };
+
+            setCart(prev => [...prev, cartItem]);
+
+            // Reset current line
+            setCurrentLine({
+                glassTypeId: '',
                 width: '',
                 height: '',
-                dimensionUnit: currentLine.dimensionUnit,
-                cuttingType: 'SHATF',
-                manualCuttingPrice: ''
+                dimensionUnit: 'MM',
+                operations: []
             });
 
-            setTimeout(() => widthRef.current?.focus(), 100);
+            showSuccess('تم اضافة المنتج الى السلة مع حساب الاسعار');
+            setTimeout(() => glassTypeRef.current?.focus(), 100);
+
         } catch (err) {
-            console.error('Add to cart error:', err);
-            showError('فشل في حساب سعر البند. يرجى المحاولة مرة أخرى.');
+            console.error('Calculate price error:', err);
+            showError(err.response?.data?.message || 'فشل في حساب السعر من الخادم');
+        } finally {
+            setIsCalculatingPrice(false);
         }
-    };
-
-    const recalculateCartItem = async (itemId, updatedItem) => {
-        try {
-            const preview = await invoiceService.previewLineCalculation({
-                glassTypeId: updatedItem.glassTypeId,
-                width: parseFloat(updatedItem.width),
-                height: parseFloat(updatedItem.height),
-                dimensionUnit: updatedItem.dimensionUnit || 'MM',
-                cuttingType: updatedItem.cuttingType,
-                manualCuttingPrice: updatedItem.manualCuttingPrice ? parseFloat(updatedItem.manualCuttingPrice) : null
-            });
-
-            setCart(prev => prev.map(item =>
-                item.id === itemId
-                    ? {
-                        ...item,
-                        lineTotal: preview.lineTotal,
-                        glassPrice: preview.glassPrice,
-                        cuttingPrice: preview.cuttingPrice,
-                        backendPreview: preview
-                    }
-                    : item
-            ));
-        } catch (err) {
-            console.error('Recalculate cart item error:', err);
-            showError('فشل في إعادة حساب السعر');
-        }
-    };
-
-    const handleUpdateCartItem = async (itemId, field, value) => {
-        setCart(prev => prev.map(item => {
-            if (item.id === itemId) {
-                const updated = { ...item, [field]: value };
-                if (['width', 'height', 'cuttingType', 'manualCuttingPrice'].includes(field)) {
-                    recalculateCartItem(itemId, updated);
-                }
-                return updated;
-            }
-            return item;
-        }));
     };
 
     const handleRemoveFromCart = (itemId) => {
         setCart(prev => prev.filter(item => item.id !== itemId));
+        showInfo('تم ازالة المنتج من السلة');
     };
 
-    const calculateCartTotals = () => {
-        const subtotal = cart.reduce((sum, item) => sum + (item.lineTotal || 0), 0);
-        return {
-            subtotal: Math.round(subtotal * 100) / 100,
-            tax: 0,
-            total: Math.round(subtotal * 100) / 100
-        };
+    const handleUpdateCartItem = async (itemId, updatedData) => {
+        console.log('Update cart item:', itemId, updatedData);
     };
 
-    // Create invoice
-    const handleCreateInvoice = async () => {
+    // Calculate cart total
+    const calculateCartTotal = () => {
+        return cart.reduce((total, item) => total + (item.lineTotal || 0), 0);
+    };
+
+    // Invoice creation with payment validation
+    const handleCreateInvoice = () => {
         if (!selectedCustomer) {
-            showError('يرجى اختيار العميل');
+            showError('يرجى اختيار عميل');
             return;
         }
 
         if (cart.length === 0) {
-            showError('يرجى إضافة عنصر واحد على الأقل للفاتورة');
+            showError('يرجى اضافة منتجات للفاتورة');
             return;
         }
 
+        const total = calculateCartTotal();
+
+        // Validate payment for CASH customers
+        if (selectedCustomer.customerType === 'CASH') {
+            if (amountPaidNow !== total) {
+                showError('العميل النقدي يجب ان يدفع المبلغ بالكامل عند اصدار الفاتورة.');
+                return;
+            }
+        }
+
+        // Validate payment amount
+        if (amountPaidNow < 0) {
+            showError('من فضلك ادخل قيمة صحيحة للمبلغ المدفوع.');
+            return;
+        }
+
+        if (amountPaidNow > total) {
+            showError('المبلغ المدفوع لا يمكن ان يكون اكبر من اجمالي الفاتورة.');
+            return;
+        }
+
+        // Show confirmation dialog
+        setShowConfirmation(true);
+    };
+
+    // Confirmed invoice creation
+    const handleConfirmInvoice = async () => {
         setIsCreating(true);
 
         try {
-            const invoiceData = {
+            // Prepare invoice request with multi-operation support
+            const invoiceRequest = {
                 customerId: selectedCustomer.id,
-                issueDate: new Date().toISOString(),
-                invoiceLines: cart.map(item => ({
-                    glassTypeId: parseInt(item.glassTypeId),
-                    width: parseFloat(item.width),
-                    height: parseFloat(item.height),
-                    dimensionUnit: item.dimensionUnit || 'MM',
-                    cuttingType: item.cuttingType,
-                    ...(item.cuttingType === 'LASER' && item.manualCuttingPrice && {
-                        manualCuttingPrice: parseFloat(item.manualCuttingPrice)
-                    })
-                }))
+                invoiceLines: cart.map(item => {
+                    // Find primary operations
+                    const shatafOp = item.operations?.find(op => op.type === 'SHATAF');
+                    const farmaOp = item.operations?.find(op => op.type === 'FARMA');
+                    const laserOp = item.operations?.find(op => op.type === 'LASER');
+
+                    return {
+                        glassTypeId: item.glassTypeId,
+                        width: item.width,
+                        height: item.height,
+                        dimensionUnit: item.dimensionUnit,
+                        // Primary operation data (for backward compatibility)
+                        shatafType: shatafOp?.shatafType || null,
+                        farmaType: shatafOp?.farmaType || farmaOp?.farmaType || null,
+                        diameter: shatafOp?.diameter || farmaOp?.diameter || null,
+                        manualCuttingPrice: shatafOp?.manualCuttingPrice || null,
+                        // Additional operations
+                        operations: item.operations?.map(op => ({
+                            type: op.type,
+                            shatafType: op.shatafType || null,
+                            farmaType: op.farmaType || null,
+                            laserType: op.laserType || null,
+                            diameter: op.diameter ? parseFloat(op.diameter) : null,
+                            manualPrice: op.manualPrice ? parseFloat(op.manualPrice) : null,
+                            manualCuttingPrice: op.manualCuttingPrice ? parseFloat(op.manualCuttingPrice) : null,
+                            notes: op.notes || null
+                        })) || []
+                    };
+                }),
+                amountPaidNow: amountPaidNow,
+                notes: ''
             };
 
-            const newInvoice = await invoiceService.createInvoice(invoiceData);
-            const totals = calculateCartTotals();
+            console.log('📤 Sending Invoice Request:', JSON.stringify(invoiceRequest, null, 2));
 
-            showSuccess(`تم إنشاء الفاتورة رقم ${newInvoice.id} بنجاح! الإجمالي: ${totals.total.toFixed(2)} ج.م`);
+            // Create invoice
+            const response = await invoiceService.createInvoice(invoiceRequest);
+            const createdInvoice = response.invoice || response;
 
-            // Ask if user wants to create print jobs
-            setConfirmDialog({
-                isOpen: true,
-                title: 'إنشاء مهام الطباعة',
-                message: 'هل تريد إنشاء وطباعة الفواتير وإرسال الملصق للمصنع الآن؟',
-                type: 'info',
-                onConfirm: async () => {
-                    await createAndPrintInvoice(newInvoice.id);
-                }
+            console.log('✅ Invoice Created:', {
+                id: createdInvoice.id,
+                totalPrice: createdInvoice.totalPrice,
+                linesCount: createdInvoice.invoiceLines?.length || 0
             });
 
-            handleResetPOS();
-            loadInvoices();
+            showSuccess('تم انشاء الفاتورة بنجاح');
 
-        } catch (err) {
-            console.error('Create invoice error:', err);
-            showError(err.response?.data?.message || 'فشل في إنشاء الفاتورة');
+            // Try to create print jobs (non-blocking)
+            try {
+                setIsCreatingPrintJobs(true);
+                await printJobService.createAllPrintJobs(createdInvoice.id);
+                showSuccess('تم انشاء مهام الطباعة بنجاح');
+            } catch (printError) {
+                console.error('Print jobs creation error:', printError);
+                showWarning('تم انشاء الفاتورة ولكن فشل في انشاء مهام الطباعة');
+            } finally {
+                setIsCreatingPrintJobs(false);
+            }
+
+            // Close confirmation and reset
+            setShowConfirmation(false);
+            handleResetPOS();
+
+            // Reload invoices
+            loadInvoices(currentPage, searchTerm);
+
+        } catch (error) {
+            console.error('Create invoice error:', error);
+            showError(error.response?.data?.message || 'فشل في انشاء الفاتورة');
         } finally {
             setIsCreating(false);
         }
     };
 
-    // Create and print invoice (CLIENT + OWNER + STICKER)
-    const createAndPrintInvoice = async (invoiceId) => {
-        setIsCreatingPrintJobs(true);
+    // Print and factory operations
+    const handlePrintInvoice = async (invoice, type = 'CLIENT') => {
+        setIsPrinting(true);
         try {
-            const result = await printJobService.createSinglePrintJob(invoiceId, 'STICKER');
+            // Create or get the specific print job
+            const response = await printJobService.createSinglePrintJob(invoice.id, type);
 
-            if (result.success) {
-                showSuccess('تم إنشاء مهام الطباعة بنجاح');
-
-                // Get the created jobs
-                const status = await printJobService.getPrintJobStatus(invoiceId);
-                const jobs = status.jobs || [];
-
-                // Open CLIENT and OWNER PDFs
-                const clientJob = jobs.find(job => job.type === 'CLIENT');
-                if (clientJob?.pdfPath) {
-                    window.open(printJobService.getPdfUrl(clientJob), '_blank');
-                }
-
-                const ownerJob = jobs.find(job => job.type === 'OWNER');
-                if (ownerJob?.pdfPath) {
-                    window.open(printJobService.getPdfUrl(ownerJob), '_blank');
-                }
-
-                showInfo('تم إرسال الملصق للمصنع');
+            if (response && response.printJob) {
+                // Open PDF in new tab
+                printJobService.openPdf(response.printJob);
+                showSuccess(`تم فتح ${printJobService.getTypeText(type)} للفاتورة ${invoice.id}`);
+            } else {
+                throw new Error("لم يتم استلام ملف الطباعة");
             }
-        } catch (err) {
-            console.error('Create print jobs error:', err);
-            showError('فشل في إنشاء مهام الطباعة');
-        } finally {
-            setIsCreatingPrintJobs(false);
-        }
-    };
-
-    // Print invoice (CLIENT + OWNER only)
-    const handlePrintInvoice = async (invoice) => {
-        if (!invoice || !invoice.id) {
-            showError('معلومات الفاتورة غير صحيحة');
-            return;
-        }
-
-        try {
-            setIsPrinting(true);
-            setPrintStatus('جاري التحقق من مهام الطباعة...');
-
-            const status = await printJobService.getPrintJobStatus(invoice.id);
-
-            const needsClient = status.missingJobTypes?.includes('CLIENT');
-            const needsOwner = status.missingJobTypes?.includes('OWNER');
-
-            // Create CLIENT if missing
-            if (needsClient) {
-                setPrintStatus('جاري إنشاء نسخة العميل...');
-                const clientResult = await printJobService.createSinglePrintJob(invoice.id, 'CLIENT');
-                if (clientResult.success && clientResult.printJob?.pdfPath) {
-                    window.open(printJobService.getPdfUrl(clientResult.printJob), '_blank');
-                }
-            }
-
-            // Create OWNER if missing
-            if (needsOwner) {
-                setPrintStatus('جاري إنشاء نسخة المالك...');
-                const ownerResult = await printJobService.createSinglePrintJob(invoice.id, 'OWNER');
-                if (ownerResult.success && ownerResult.printJob?.pdfPath) {
-                    window.open(printJobService.getPdfUrl(ownerResult.printJob), '_blank');
-                }
-            }
-
-            // If PDFs exist, just open them
-            if (!needsClient && !needsOwner) {
-                const existingJobs = status.jobs || [];
-
-                const clientJob = existingJobs.find(job => job.type === 'CLIENT');
-                if (clientJob?.pdfPath) {
-                    window.open(printJobService.getPdfUrl(clientJob), '_blank');
-                }
-
-                const ownerJob = existingJobs.find(job => job.type === 'OWNER');
-                if (ownerJob?.pdfPath) {
-                    window.open(printJobService.getPdfUrl(ownerJob), '_blank');
-                }
-            }
-
-            showSuccess('تم فتح ملفات PDF للطباعة');
-            setPrintStatus(null);
-
         } catch (err) {
             console.error('Print invoice error:', err);
             showError('فشل في طباعة الفاتورة');
-            setPrintStatus(null);
         } finally {
             setIsPrinting(false);
         }
     };
 
-    // Send to factory (STICKER only)
     const handleSendToFactory = async (invoice) => {
-        if (!invoice || !invoice.id) {
-            showError('معلومات الفاتورة غير صحيحة');
-            return;
-        }
-
         setConfirmDialog({
             isOpen: true,
-            title: 'إرسال للمصنع',
-            message: `هل تريد إرسال ملصق الفاتورة #${invoice.id} للمصنع؟`,
+            title: 'ارسال الى المصنع',
+            message: `هل تريد ارسال الفاتورة #${invoice.id} الى المصنع؟`,
             type: 'info',
             onConfirm: async () => {
                 await executeSendToFactory(invoice);
@@ -501,31 +544,25 @@ const CashierInvoicesPage = () => {
     };
 
     const executeSendToFactory = async (invoice) => {
+        setIsSendingToFactory(true);
         try {
-            setIsSendingToFactory(true);
-            setPrintStatus('جاري إرسال الملصق للمصنع...');
+            const status = await printJobService.checkPrintJobStatus(invoice.id);
 
-            const status = await printJobService.getPrintJobStatus(invoice.id);
-            const needsSticker = status.missingJobTypes?.includes('STICKER');
+            if (!status.hasAllPrintJobs) {
+                showWarning('بعض مهام الطباعة مفقودة. سيتم انشاؤها الان...');
+                await printJobService.createAllPrintJobs(invoice.id);
+            }
 
-
-                const stickerResult = await printJobService.createSinglePrintJob(invoice.id, 'STICKER');
-                if (stickerResult.success) {
-                    showSuccess(`تم إرسال ملصق الفاتورة #${invoice.id} للمصنع`);
-                }
-
-
-            setPrintStatus(null);
+            showSuccess(`تم ارسال الفاتورة ${invoice.id} الى المصنع بنجاح`);
+            loadInvoices(currentPage, searchTerm);
         } catch (err) {
             console.error('Send to factory error:', err);
-            showError('فشل في إرسال الملصق للمصنع');
-            setPrintStatus(null);
+            showError('فشل في ارسال الفاتورة الى المصنع');
         } finally {
             setIsSendingToFactory(false);
         }
     };
 
-    // Mark invoice as paid
     const handleMarkAsPaid = async (invoice) => {
         setConfirmDialog({
             isOpen: true,
@@ -561,9 +598,10 @@ const CashierInvoicesPage = () => {
             width: '',
             height: '',
             dimensionUnit: 'MM',
-            cuttingType: 'SHATF',
-            manualCuttingPrice: ''
+            operations: []
         });
+        setAmountPaidNow(0);
+        setPaymentMethod('CASH');
     };
 
     // Invoice list operations
@@ -572,63 +610,17 @@ const CashierInvoicesPage = () => {
         setIsViewModalOpen(true);
     };
 
-    // Keyboard shortcuts for POS workflow
-    useEffect(() => {
-        const handleKeyPress = (e) => {
-            if (currentMode === 'create' && !isViewModalOpen) {
-                if (e.key === 'Enter' && e.ctrlKey) {
-                    e.preventDefault();
-                    if (currentLine.glassTypeId && currentLine.width && currentLine.height) {
-                        handleAddLineToCart();
-                    }
-                } else if (e.key === 'F2') {
-                    e.preventDefault();
-                    if (cart.length > 0 && selectedCustomer) {
-                        handleCreateInvoice();
-                    }
-                } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    handleResetPOS();
-                }
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyPress);
-        return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [currentMode, currentLine, cart, selectedCustomer, isViewModalOpen]);
-
     return (
-        <div className="" dir="rtl">
-            <PageHeader
-                title="نقطة البيع"
-                subtitle="نظام إدارة الفواتير مع تفصيل الأسعار"
-                actions={
-                    <div className="flex items-center gap-4">
-                        <div className="text-right">
-                            <div className="text-sm text-gray-500">التاريخ</div>
-                            <div className="font-medium">{new Date().toLocaleDateString('ar-EG')}</div>
-                        </div>
-                        <div className="text-right">
-                            <div className="text-sm text-gray-500">الوقت</div>
-                            <div className="font-medium font-mono">{new Date().toLocaleTimeString('ar-EG', {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            })}</div>
-                        </div>
-                    </div>
-                }
-            />
+        <div className="dark:bg-gray-900">
+            {/* Header */}
+            <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+                <PageHeader
+                    title="نظام المبيعات - الكاشير"
+                    subtitle={currentMode === 'list' ? 'قائمة الفواتير' : 'انشاء فاتورة جديدة'}
+                />
 
-            {printStatus && (
-                <div className="mx-6 mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 px-4 py-3 rounded-lg flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                    <span>{printStatus}</span>
-                </div>
-            )}
-
-            {/* Mode Switcher */}
-            <div className="px-6 py-4">
-                <div className="flex gap-2">
+                {/* Mode Toggle */}
+                <div className="flex gap-2 mt-4">
                     <Button
                         variant={currentMode === 'list' ? 'primary' : 'outline'}
                         onClick={() => setCurrentMode('list')}
@@ -649,7 +641,7 @@ const CashierInvoicesPage = () => {
             </div>
 
             {/* Main Content */}
-            <div className="px-6">
+            <div className="py-6">
                 {/* New Customer Form */}
                 {currentMode === 'addCustomer' && (
                     <NewCustomerForm
@@ -663,8 +655,9 @@ const CashierInvoicesPage = () => {
 
                 {/* POS Interface */}
                 {(currentMode === 'create' || currentMode === 'addCustomer') && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 px-6">
                         <div className="lg:col-span-2 space-y-4">
+                            {/* Customer Selection */}
                             <CustomerSelection
                                 selectedCustomer={selectedCustomer}
                                 customerSearch={customerSearch}
@@ -676,18 +669,19 @@ const CashierInvoicesPage = () => {
                                 onClearSelection={() => setSelectedCustomer(null)}
                             />
 
-                            <ProductEntry
-                                currentLine={currentLine}
+                            {/* Enhanced Product Entry with Multi-Operations */}
+                            <EnhancedProductEntry
                                 glassTypes={glassTypes}
-                                onCurrentLineChange={setCurrentLine}
+                                currentLine={currentLine}
+                                onLineChange={setCurrentLine}
                                 onAddToCart={handleAddLineToCart}
                                 glassTypeRef={glassTypeRef}
-                                widthRef={widthRef}
-                                heightRef={heightRef}
+                                loading={isCalculatingPrice}
                             />
                         </div>
 
                         <div className="space-y-4">
+                            {/* Shopping Cart */}
                             <ShoppingCart
                                 cart={cart}
                                 glassTypes={glassTypes}
@@ -695,6 +689,7 @@ const CashierInvoicesPage = () => {
                                 onUpdate={handleUpdateCartItem}
                             />
 
+                            {/* Order Summary */}
                             {cart.length > 0 && (
                                 <EnhancedOrderSummary
                                     cart={cart}
@@ -702,6 +697,20 @@ const CashierInvoicesPage = () => {
                                 />
                             )}
 
+                            {/* Payment Panel */}
+                            {cart.length > 0 && selectedCustomer && (
+                                <PaymentPanel
+                                    customer={selectedCustomer}
+                                    totalAmount={calculateCartTotal()}
+                                    amountPaidNow={amountPaidNow}
+                                    onAmountPaidNowChange={setAmountPaidNow}
+                                    paymentMethod={paymentMethod}
+                                    onPaymentMethodChange={setPaymentMethod}
+                                    disabled={isCreating || isCreatingPrintJobs}
+                                />
+                            )}
+
+                            {/* Create Invoice Button */}
                             {cart.length > 0 && selectedCustomer && (
                                 <div className="space-y-3">
                                     <Button
@@ -714,44 +723,33 @@ const CashierInvoicesPage = () => {
                                         ) : (
                                             <FiDollarSign className="ml-2" />
                                         )}
-                                        {isCreating ? 'جاري إنشاء الفاتورة...' :
-                                            isCreatingPrintJobs ? 'جاري إنشاء مهام الطباعة...' :
-                                                'إنشاء الفاتورة (F2)'}
+                                        {isCreating ? 'جاري انشاء الفاتورة...' :
+                                            isCreatingPrintJobs ? 'جاري انشاء مهام الطباعة...' : 'انشاء الفاتورة'}
+                                        <kbd className="mr-2 px-2 py-1 bg-white/20 rounded text-xs font-mono">F2</kbd>
                                     </Button>
 
-                                    <Button
-                                        variant="outline"
-                                        onClick={handleResetPOS}
-                                        disabled={isCreating || isCreatingPrintJobs}
-                                        className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
-                                    >
-                                        <FiX className="ml-2" />
-                                        إلغاء (Esc)
-                                    </Button>
+                                    {/* Keyboard Shortcuts */}
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                                        <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                                            اختصارات لوحة المفاتيح:
+                                        </p>
+                                        <div className="space-y-1 text-xs text-blue-700 dark:text-blue-300">
+                                            <div className="flex items-center gap-2">
+                                                <kbd className="px-2 py-1 bg-blue-100 dark:bg-blue-800 rounded text-xs font-mono">Ctrl+Enter</kbd>
+                                                <span>اضافة للسلة</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <kbd className="px-2 py-1 bg-blue-100 dark:bg-blue-800 rounded text-xs font-mono">F2</kbd>
+                                                <span>انشاء الفاتورة</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <kbd className="px-2 py-1 bg-blue-100 dark:bg-blue-800 rounded text-xs font-mono">Esc</kbd>
+                                                <span>الغاء العملية</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
-
-                            {/* POS Instructions */}
-                            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                                <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    اختصارات لوحة المفاتيح:
-                                </h4>
-                                <div className="text-sm text-blue-700 space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <kbd className="px-2 py-1 bg-blue-100 rounded text-xs font-mono">Ctrl+Enter</kbd>
-                                        <span>إضافة للسلة</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <kbd className="px-2 py-1 bg-blue-100 rounded text-xs font-mono">F2</kbd>
-                                        <span>إنشاء الفاتورة</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <kbd className="px-2 py-1 bg-blue-100 rounded text-xs font-mono">Esc</kbd>
-                                        <span>إلغاء العملية</span>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 )}
@@ -779,10 +777,13 @@ const CashierInvoicesPage = () => {
                 )}
             </div>
 
-            {/* Invoice View Modal */}
             <InvoiceViewModal
+                key={selectedInvoice?.id || 'modal'}
                 isOpen={isViewModalOpen}
-                onClose={() => setIsViewModalOpen(false)}
+                onClose={() => {
+                    setIsViewModalOpen(false);
+                    setSelectedInvoice(null);
+                }}
                 invoice={selectedInvoice}
                 glassTypes={glassTypes}
                 onPrint={handlePrintInvoice}
@@ -790,7 +791,19 @@ const CashierInvoicesPage = () => {
                 onMarkAsPaid={handleMarkAsPaid}
             />
 
-            {/* Confirmation Dialog */}
+            {/* Invoice Confirmation Dialog */}
+            <InvoiceConfirmationDialog
+                isOpen={showConfirmation}
+                onClose={() => setShowConfirmation(false)}
+                onConfirm={handleConfirmInvoice}
+                customer={selectedCustomer}
+                totalAmount={calculateCartTotal()}
+                amountPaidNow={amountPaidNow}
+                remainingBalance={calculateCartTotal() - amountPaidNow}
+                isCreating={isCreating}
+            />
+
+            {/* Confirmation Dialog (Generic) */}
             <ConfirmationDialog
                 isOpen={confirmDialog.isOpen}
                 onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
@@ -798,6 +811,29 @@ const CashierInvoicesPage = () => {
                 title={confirmDialog.title}
                 message={confirmDialog.message}
                 type={confirmDialog.type}
+            />
+
+            {/* Print Job Status Modal */}
+            <PrintJobStatusModal
+                isOpen={showPrintJobStatusModal}
+                onClose={() => setShowPrintJobStatusModal(false)}
+                status={printJobStatus}
+                onRetry={async () => {
+                    if (printJobStatus?.invoiceId) {
+                        setIsRetryingPrintJob(true);
+                        try {
+                            await printJobService.retryPrintJobs(printJobStatus.invoiceId);
+                            showSuccess('تم اعادة محاولة مهام الطباعة');
+                            const newStatus = await printJobService.checkPrintJobStatus(printJobStatus.invoiceId);
+                            setPrintJobStatus(newStatus);
+                        } catch (err) {
+                            showError('فشل في اعادة محاولة مهام الطباعة');
+                        } finally {
+                            setIsRetryingPrintJob(false);
+                        }
+                    }
+                }}
+                isRetrying={isRetryingPrintJob}
             />
         </div>
     );

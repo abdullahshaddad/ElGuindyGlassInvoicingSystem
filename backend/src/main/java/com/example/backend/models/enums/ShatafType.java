@@ -2,7 +2,10 @@ package com.example.backend.models.enums;
 
 /**
  * Shataf (Cutting) Types Enum
- * Defines all supported shataf types with their Arabic names and calculation methods
+ * Defines all supported shataf types with their Arabic names.
+ * These are strictly "Material/Finish" types that have a price per meter/m2
+ * based on thickness.
+ * Calculation method (Formula) is determined by FarmaType.
  */
 public enum ShatafType {
     // Formula-based types (depend on thickness)
@@ -12,14 +15,14 @@ public enum ShatafType {
     TWO_CM("2 سم", true, false, false),
     THREE_CM("3 سم", true, false, false),
     JULIA("جوليا", true, false, false),
-    
-    // Manual input types
-    LASER("ليزر", false, true, false),
-    ROTATION("الدوران", false, true, false),
-    TABLEAUX("التابلوهات", false, true, false),
-    
+
     // Area-based type
-    SANDING("صنفرة", false, false, true);
+    SANDING("صنفرة", false, false, true),
+
+    // Manual types (from frontend requirements)
+    LASER("ليزر (يدوي)", false, true, false),
+    ROTATION("دوران (يدوي)", false, true, false),
+    TABLEAUX("تابلوهات (يدوي)", false, true, false);
 
     private final String arabicName;
     private final boolean formulaBased;
@@ -53,7 +56,7 @@ public enum ShatafType {
      * Check if this shataf type requires thickness-based pricing
      */
     public boolean requiresThicknessRate() {
-        return formulaBased;
+        return formulaBased || areaBased;
     }
 
     /**

@@ -1,6 +1,6 @@
-import React, {Suspense} from 'react';
-import {BrowserRouter, Navigate, Outlet, Route, Routes} from 'react-router-dom';
-import {useAuth} from '@/contexts/AuthContext';
+import React, { Suspense } from 'react';
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import GlassTypesPage from "@pages/admin/GlassTypesPage.jsx";
@@ -8,7 +8,9 @@ import UserManagementPage from "@pages/admin/UserManagementPage.jsx";
 import CashierInvoicesPage from "@pages/cashier/CashierInvoicePage.jsx";
 import CashierLayout from "@components/layout/CashierLayout.jsx";
 import CuttingPricesConfigPage from "@pages/admin/CuttingPricesConfigPage.jsx";
+import OperationPricesPage from "@pages/admin/OperationPricesPage.jsx";
 import FactoryWorkerPage from "@pages/FactoryWorkerPage.jsx";
+import CustomerDetailsPage from '@/pages/admin/customers/CustomerDetailsPage';
 
 // Lazy load pages for better performance
 const LoginPage = React.lazy(() => import('@/pages/auth/LoginPage'));
@@ -22,7 +24,7 @@ const UnauthorizedPage = React.lazy(() => import('@/pages/errors/UnauthorizedPag
 // Loading fallback component
 const PageLoader = () => (
     <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner size="lg"/>
+        <LoadingSpinner size="lg" />
     </div>
 );
 
@@ -39,53 +41,53 @@ const USER_MANAGEMENT_ROLES = [OWNER, ADMIN];
 
 // Auth redirect component for handling root route
 const AuthRedirect = () => {
-    const {user, isAuthenticated, isLoading} = useAuth();
+    const { user, isAuthenticated, isLoading } = useAuth();
 
-    if (isLoading) return <PageLoader/>;
+    if (isLoading) return <PageLoader />;
 
     if (!isAuthenticated) {
-        return <Navigate to="/login" replace/>;
+        return <Navigate to="/login" replace />;
     }
 
     // Redirect based on user role
     switch (user?.role) {
         case OWNER:
         case ADMIN:
-            return <Navigate to="/dashboard" replace/>;
+            return <Navigate to="/dashboard" replace />;
         case CASHIER:
-            return <Navigate to="/cashier" replace/>;
+            return <Navigate to="/cashier" replace />;
         case WORKER:
-            return <Navigate to="/factory" replace/>;
+            return <Navigate to="/factory" replace />;
         default:
-            return <Navigate to="/dashboard" replace/>;
+            return <Navigate to="/dashboard" replace />;
     }
 };
 
 // Role-based route protection component
-const RoleRoute = ({allowedRoles, children, redirectPath = "/unauthorized"}) => {
-    const {user, isAuthenticated, isLoading} = useAuth();
+const RoleRoute = ({ allowedRoles, children, redirectPath = "/unauthorized" }) => {
+    const { user, isAuthenticated, isLoading } = useAuth();
 
-    if (isLoading) return <PageLoader/>;
+    if (isLoading) return <PageLoader />;
 
     if (!isAuthenticated) {
-        return <Navigate to="/login" replace/>;
+        return <Navigate to="/login" replace />;
     }
 
     if (!allowedRoles.includes(user?.role)) {
-        return <Navigate to={redirectPath} replace/>;
+        return <Navigate to={redirectPath} replace />;
     }
 
     return children;
 };
 
 // Public route wrapper - redirects authenticated users
-const PublicRoute = ({children}) => {
-    const {isAuthenticated, isLoading} = useAuth();
+const PublicRoute = ({ children }) => {
+    const { isAuthenticated, isLoading } = useAuth();
 
-    if (isLoading) return <PageLoader/>;
+    if (isLoading) return <PageLoader />;
 
     if (isAuthenticated) {
-        return <AuthRedirect/>;
+        return <AuthRedirect />;
     }
 
     return children;
@@ -94,50 +96,49 @@ const PublicRoute = ({children}) => {
 // Main layout wrapper with sidebar and navbar
 const MainLayout = () => (
     <Layout>
-        <Outlet/>
+        <Outlet />
     </Layout>
 );
 
 const AppRouter = () => {
     return (
         <BrowserRouter>
-            <Suspense fallback={<PageLoader/>}>
+            <Suspense fallback={<PageLoader />}>
                 <Routes>
                     {/* Public Routes */}
                     <Route
                         path="/login"
                         element={
                             <PublicRoute>
-                                <LoginPage/>
+                                <LoginPage />
                             </PublicRoute>
                         }
                     />
 
                     {/* Root redirect */}
-                    <Route path="/" element={<AuthRedirect/>}/>
+                    <Route path="/" element={<AuthRedirect />} />
 
                     {/* Cashier Routes - Separate Layout (CASHIER only) */}
-
                     <Route
                         path="/cashier"
                         element={
                             <RoleRoute allowedRoles={[CASHIER]}>
-                                <CashierLayout/>
+                                <CashierLayout />
                             </RoleRoute>
                         }
                     >
                         {/* Default cashier route goes to invoices */}
-                        <Route index element={<CashierInvoicesPage/>}/>
+                        <Route index element={<CashierInvoicesPage />} />
                     </Route>
 
                     {/* Protected Routes with Main Layout (OWNER, ADMIN, WORKER) */}
-                    <Route element={<MainLayout/>}>
+                    <Route element={<MainLayout />}>
                         {/* Dashboard - accessible to OWNER and ADMIN */}
                         <Route
                             path="/dashboard"
                             element={
                                 <RoleRoute allowedRoles={MANAGEMENT_ROLES}>
-                                    <DashboardPage/>
+                                    <DashboardPage />
                                 </RoleRoute>
                             }
                         />
@@ -147,33 +148,27 @@ const AppRouter = () => {
                             path="/invoices"
                             element={
                                 <RoleRoute allowedRoles={SALES_ROLES}>
-                                    <InvoicesPage/>
+                                    <InvoicesPage />
                                 </RoleRoute>
                             }
                         />
-                        {/*<Route*/}
-                        {/*    path="/invoices/new"*/}
-                        {/*    element={*/}
-                        {/*        <RoleRoute allowedRoles={SALES_ROLES}>*/}
-                        {/*            <CreateInvoicePage/>*/}
-                        {/*        </RoleRoute>*/}
-                        {/*    }*/}
-                        {/*/>*/}
-                        {/*<Route*/}
-                        {/*    path="/invoices/:id"*/}
-                        {/*    element={*/}
-                        {/*        <RoleRoute allowedRoles={SALES_ROLES}>*/}
-                        {/*            <InvoiceDetailPage/>*/}
-                        {/*        </RoleRoute>*/}
-                        {/*    }*/}
-                        {/*/>*/}
 
                         {/* Customer Management - Sales roles only */}
                         <Route
                             path="/customers"
                             element={
                                 <RoleRoute allowedRoles={SALES_ROLES}>
-                                    <CustomersPage/>
+                                    <CustomersPage />
+                                </RoleRoute>
+                            }
+                        />
+
+                        {/* Customer Details Route */}
+                        <Route
+                            path="/customers/:id"
+                            element={
+                                <RoleRoute allowedRoles={SALES_ROLES}>
+                                    <CustomerDetailsPage />
                                 </RoleRoute>
                             }
                         />
@@ -183,7 +178,7 @@ const AppRouter = () => {
                             path="/factory"
                             element={
                                 <RoleRoute allowedRoles={FACTORY_ROLES}>
-                                    <FactoryWorkerPage/>
+                                    <FactoryWorkerPage />
                                 </RoleRoute>
                             }
                         />
@@ -195,7 +190,7 @@ const AppRouter = () => {
                                 path="users"
                                 element={
                                     <RoleRoute allowedRoles={USER_MANAGEMENT_ROLES}>
-                                        <UserManagementPage/>
+                                        <UserManagementPage />
                                     </RoleRoute>
                                 }
                             />
@@ -205,7 +200,7 @@ const AppRouter = () => {
                                 path="glass-types"
                                 element={
                                     <RoleRoute allowedRoles={MANAGEMENT_ROLES}>
-                                        <GlassTypesPage/>
+                                        <GlassTypesPage />
                                     </RoleRoute>
                                 }
                             />
@@ -213,25 +208,35 @@ const AppRouter = () => {
                                 path="cutting-prices"
                                 element={
                                     <RoleRoute allowedRoles={[OWNER]}>
-                                        <CuttingPricesConfigPage/>
+                                        <CuttingPricesConfigPage />
+                                    </RoleRoute>
+                                }
+                            />
+
+                            {/* Operation Prices Management - Management roles */}
+                            <Route
+                                path="operation-prices"
+                                element={
+                                    <RoleRoute allowedRoles={MANAGEMENT_ROLES}>
+                                        <OperationPricesPage />
                                     </RoleRoute>
                                 }
                             />
                         </Route>
 
                         <Route path="sys-cashier"
-                               element={
-                                   <RoleRoute allowedRoles={[OWNER,ADMIN]}>
-                                       <CashierInvoicesPage/>
-                                   </RoleRoute>
-                               }
+                            element={
+                                <RoleRoute allowedRoles={[OWNER, ADMIN]}>
+                                    <CashierInvoicesPage />
+                                </RoleRoute>
+                            }
                         />
                     </Route>
 
                     {/* Error Pages */}
-                    <Route path="/unauthorized" element={<UnauthorizedPage/>}/>
-                    <Route path="/404" element={<NotFoundPage/>}/>
-                    <Route path="*" element={<Navigate to="/404" replace/>}/>
+                    <Route path="/unauthorized" element={<UnauthorizedPage />} />
+                    <Route path="/404" element={<NotFoundPage />} />
+                    <Route path="*" element={<Navigate to="/404" replace />} />
                 </Routes>
             </Suspense>
         </BrowserRouter>

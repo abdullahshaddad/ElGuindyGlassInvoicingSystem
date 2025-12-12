@@ -2,6 +2,7 @@ package com.example.backend.controllers;
 
 import com.example.backend.models.customer.Customer;
 import com.example.backend.services.CustomerService;
+import com.example.backend.exceptions.customer.CustomerNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +44,14 @@ public class CustomerController {
         }
 
         return ResponseEntity.ok(customers);
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER')")
+    public ResponseEntity<Customer> getCustomerById(@PathVariable Long id) {
+        Customer customer = customerService.findById(id)
+                .orElseThrow(() -> CustomerNotFoundException.forCustomerId(id));
+        return ResponseEntity.ok(customer);
     }
 
     @PostMapping

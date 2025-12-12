@@ -3,18 +3,19 @@ import React, { useState } from 'react';
 import clsx from 'clsx';
 
 const DataTable = ({
-                       data = [],
-                       columns = [],
-                       loading = false,
-                       sortable = true,
-                       pagination = true,
-                       pageSize = 10,
-                       className = '',
-                       dir,
-                       emptyMessage = 'لا توجد بيانات للعرض',
-                       loadingMessage = 'جاري التحميل...',
-                       ...props
-                   }) => {
+    data = [],
+    columns = [],
+    loading = false,
+    sortable = true,
+    pagination = true,
+    pageSize = 10,
+    className = '',
+    dir,
+    emptyMessage = 'لا توجد بيانات للعرض',
+    loadingMessage = 'جاري التحميل...',
+    onRowClick,
+    ...props
+}) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
     const [currentPage, setCurrentPage] = useState(1);
 
@@ -83,74 +84,81 @@ const DataTable = ({
                 <table className="w-full divide-y divide-gray-200 dark:divide-gray-700">
                     {/* Header */}
                     <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                        {columns.map((column) => (
-                            <th
-                                key={column.key}
-                                className={clsx(
-                                    'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider',
-                                    sortable && column.sortable !== false && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600',
-                                    column.align === 'center' && 'text-center',
-                                    column.align === 'right' && 'text-right'
-                                )}
-                                onClick={() => column.sortable !== false && handleSort(column.key)}
-                                role={sortable && column.sortable !== false ? 'button' : undefined}
-                                tabIndex={sortable && column.sortable !== false ? 0 : undefined}
-                                aria-sort={
-                                    sortConfig.key === column.key
-                                        ? sortConfig.direction === 'asc'
-                                            ? 'ascending'
-                                            : 'descending'
-                                        : 'none'
-                                }
-                            >
-                                <div className="flex items-center space-x-1 rtl:space-x-reverse">
-                                    <span>{column.header}</span>
-                                    {sortable && column.sortable !== false && getSortIcon(column.key)}
-                                </div>
-                            </th>
-                        ))}
-                    </tr>
+                        <tr>
+                            {columns.map((column) => (
+                                <th
+                                    key={column.key}
+                                    className={clsx(
+                                        'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider',
+                                        sortable && column.sortable !== false && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600',
+                                        column.align === 'center' && 'text-center',
+                                        column.align === 'right' && 'text-right'
+                                    )}
+                                    onClick={() => column.sortable !== false && handleSort(column.key)}
+                                    role={sortable && column.sortable !== false ? 'button' : undefined}
+                                    tabIndex={sortable && column.sortable !== false ? 0 : undefined}
+                                    aria-sort={
+                                        sortConfig.key === column.key
+                                            ? sortConfig.direction === 'asc'
+                                                ? 'ascending'
+                                                : 'descending'
+                                            : 'none'
+                                    }
+                                >
+                                    <div className="flex items-center space-x-1 rtl:space-x-reverse">
+                                        <span>{column.header}</span>
+                                        {sortable && column.sortable !== false && getSortIcon(column.key)}
+                                    </div>
+                                </th>
+                            ))}
+                        </tr>
                     </thead>
 
                     {/* Body */}
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {loading ? (
-                        <tr>
-                            <td colSpan={columns.length} className="px-6 py-8 text-center">
-                                <div className="flex items-center justify-center">
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                    </svg>
-                                    <span className="text-gray-500 dark:text-gray-400">{loadingMessage}</span>
-                                </div>
-                            </td>
-                        </tr>
-                    ) : paginatedData.length === 0 ? (
-                        <tr>
-                            <td colSpan={columns.length} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                                {emptyMessage}
-                            </td>
-                        </tr>
-                    ) : (
-                        paginatedData.map((row, rowIndex) => (
-                            <tr key={rowIndex} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                                {columns.map((column) => (
-                                    <td
-                                        key={column.key}
-                                        className={clsx(
-                                            'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white',
-                                            column.align === 'center' && 'text-center',
-                                            column.align === 'right' && 'text-right'
-                                        )}
-                                    >
-                                        {column.render ? column.render(row[column.key], row, rowIndex) : row[column.key]}
-                                    </td>
-                                ))}
+                        {loading ? (
+                            <tr>
+                                <td colSpan={columns.length} className="px-6 py-8 text-center">
+                                    <div className="flex items-center justify-center">
+                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                        </svg>
+                                        <span className="text-gray-500 dark:text-gray-400">{loadingMessage}</span>
+                                    </div>
+                                </td>
                             </tr>
-                        ))
-                    )}
+                        ) : paginatedData.length === 0 ? (
+                            <tr>
+                                <td colSpan={columns.length} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                                    {emptyMessage}
+                                </td>
+                            </tr>
+                        ) : (
+                            paginatedData.map((row, rowIndex) => (
+                                <tr
+                                    key={rowIndex}
+                                    className={clsx(
+                                        "hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors",
+                                        onRowClick && "cursor-pointer"
+                                    )}
+                                    onClick={() => onRowClick && onRowClick(row)}
+                                >
+                                    {columns.map((column) => (
+                                        <td
+                                            key={column.key}
+                                            className={clsx(
+                                                'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white',
+                                                column.align === 'center' && 'text-center',
+                                                column.align === 'right' && 'text-right'
+                                            )}
+                                        >
+                                            {column.render ? column.render(row[column.key], row, rowIndex) : row[column.key]}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -174,8 +182,8 @@ const DataTable = ({
                             </button>
 
                             <span className="text-sm text-gray-700 dark:text-gray-300">
-                صفحة {currentPage} من {totalPages}
-              </span>
+                                صفحة {currentPage} من {totalPages}
+                            </span>
 
                             <button
                                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}

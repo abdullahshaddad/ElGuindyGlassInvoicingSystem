@@ -4,9 +4,81 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ea39321d-6bb3-415f-bc92-ee442bcbbe19" name="Changes" comment="merge">
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
+    <list default="true" id="ea39321d-6bb3-415f-bc92-ee442bcbbe19" name="Changes" comment="feat: Add multi-operation invoice system with enhanced cashier UI&#10;&#10;  Implement comprehensive invoice line operation support with multiple glass cutting types (Farma, Shataf) and enhanced cashier interface components.&#10;&#10;  Backend changes:&#10;  - Update InvoiceLine model to support multiple operations per line&#10;  - Enhance CreateInvoiceLineRequest and PreviewLineRequest DTOs for operations&#10;  - Refactor InvoiceService to handle complex multi-operation calculations&#10;  - Add support for Farma type configurations in GlassType model&#10;&#10;  Frontend changes:&#10;  - Add EnhancedProductEntry component for detailed invoice line creation&#10;  - Implement FarmaTypeSelector and ShatafTypeSelector for type-specific inputs&#10;  - Create PaymentPanel for streamlined payment processing&#10;  - Add InvoiceConfirmationDialog for order review before submission&#10;  - Enhance glassTypeService with Farma type utilities&#10;  - Update cashier workflow components for better UX&#10;  - Add farmaTypes constants and utilities">
+      <change afterPath="$PROJECT_DIR$/CLAUDE.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/COMPATIBILITY_CHECK.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/COMPATIBILITY_FIX.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/MULTI_OPERATION_SOLUTION.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/TESTING_MULTI_OPERATIONS.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/application/dto/CreateInvoiceCommand.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/application/dto/CustomerDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/application/dto/InvoiceDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/application/dto/UpdateCustomerCommand.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/customer/exception/CustomerNotFoundException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/customer/exception/InvalidCustomerTypeException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/customer/model/Customer.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/customer/model/CustomerId.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/customer/repository/CustomerRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/customer/service/BalanceReconciliationService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/glass/model/GlassType.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/glass/model/GlassTypeId.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/glass/repository/GlassTypeRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/exception/InvalidPaymentException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/model/Invoice.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/model/InvoiceId.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/model/InvoiceLine.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/model/InvoiceLineId.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/model/LineCalculation.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/repository/InvoiceRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/service/InvoicePricingService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/payment/model/Payment.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/payment/model/PaymentId.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/payment/repository/PaymentRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shared/exception/DomainException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shared/valueobject/Area.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shared/valueobject/Dimensions.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shared/valueobject/EntityId.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shared/valueobject/Money.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shataf/model/ShatafRate.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shataf/repository/ShatafRateRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/OperationRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/infrastructure/adapter/InvoiceRepositoryAdapter.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/infrastructure/adapter/ShatafRateRepositoryAdapter.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/infrastructure/mapper/InvoiceMapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/InvoiceLineOperation.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/enums/OperationType.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceCreationService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/OperationCalculationService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/constants/farmaTypes.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/EnhancedProductEntry.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/FarmaTypeSelector.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceConfirmationDialog.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/PaymentPanel.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/ShatafTypeSelector.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/CreateInvoiceLineRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/CreateInvoiceLineRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/invoice/PreviewLineRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/invoice/PreviewLineRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/GlassType.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/GlassType.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/InvoiceLine.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/InvoiceLine.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/enums/InvoiceStatus.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/enums/InvoiceStatus.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/axios.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/axios.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/ui/Select.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/ui/Select.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/constants/shatafTypes.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/constants/shatafTypes.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/CustomersPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/CustomersPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/InvoicesPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/InvoicesPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicePage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicePage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/CustomerSelection.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/CustomerSelection.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceList.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceList.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceViewModal.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceViewModal.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/NewCustomerForm.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/NewCustomerForm.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/PricingBreakdown.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/PricingBreakdown.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/glassTypeService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/glassTypeService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/invoiceService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/invoiceService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/utils/farmaUtils.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/utils/farmaUtils.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/logs/elguindy-backend.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/elguindy-backend.log" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-09-29.0.gz" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-09-30.0.gz" beforeDir="false" />
@@ -39,9 +111,16 @@
   <component name="GithubPullRequestsUISettings">{
   &quot;selectedUrlAndAccountId&quot;: {
     &quot;url&quot;: &quot;https://github.com/abdullahshaddad/ElGuindyGlassInvoicingSystem.git&quot;,
-    &quot;accountId&quot;: &quot;0dcde83b-2707-412c-9fa1-cba3fba26a5c&quot;
+    &quot;accountId&quot;: &quot;af309460-3127-4ed4-b77a-170d879aba03&quot;
   }
 }</component>
+  <component name="KubernetesApiPersistence">{}</component>
+  <component name="KubernetesApiProvider">{
+  &quot;isMigrated&quot;: true
+}</component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
   <component name="ProjectCodeStyleSettingsMigration">
     <option name="version" value="2" />
   </component>
@@ -68,7 +147,7 @@
     &quot;Spring Boot.BackendApplication.executor&quot;: &quot;Run&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/lenovo/Desktop/Work/ElGuindyGlassInvoicingSystem&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/Abdullah Shaddad/Desktop/dev/ElGuindyGlassInvoicingSystem&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
@@ -89,8 +168,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-125ca727e0f0-intellij.indexing.shared.core-IU-243.24978.46" />
-        <option value="bundled-js-predefined-d6986cc7102b-76f8388c3a79-JavaScript-IU-243.24978.46" />
+        <option value="bundled-jdk-9823dce3aa75-a94e463ab2e7-intellij.indexing.shared.core-IU-243.25659.59" />
+        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-IU-243.25659.59" />
       </set>
     </attachedChunks>
   </component>
@@ -104,7 +183,21 @@
       <updated>1759918806893</updated>
       <workItem from="1759918809821" duration="1256000" />
       <workItem from="1760824459340" duration="2966000" />
-      <workItem from="1765467972186" duration="691000" />
+      <workItem from="1761324359371" duration="2884000" />
+      <workItem from="1761550825243" duration="699000" />
+      <workItem from="1761651021204" duration="2374000" />
+      <workItem from="1762133053400" duration="497000" />
+      <workItem from="1762133788076" duration="5046000" />
+      <workItem from="1762270219719" duration="571000" />
+      <workItem from="1762440119767" duration="2985000" />
+      <workItem from="1762560457833" duration="1393000" />
+      <workItem from="1762624179161" duration="1933000" />
+      <workItem from="1763543028935" duration="1511000" />
+      <workItem from="1763575450470" duration="3553000" />
+      <workItem from="1763736212587" duration="108000" />
+      <workItem from="1763820832204" duration="5704000" />
+      <workItem from="1764092195628" duration="35753000" />
+      <workItem from="1764336249922" duration="769000" />
     </task>
     <task id="LOCAL-00001" summary="fixing flow">
       <option name="closed" value="true" />
@@ -154,7 +247,103 @@
       <option name="project" value="LOCAL" />
       <updated>1760834867277</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="merged">
+      <option name="closed" value="true" />
+      <created>1760857709163</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1760857709163</updated>
+    </task>
+    <task id="LOCAL-00008" summary="env">
+      <option name="closed" value="true" />
+      <created>1760880647621</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1760880647621</updated>
+    </task>
+    <task id="LOCAL-00009" summary="env">
+      <option name="closed" value="true" />
+      <created>1760880909271</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1760880909271</updated>
+    </task>
+    <task id="LOCAL-00010" summary="env">
+      <option name="closed" value="true" />
+      <created>1760881503734</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1760881503734</updated>
+    </task>
+    <task id="LOCAL-00011" summary="corsconfig vercel">
+      <option name="closed" value="true" />
+      <created>1760881966666</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1760881966666</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Login Page adjustment">
+      <option name="closed" value="true" />
+      <created>1760955536272</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1760955536272</updated>
+    </task>
+    <task id="LOCAL-00013" summary="vercel config">
+      <option name="closed" value="true" />
+      <created>1760955627619</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1760955627619</updated>
+    </task>
+    <task id="LOCAL-00014" summary="feat: Add professional dashboard with full backend integration and dark mode support&#10;&#10;- Implement comprehensive dashboard with real-time statistics from backend&#10;- Add role-based views (Owner, Cashier, Worker) with different metrics&#10;- Create DashboardController with 7 RESTful endpoints for analytics&#10;- Implement dashboardService for clean API integration&#10;- Add DTOs to resolve Hibernate lazy loading serialization issues&#10;- Display recent invoices with customer information&#10;- Include quick action cards for common tasks&#10;- Add performance metrics with progress bars (Owner only)&#10;- Implement full dark mode support across all dashboard components&#10;- Support RTL/Arabic layout with proper text alignment&#10;- Add loading states with skeleton loaders&#10;- Implement error handling with retry functionality&#10;- Create responsive grid layouts for all screen sizes&#10;- Use Tailwind dark mode variants for seamless theme switching&#10;&#10;Backend:&#10;- DashboardController.java with stats, revenue, and recent invoices endpoints&#10;- Convert entities to DTOs to avoid Jackson serialization errors&#10;- Support filtering by date ranges and periods&#10;&#10;Frontend:&#10;- DashboardPage.jsx with StatsCard, QuickActionCard, and InvoiceRow components&#10;- dashboardService.js for API communication&#10;- Full integration with existing authentication and permissions system">
+      <option name="closed" value="true" />
+      <created>1760963887582</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1760963887582</updated>
+    </task>
+    <task id="LOCAL-00015" summary="feat: Add professional dashboard with full backend integration and dark mode support&#10;&#10;- Implement comprehensive dashboard with real-time statistics from backend&#10;- Add role-based views (Owner, Cashier, Worker) with different metrics&#10;- Create DashboardController with 7 RESTful endpoints for analytics&#10;- Implement dashboardService for clean API integration&#10;- Add DTOs to resolve Hibernate lazy loading serialization issues&#10;- Display recent invoices with customer information&#10;- Include quick action cards for common tasks&#10;- Add performance metrics with progress bars (Owner only)&#10;- Implement full dark mode support across all dashboard components&#10;- Support RTL/Arabic layout with proper text alignment&#10;- Add loading states with skeleton loaders&#10;- Implement error handling with retry functionality&#10;- Create responsive grid layouts for all screen sizes&#10;- Use Tailwind dark mode variants for seamless theme switching&#10;&#10;Backend:&#10;- DashboardController.java with stats, revenue, and recent invoices endpoints&#10;- Convert entities to DTOs to avoid Jackson serialization errors&#10;- Support filtering by date ranges and periods&#10;&#10;Frontend:&#10;- DashboardPage.jsx with StatsCard, QuickActionCard, and InvoiceRow components&#10;- dashboardService.js for API communication&#10;- Full integration with existing authentication and permissions system">
+      <option name="closed" value="true" />
+      <created>1760964160388</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1760964160388</updated>
+    </task>
+    <task id="LOCAL-00016" summary="feat: Add professional dashboard with full backend integration and dark mode support&#10;&#10;- Implement comprehensive dashboard with real-time statistics from backend&#10;- Add role-based views (Owner, Cashier, Worker) with different metrics&#10;- Create DashboardController with 7 RESTful endpoints for analytics&#10;- Implement dashboardService for clean API integration&#10;- Add DTOs to resolve Hibernate lazy loading serialization issues&#10;- Display recent invoices with customer information&#10;- Include quick action cards for common tasks&#10;- Add performance metrics with progress bars (Owner only)&#10;- Implement full dark mode support across all dashboard components&#10;- Support RTL/Arabic layout with proper text alignment&#10;- Add loading states with skeleton loaders&#10;- Implement error handling with retry functionality&#10;- Create responsive grid layouts for all screen sizes&#10;- Use Tailwind dark mode variants for seamless theme switching&#10;&#10;Backend:&#10;- DashboardController.java with stats, revenue, and recent invoices endpoints&#10;- Convert entities to DTOs to avoid Jackson serialization errors&#10;- Support filtering by date ranges and periods&#10;&#10;Frontend:&#10;- DashboardPage.jsx with StatsCard, QuickActionCard, and InvoiceRow components&#10;- dashboardService.js for API communication&#10;- Full integration with existing authentication and permissions system">
+      <option name="closed" value="true" />
+      <created>1763826418521</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1763826418521</updated>
+    </task>
+    <task id="LOCAL-00017" summary="feat: Enhanced Shataf &amp; Customer Payment System&#10;&#10;Major system upgrade implementing comprehensive shataf calculation system with 10 types and 12 farma formulas, plus enhanced customer payment management.&#10;&#10;Backend Changes:&#10;- Add ShatafType enum with 10 types (KHARAZAN, SHAMBORLEH, ONE_CM, TWO_CM, THREE_CM, JULIA, LASER, ROTATION, TABLEAUX, SANDING)&#10;- Add FarmaType enum with 12 formulas and built-in calculation methods&#10;- Add ShatafRate entity for thickness-based pricing management&#10;- Add InvoiceLineEnhanced model supporting new shataf/farma fields&#10;- Add ShatafRateRepository with custom queries and overlap detection&#10;- Add ShatafRateService with business logic and default rate initialization&#10;- Add EnhancedShatafCuttingStrategy supporting formula-based, manual, and area-based calculations&#10;- Add ShatafRateController with 9 REST API endpoints&#10;- Add DTOs: ShatafRateDTO, CreateInvoiceLineRequestEnhanced&#10;&#10;Frontend Changes:&#10;- Add shatafTypes.js constants with metadata and helper functions&#10;- Add farmaUtils.js with all 12 farma formula calculations&#10;- Add shatafRateService.js API client with rate management methods&#10;&#10;Database Changes:&#10;- Add shataf_rates table with unique constraints&#10;- Add columns to invoice_line: shataf_type, farma_type, diameter, shataf_meters, cutting_rate, glass_price, manual_cutting_price&#10;- Add performance indexes for optimized queries&#10;- Include data migration scripts for backward compatibility&#10;&#10;Features:&#10;- Formula-based shataf types (6): pricing depends on glass thickness and farma formula&#10;- Manual input types (3): LASER, ROTATION, TABLEAUX with manual price entry&#10;- Area-based type (1): SANDING calculated per square meter&#10;- 12 farma formulas: NORMAL_SHATAF, ONE_HEAD_FARMA, TWO_HEAD_FARMA, ONE_SIDE_FARMA, TWO_SIDE_FARMA, HEAD_SIDE_FARMA, TWO_HEAD_ONE_SIDE_FARMA, TWO_SIDE_ONE_HEAD_FARMA, FULL_FARMA, WHEEL_CUT, ROTATION, TABLEAUX&#10;- Customer balance management: CASH (must pay full), REGULAR/COMPANY (can have balance)&#10;- Automatic balance tracking and validation&#10;- Rate management API with bulk updates and default initialization&#10;&#10;Documentation:&#10;- Add comprehensive implementation guide with API reference&#10;- Add detailed usage examples with calculations&#10;- Add complete TODO checklist with testing requirements&#10;- Add database migration SQL with validation queries&#10;- Add files summary with integration roadmap&#10;&#10;Breaking Changes:&#10;- None - fully backward compatible with existing CuttingType system&#10;- Legacy SHATF/LASER types continue to work&#10;&#10;Next Steps:&#10;- Frontend UI component integration (InvoiceLineForm, ShatafTypeSelector, FarmaTypeSelector)&#10;- Admin panel for rate management&#10;- Comprehensive testing suite&#10;- Production deployment&#10;&#10;Files: 18 total (10 backend + 3 frontend + 5 docs)&#10;Size: ~133 KB&#10;Status: Backend 90% complete, Frontend 30% complete, Docs 100% complete">
+      <option name="closed" value="true" />
+      <created>1763829698989</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1763829698989</updated>
+    </task>
+    <task id="LOCAL-00018" summary="feat: Enhanced Shataf &amp; Customer Payment System&#10;&#10;Major system upgrade implementing comprehensive shataf calculation system with 10 types and 12 farma formulas, plus enhanced customer payment management.&#10;&#10;Backend Changes:&#10;- Add ShatafType enum with 10 types (KHARAZAN, SHAMBORLEH, ONE_CM, TWO_CM, THREE_CM, JULIA, LASER, ROTATION, TABLEAUX, SANDING)&#10;- Add FarmaType enum with 12 formulas and built-in calculation methods&#10;- Add ShatafRate entity for thickness-based pricing management&#10;- Add InvoiceLineEnhanced model supporting new shataf/farma fields&#10;- Add ShatafRateRepository with custom queries and overlap detection&#10;- Add ShatafRateService with business logic and default rate initialization&#10;- Add EnhancedShatafCuttingStrategy supporting formula-based, manual, and area-based calculations&#10;- Add ShatafRateController with 9 REST API endpoints&#10;- Add DTOs: ShatafRateDTO, CreateInvoiceLineRequestEnhanced&#10;&#10;Frontend Changes:&#10;- Add shatafTypes.js constants with metadata and helper functions&#10;- Add farmaUtils.js with all 12 farma formula calculations&#10;- Add shatafRateService.js API client with rate management methods&#10;&#10;Database Changes:&#10;- Add shataf_rates table with unique constraints&#10;- Add columns to invoice_line: shataf_type, farma_type, diameter, shataf_meters, cutting_rate, glass_price, manual_cutting_price&#10;- Add performance indexes for optimized queries&#10;- Include data migration scripts for backward compatibility&#10;&#10;Features:&#10;- Formula-based shataf types (6): pricing depends on glass thickness and farma formula&#10;- Manual input types (3): LASER, ROTATION, TABLEAUX with manual price entry&#10;- Area-based type (1): SANDING calculated per square meter&#10;- 12 farma formulas: NORMAL_SHATAF, ONE_HEAD_FARMA, TWO_HEAD_FARMA, ONE_SIDE_FARMA, TWO_SIDE_FARMA, HEAD_SIDE_FARMA, TWO_HEAD_ONE_SIDE_FARMA, TWO_SIDE_ONE_HEAD_FARMA, FULL_FARMA, WHEEL_CUT, ROTATION, TABLEAUX&#10;- Customer balance management: CASH (must pay full), REGULAR/COMPANY (can have balance)&#10;- Automatic balance tracking and validation&#10;- Rate management API with bulk updates and default initialization&#10;&#10;Documentation:&#10;- Add comprehensive implementation guide with API reference&#10;- Add detailed usage examples with calculations&#10;- Add complete TODO checklist with testing requirements&#10;- Add database migration SQL with validation queries&#10;- Add files summary with integration roadmap&#10;&#10;Breaking Changes:&#10;- None - fully backward compatible with existing CuttingType system&#10;- Legacy SHATF/LASER types continue to work&#10;&#10;Next Steps:&#10;- Frontend UI component integration (InvoiceLineForm, ShatafTypeSelector, FarmaTypeSelector)&#10;- Admin panel for rate management&#10;- Comprehensive testing suite&#10;- Production deployment&#10;&#10;Files: 18 total (10 backend + 3 frontend + 5 docs)&#10;Size: ~133 KB&#10;Status: Backend 90% complete, Frontend 30% complete, Docs 100% complete">
+      <option name="closed" value="true" />
+      <created>1763829845828</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1763829845828</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -167,6 +356,14 @@
     <MESSAGE value="fix" />
     <MESSAGE value="add: disable minio service" />
     <MESSAGE value="add: disable minio service v2" />
-    <option name="LAST_COMMIT_MESSAGE" value="add: disable minio service v2" />
+    <MESSAGE value="merged" />
+    <MESSAGE value="env" />
+    <MESSAGE value="corsconfig vercel" />
+    <MESSAGE value="Login Page adjustment" />
+    <MESSAGE value="vercel config" />
+    <MESSAGE value="feat: Add professional dashboard with full backend integration and dark mode support&#10;&#10;- Implement comprehensive dashboard with real-time statistics from backend&#10;- Add role-based views (Owner, Cashier, Worker) with different metrics&#10;- Create DashboardController with 7 RESTful endpoints for analytics&#10;- Implement dashboardService for clean API integration&#10;- Add DTOs to resolve Hibernate lazy loading serialization issues&#10;- Display recent invoices with customer information&#10;- Include quick action cards for common tasks&#10;- Add performance metrics with progress bars (Owner only)&#10;- Implement full dark mode support across all dashboard components&#10;- Support RTL/Arabic layout with proper text alignment&#10;- Add loading states with skeleton loaders&#10;- Implement error handling with retry functionality&#10;- Create responsive grid layouts for all screen sizes&#10;- Use Tailwind dark mode variants for seamless theme switching&#10;&#10;Backend:&#10;- DashboardController.java with stats, revenue, and recent invoices endpoints&#10;- Convert entities to DTOs to avoid Jackson serialization errors&#10;- Support filtering by date ranges and periods&#10;&#10;Frontend:&#10;- DashboardPage.jsx with StatsCard, QuickActionCard, and InvoiceRow components&#10;- dashboardService.js for API communication&#10;- Full integration with existing authentication and permissions system" />
+    <MESSAGE value="feat: Enhanced Shataf &amp; Customer Payment System&#10;&#10;Major system upgrade implementing comprehensive shataf calculation system with 10 types and 12 farma formulas, plus enhanced customer payment management.&#10;&#10;Backend Changes:&#10;- Add ShatafType enum with 10 types (KHARAZAN, SHAMBORLEH, ONE_CM, TWO_CM, THREE_CM, JULIA, LASER, ROTATION, TABLEAUX, SANDING)&#10;- Add FarmaType enum with 12 formulas and built-in calculation methods&#10;- Add ShatafRate entity for thickness-based pricing management&#10;- Add InvoiceLineEnhanced model supporting new shataf/farma fields&#10;- Add ShatafRateRepository with custom queries and overlap detection&#10;- Add ShatafRateService with business logic and default rate initialization&#10;- Add EnhancedShatafCuttingStrategy supporting formula-based, manual, and area-based calculations&#10;- Add ShatafRateController with 9 REST API endpoints&#10;- Add DTOs: ShatafRateDTO, CreateInvoiceLineRequestEnhanced&#10;&#10;Frontend Changes:&#10;- Add shatafTypes.js constants with metadata and helper functions&#10;- Add farmaUtils.js with all 12 farma formula calculations&#10;- Add shatafRateService.js API client with rate management methods&#10;&#10;Database Changes:&#10;- Add shataf_rates table with unique constraints&#10;- Add columns to invoice_line: shataf_type, farma_type, diameter, shataf_meters, cutting_rate, glass_price, manual_cutting_price&#10;- Add performance indexes for optimized queries&#10;- Include data migration scripts for backward compatibility&#10;&#10;Features:&#10;- Formula-based shataf types (6): pricing depends on glass thickness and farma formula&#10;- Manual input types (3): LASER, ROTATION, TABLEAUX with manual price entry&#10;- Area-based type (1): SANDING calculated per square meter&#10;- 12 farma formulas: NORMAL_SHATAF, ONE_HEAD_FARMA, TWO_HEAD_FARMA, ONE_SIDE_FARMA, TWO_SIDE_FARMA, HEAD_SIDE_FARMA, TWO_HEAD_ONE_SIDE_FARMA, TWO_SIDE_ONE_HEAD_FARMA, FULL_FARMA, WHEEL_CUT, ROTATION, TABLEAUX&#10;- Customer balance management: CASH (must pay full), REGULAR/COMPANY (can have balance)&#10;- Automatic balance tracking and validation&#10;- Rate management API with bulk updates and default initialization&#10;&#10;Documentation:&#10;- Add comprehensive implementation guide with API reference&#10;- Add detailed usage examples with calculations&#10;- Add complete TODO checklist with testing requirements&#10;- Add database migration SQL with validation queries&#10;- Add files summary with integration roadmap&#10;&#10;Breaking Changes:&#10;- None - fully backward compatible with existing CuttingType system&#10;- Legacy SHATF/LASER types continue to work&#10;&#10;Next Steps:&#10;- Frontend UI component integration (InvoiceLineForm, ShatafTypeSelector, FarmaTypeSelector)&#10;- Admin panel for rate management&#10;- Comprehensive testing suite&#10;- Production deployment&#10;&#10;Files: 18 total (10 backend + 3 frontend + 5 docs)&#10;Size: ~133 KB&#10;Status: Backend 90% complete, Frontend 30% complete, Docs 100% complete" />
+    <MESSAGE value="feat: Add multi-operation invoice system with enhanced cashier UI&#10;&#10;  Implement comprehensive invoice line operation support with multiple glass cutting types (Farma, Shataf) and enhanced cashier interface components.&#10;&#10;  Backend changes:&#10;  - Update InvoiceLine model to support multiple operations per line&#10;  - Enhance CreateInvoiceLineRequest and PreviewLineRequest DTOs for operations&#10;  - Refactor InvoiceService to handle complex multi-operation calculations&#10;  - Add support for Farma type configurations in GlassType model&#10;&#10;  Frontend changes:&#10;  - Add EnhancedProductEntry component for detailed invoice line creation&#10;  - Implement FarmaTypeSelector and ShatafTypeSelector for type-specific inputs&#10;  - Create PaymentPanel for streamlined payment processing&#10;  - Add InvoiceConfirmationDialog for order review before submission&#10;  - Enhance glassTypeService with Farma type utilities&#10;  - Update cashier workflow components for better UX&#10;  - Add farmaTypes constants and utilities" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: Add multi-operation invoice system with enhanced cashier UI&#10;&#10;  Implement comprehensive invoice line operation support with multiple glass cutting types (Farma, Shataf) and enhanced cashier interface components.&#10;&#10;  Backend changes:&#10;  - Update InvoiceLine model to support multiple operations per line&#10;  - Enhance CreateInvoiceLineRequest and PreviewLineRequest DTOs for operations&#10;  - Refactor InvoiceService to handle complex multi-operation calculations&#10;  - Add support for Farma type configurations in GlassType model&#10;&#10;  Frontend changes:&#10;  - Add EnhancedProductEntry component for detailed invoice line creation&#10;  - Implement FarmaTypeSelector and ShatafTypeSelector for type-specific inputs&#10;  - Create PaymentPanel for streamlined payment processing&#10;  - Add InvoiceConfirmationDialog for order review before submission&#10;  - Enhance glassTypeService with Farma type utilities&#10;  - Update cashier workflow components for better UX&#10;  - Add farmaTypes constants and utilities" />
   </component>
 </project>

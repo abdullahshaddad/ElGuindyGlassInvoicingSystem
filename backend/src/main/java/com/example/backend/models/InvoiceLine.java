@@ -2,15 +2,20 @@ package com.example.backend.models;
 
 import com.example.backend.models.enums.*;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Enhanced InvoiceLine Entity
  * Supports:
+ * - Multiple operations per line (SHATAF, FARMA, LASER)
  * - Formula-based shataf types (KHARAZAN, SHAMBORLEH, etc.)
  * - Manual input types (LASER, ROTATION, TABLEAUX)
  * - Area-based types (SANDING)
@@ -36,6 +41,14 @@ public class InvoiceLine {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "glass_type_id", nullable = false)
     private GlassType glassType;
+
+    /**
+     * Operations applied to this invoice line (NEW - supports multiple operations)
+     */
+    @OneToMany(mappedBy = "invoiceLine", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    @Builder.Default
+    private List<InvoiceLineOperation> operations = new ArrayList<>();
 
     // ========== DIMENSION FIELDS ==========
 
@@ -144,8 +157,8 @@ public class InvoiceLine {
      * Legacy constructor for backward compatibility
      */
     public InvoiceLine(Invoice invoice, GlassType glassType,
-                       Double width, Double height,
-                       DimensionUnit unit, CuttingType cuttingType) {
+            Double width, Double height,
+            DimensionUnit unit, CuttingType cuttingType) {
         this.invoice = invoice;
         this.glassType = glassType;
         this.width = width;
@@ -163,9 +176,9 @@ public class InvoiceLine {
      * New constructor with enhanced shataf support
      */
     public InvoiceLine(Invoice invoice, GlassType glassType,
-                       Double width, Double height,
-                       DimensionUnit unit, ShatafType shatafType,
-                       FarmaType farmaType, Double diameter) {
+            Double width, Double height,
+            DimensionUnit unit, ShatafType shatafType,
+            FarmaType farmaType, Double diameter) {
         this.invoice = invoice;
         this.glassType = glassType;
         this.width = width;
@@ -183,12 +196,29 @@ public class InvoiceLine {
      */
     @Transient
     public Double getQuantityForPricing() {
-        if (glassType == null) return 0.0;
+        if (glassType == null)
+            return 0.0;
 
         CalculationMethod method = glassType.getCalculationMethod();
-        if (method == null) method = CalculationMethod.AREA;
+        if (method == null)
+            method = CalculationMethod.AREA;
 
         return method == CalculationMethod.LENGTH ? lengthM : areaM2;
+    }
+
+    /**
+     * Get quantity unit for display
+     */
+    @Transient
+    public String getQuantityUnit() {
+        if (glassType == null)
+            return "";
+
+        CalculationMethod method = glassType.getCalculationMethod();
+        if (method == null)
+            method = CalculationMethod.AREA;
+
+        return method == CalculationMethod.LENGTH ? "متر طولي" : "متر مربع";
     }
 
     /**
@@ -209,9 +239,9 @@ public class InvoiceLine {
         // Calculate length (for length-based pricing)
         this.lengthM = Math.max(widthM, heightM);
 
-        // Store converted dimensions
-        this.width = widthM;
-        this.height = heightM;
+        // NOTE: We do NOT overwrite this.width/this.height with meters
+        // We keep the original input values and the original dimensionUnit
+        // converted dimensions are stored in areaM2 and lengthM only
     }
 
     /**
@@ -231,10 +261,9 @@ public class InvoiceLine {
 
         // Use farma formula
         this.shatafMeters = farmaType.calculateShatafMeters(
-                width,  // Already in meters after calculateDimensions()
+                width, // Already in meters after calculateDimensions()
                 height, // Already in meters after calculateDimensions()
-                diameter
-        );
+                diameter);
     }
 
     /**
@@ -259,18 +288,83 @@ public class InvoiceLine {
             throw new IllegalStateException("الارتفاع مطلوب ويجب أن يكون أكبر من صفر");
         }
 
-        // Validate farma type requirements
+        // Validate farma type requirements (legacy support)
         if (farmaType != null) {
             if (farmaType.requiresDiameter() && (diameter == null || diameter <= 0)) {
                 throw new IllegalStateException("القطر مطلوب لنوع الفرما: " + farmaType.getArabicName());
             }
         }
 
-        // Validate manual price for manual types
+        // Validate manual price for manual types (legacy support)
         if (shatafType != null && shatafType.isManualInput()) {
             if (manualCuttingPrice == null || manualCuttingPrice < 0) {
                 throw new IllegalStateException("سعر القطع اليدوي مطلوب للنوع: " + shatafType.getArabicName());
             }
         }
+    }
+
+    // ========== OPERATION MANAGEMENT METHODS (NEW) ==========
+
+    /**
+     * Add an operation to this invoice line
+     */
+    public void addOperation(InvoiceLineOperation operation) {
+        if (operations == null) {
+            operations = new ArrayList<>();
+        }
+        operations.add(operation);
+        operation.setInvoiceLine(this);
+    }
+
+    /**
+     * Remove an operation from this invoice line
+     */
+    public void removeOperation(InvoiceLineOperation operation) {
+        if (operations != null) {
+            operations.remove(operation);
+            operation.setInvoiceLine(null);
+        }
+    }
+
+    /**
+     * Calculate total cutting price from all operations
+     */
+    /**
+     * Calculate total cutting price from all operations (Using BigDecimal)
+     */
+    @Transient
+    public Double calculateTotalOperationsPrice() {
+        if (operations == null || operations.isEmpty()) {
+            // Fallback to legacy cutting price if no operations
+            return cuttingPrice != null ? cuttingPrice : 0.0;
+        }
+
+        java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+        for (InvoiceLineOperation op : operations) {
+            if (op.getOperationPrice() != null) {
+                total = total.add(java.math.BigDecimal.valueOf(op.getOperationPrice()));
+            }
+        }
+
+        return total.setScale(2, java.math.RoundingMode.HALF_UP).doubleValue();
+    }
+
+    /**
+     * Recalculate line total including glass price and all operations
+     */
+    public void recalculateLineTotal() {
+        // Glass price (already set)
+        java.math.BigDecimal glassCost = java.math.BigDecimal.valueOf(glassPrice != null ? glassPrice : 0.0);
+
+        // Operations price
+        java.math.BigDecimal operationsCost = java.math.BigDecimal.valueOf(calculateTotalOperationsPrice());
+
+        // Update cutting price to match operations total
+        this.cuttingPrice = operationsCost.doubleValue();
+
+        // Update line total
+        this.lineTotal = glassCost.add(operationsCost)
+                .setScale(2, java.math.RoundingMode.HALF_UP)
+                .doubleValue();
     }
 }

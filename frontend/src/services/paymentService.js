@@ -1,4 +1,4 @@
-import { get, post, del } from '../utils/api';
+import { get, post, put, del } from '@/api/axios';
 
 /**
  * Payment Service

@@ -289,18 +289,57 @@ export const invoiceService = {
         }
     },
 
+    /**
+     * Preview line total before creating invoice (legacy, uses cuttingType)
+     * @param {number} glassTypeId - Glass type ID
+     * @param {number} width - Width in selected unit
+     * @param {number} height - Height in selected unit
+     * @param {string} cuttingType - Cutting type (SHATAF, FARMA, etc.)
+     * @param {string} [dimensionUnit='MM'] - MM, CM, or M
+     * @returns {Promise<number>}
+     */
+    async previewLineTotal(glassTypeId, width, height, cuttingType, dimensionUnit = 'MM') {
+        try {
+            const response = await post('/invoices/preview-line-total', {
+                glassTypeId,
+                width,
+                height,
+                cuttingType,
+                dimensionUnit
+            });
+            return response;
+        } catch (error) {
+            console.error('Preview line total error:', error);
+            throw error;
+        }
+    },
+
+    // Get basic stats for dashboard
+    async getStats() {
+        try {
+            const response = await get('/invoices/stats/basic');
+            return response;
+        } catch (error) {
+            console.error('Get basic stats error:', error);
+            throw error;
+        }
+    },
+
     // ===== LINE PREVIEW =====
 
     /**
      * Preview line calculation before creating invoice
      * This allows frontend to show exact calculation that backend will use
+     * UPDATED: Uses new shatafType/farmaType fields instead of legacy cuttingType
      * @param {Object} lineData - Line data
      * @param {number} lineData.glassTypeId - Glass type ID
      * @param {number} lineData.width - Width in selected unit
      * @param {number} lineData.height - Height in selected unit
      * @param {string} lineData.dimensionUnit - MM, CM, or M
-     * @param {string} lineData.cuttingType - SHATF, LASER, etc.
-     * @param {number} [lineData.manualCuttingPrice] - Required for LASER
+     * @param {string} lineData.shatafType - Shataf type (KHARAZAN, LASER, etc.)
+     * @param {string} lineData.farmaType - Farma type (NORMAL_SHATAF, WHEEL_CUT, etc.)
+     * @param {number} [lineData.diameter] - Required for WHEEL_CUT farma type
+     * @param {number} [lineData.manualCuttingPrice] - Required for manual shataf types (LASER, ROTATION, TABLEAUX)
      * @returns {Promise<LinePreviewDTO>}
      */
     async previewLineCalculation(lineData) {
@@ -310,7 +349,10 @@ export const invoiceService = {
                 width: lineData.width,
                 height: lineData.height,
                 dimensionUnit: lineData.dimensionUnit || 'MM',
-                cuttingType: lineData.cuttingType,
+                operations: lineData.operations || undefined,
+                shatafType: lineData.shatafType,
+                farmaType: lineData.farmaType,
+                diameter: lineData.diameter || null,
                 manualCuttingPrice: lineData.manualCuttingPrice || null
             });
 
@@ -435,7 +477,7 @@ export const invoiceService = {
             errors.push('يجب إضافة بند واحد على الأقل');
         }
 
-        // Validate each line
+        // Validate each line (UPDATED for new shatafType/farmaType fields)
         invoiceData.invoiceLines?.forEach((line, index) => {
             if (!line.glassTypeId) {
                 errors.push(`البند ${index + 1}: يجب اختيار نوع الزجاج`);
@@ -449,11 +491,24 @@ export const invoiceService = {
             if (!line.dimensionUnit) {
                 errors.push(`البند ${index + 1}: يجب اختيار وحدة القياس`);
             }
-            if (!line.cuttingType) {
-                errors.push(`البند ${index + 1}: يجب اختيار نوع القطع`);
+
+            // NEW: Validate shatafType and farmaType
+            if (!line.shatafType) {
+                errors.push(`البند ${index + 1}: يجب اختيار نوع الشطف`);
             }
-            if (line.cuttingType === 'LASER' && !line.manualCuttingPrice) {
-                errors.push(`البند ${index + 1}: يجب إدخال سعر القطع اليدوي للقطع بالليزر`);
+            if (!line.farmaType) {
+                errors.push(`البند ${index + 1}: يجب اختيار نوع الفرما`);
+            }
+
+            // Validate manual cutting price for manual shataf types
+            const manualShatafTypes = ['LASER', 'ROTATION', 'TABLEAUX'];
+            if (manualShatafTypes.includes(line.shatafType) && !line.manualCuttingPrice) {
+                errors.push(`البند ${index + 1}: يجب إدخال سعر القطع اليدوي لنوع الشطف المحدد`);
+            }
+
+            // Validate diameter for WHEEL_CUT farma type
+            if (line.farmaType === 'WHEEL_CUT' && (!line.diameter || line.diameter <= 0)) {
+                errors.push(`البند ${index + 1}: يجب إدخال القطر لنوع الفرما "عجلة"`);
             }
         });
 
@@ -508,10 +563,12 @@ export const invoiceService = {
 
 /**
  * TypeScript type definitions (for reference)
+ * UPDATED: Now using shatafType/farmaType instead of legacy cuttingType
  *
  * @typedef {Object} CreateInvoiceRequest
  * @property {number} customerId
  * @property {string} [issueDate] - ISO date string
+ * @property {number} [amountPaidNow] - Initial payment amount
  * @property {string} [notes]
  * @property {InvoiceLine[]} invoiceLines
  *
@@ -520,8 +577,10 @@ export const invoiceService = {
  * @property {number} width
  * @property {number} height
  * @property {string} dimensionUnit - MM, CM, M
- * @property {string} cuttingType - SHATF, LASER
- * @property {number} [manualCuttingPrice] - Required for LASER
+ * @property {string} shatafType - KHARAZAN, SHAMBORLEH, ONE_CM, TWO_CM, THREE_CM, JULIA, LASER, ROTATION, TABLEAUX, SANDING
+ * @property {string} farmaType - NORMAL_SHATAF, ONE_HEAD_FARMA, TWO_HEAD_FARMA, ONE_SIDE_FARMA, TWO_SIDE_FARMA, HEAD_SIDE_FARMA, TWO_HEAD_ONE_SIDE_FARMA, TWO_SIDE_ONE_HEAD_FARMA, FULL_FARMA, WHEEL_CUT, ROTATION, TABLEAUX
+ * @property {number} [diameter] - Required for WHEEL_CUT farma type
+ * @property {number} [manualCuttingPrice] - Required for manual shataf types (LASER, ROTATION, TABLEAUX)
  *
  * @typedef {Object} Invoice
  * @property {number} id
@@ -530,6 +589,8 @@ export const invoiceService = {
  * @property {string} issueDate - ISO date string
  * @property {string} [paymentDate] - ISO date string
  * @property {number} totalPrice
+ * @property {number} amountPaidNow
+ * @property {number} remainingBalance
  * @property {string} status - PENDING, PAID, CANCELLED
  * @property {string} [notes]
  * @property {InvoiceLine[]} invoiceLines
@@ -542,13 +603,15 @@ export const invoiceService = {
  * @property {number} thickness
  * @property {string} calculationMethod
  * @property {number} areaM2
+ * @property {number} shatafMeters
  * @property {number} [lengthM]
  * @property {number} quantityForPricing
  * @property {number} glassUnitPrice
  * @property {number} glassPrice
- * @property {string} cuttingType
+ * @property {string} shatafType
+ * @property {string} farmaType
+ * @property {number} [diameter]
  * @property {number} [cuttingRate]
- * @property {number} perimeter
  * @property {number} cuttingPrice
  * @property {number} lineTotal
  * @property {string} quantityUnit

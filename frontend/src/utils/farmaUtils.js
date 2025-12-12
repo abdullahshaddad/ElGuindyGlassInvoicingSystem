@@ -1,212 +1,203 @@
-// src/utils/farmaUtils.js
-
 /**
- * Farma (Frame) calculation utilities
- * Implements all farma formulas for shataf calculations
+ * Farma Calculations Utility
+ * Implements all farma formulas for calculating shataf meters
  */
-
-/**
- * Farma types with their Arabic names and calculation methods
- */
-export const FARMA_TYPES = {
-    NORMAL_SHATAF: {
-        value: 'NORMAL_SHATAF',
-        arabicName: 'شطف عادي',
-        requiresDiameter: false,
-        isManual: false,
-        formula: '2 × (length + width)'
-    },
-    ONE_HEAD_FARMA: {
-        value: 'ONE_HEAD_FARMA',
-        arabicName: 'فرما رأس 1',
-        requiresDiameter: false,
-        isManual: false,
-        formula: '(3 × 2) + (length × width)'
-    },
-    TWO_HEAD_FARMA: {
-        value: 'TWO_HEAD_FARMA',
-        arabicName: 'فرما رأسين',
-        requiresDiameter: false,
-        isManual: false,
-        formula: '(4 × 2) + (length × width)'
-    },
-    ONE_SIDE_FARMA: {
-        value: 'ONE_SIDE_FARMA',
-        arabicName: 'فرما جنب 1',
-        requiresDiameter: false,
-        isManual: false,
-        formula: '(2 × 3) + (length × width)'
-    },
-    TWO_SIDE_FARMA: {
-        value: 'TWO_SIDE_FARMA',
-        arabicName: 'فرما جنبين',
-        requiresDiameter: false,
-        isManual: false,
-        formula: '(2 × 4) + (length × width)'
-    },
-    HEAD_SIDE_FARMA: {
-        value: 'HEAD_SIDE_FARMA',
-        arabicName: 'فرما رأس وجنب',
-        requiresDiameter: false,
-        isManual: false,
-        formula: '3 × (length + width)'
-    },
-    TWO_HEAD_ONE_SIDE_FARMA: {
-        value: 'TWO_HEAD_ONE_SIDE_FARMA',
-        arabicName: 'فرما رأسين وجنب',
-        requiresDiameter: false,
-        isManual: false,
-        formula: '(4 × 3) + (length × width)'
-    },
-    TWO_SIDE_ONE_HEAD_FARMA: {
-        value: 'TWO_SIDE_ONE_HEAD_FARMA',
-        arabicName: 'فرما جنبين ورأس',
-        requiresDiameter: false,
-        isManual: false,
-        formula: '(3 × 4) + (length × width)'
-    },
-    FULL_FARMA: {
-        value: 'FULL_FARMA',
-        arabicName: 'فرما كامل',
-        requiresDiameter: false,
-        isManual: false,
-        formula: '4 × (length + width)'
-    },
-    WHEEL_CUT: {
-        value: 'WHEEL_CUT',
-        arabicName: 'العجلة',
-        requiresDiameter: true,
-        isManual: false,
-        formula: '6 × diameter'
-    },
-    ROTATION: {
-        value: 'ROTATION',
-        arabicName: 'الدوران',
-        requiresDiameter: false,
-        isManual: true,
-        formula: 'Manual input'
-    },
-    TABLEAUX: {
-        value: 'TABLEAUX',
-        arabicName: 'التابلوهات',
-        requiresDiameter: false,
-        isManual: true,
-        formula: 'Manual input'
-    }
-};
 
 /**
  * Calculate shataf meters based on farma type
- * @param {string} farmaType - Farma type key
+ * @param {string} farmaType - The farma type enum value
  * @param {number} length - Length in meters
  * @param {number} width - Width in meters
- * @param {number} diameter - Diameter in meters (for WHEEL_CUT)
- * @returns {number} Calculated shataf meters
+ * @param {number|null} diameter - Diameter in meters (required for WHEEL_CUT)
+ * @returns {number} Calculated meters for shataf
+ * @throws {Error} If required parameters are missing or invalid
  */
-export const calculateShatafMeters = (farmaType, length, width, diameter = null) => {
-    if (!farmaType || !length || !width) return 0;
-
-    const lengthM = length;
-    const widthM = width;
+export const calculateFarmaMeters = (farmaType, length, width, diameter = null) => {
+    // Validate inputs
+    if (!length || length <= 0) {
+        throw new Error('الطول مطلوب ويجب أن يكون أكبر من صفر');
+    }
+    if (!width || width <= 0) {
+        throw new Error('العرض مطلوب ويجب أن يكون أكبر من صفر');
+    }
 
     switch (farmaType) {
         case 'NORMAL_SHATAF':
+        case 'HAND_SHATAF':
             // 2 × (length + width)
-            return 2 * (lengthM + widthM);
+            return 2 * (length + width);
 
         case 'ONE_HEAD_FARMA':
             // (3 × 2) + (length × width)
-            return (3 * 2) + (lengthM * widthM);
+            return (3 * 2) + (length * width);
 
         case 'TWO_HEAD_FARMA':
             // (4 × 2) + (length × width)
-            return (4 * 2) + (lengthM * widthM);
+            return (4 * 2) + (length * width);
 
         case 'ONE_SIDE_FARMA':
             // (2 × 3) + (length × width)
-            return (2 * 3) + (lengthM * widthM);
+            return (2 * 3) + (length * width);
 
         case 'TWO_SIDE_FARMA':
             // (2 × 4) + (length × width)
-            return (2 * 4) + (lengthM * widthM);
+            return (2 * 4) + (length * width);
 
         case 'HEAD_SIDE_FARMA':
             // 3 × (length + width)
-            return 3 * (lengthM + widthM);
+            return 3 * (length + width);
 
         case 'TWO_HEAD_ONE_SIDE_FARMA':
             // (4 × 3) + (length × width)
-            return (4 * 3) + (lengthM * widthM);
+            return (4 * 3) + (length * width);
 
         case 'TWO_SIDE_ONE_HEAD_FARMA':
             // (3 × 4) + (length × width)
-            return (3 * 4) + (lengthM * widthM);
+            return (3 * 4) + (length * width);
 
         case 'FULL_FARMA':
             // 4 × (length + width)
-            return 4 * (lengthM + widthM);
+            return 4 * (length + width);
 
         case 'WHEEL_CUT':
             // 6 × diameter
             if (!diameter || diameter <= 0) {
-                throw new Error('القطر مطلوب لحساب قطع العجلة');
+                throw new Error('القطر مطلوب لحساب العجلة');
             }
             return 6 * diameter;
 
         case 'ROTATION':
         case 'TABLEAUX':
-            // Manual - no formula
+            // Manual types don't have automatic calculation, return 0
+            // This allows the flow to continue, and the manual price will be used
             return 0;
 
         default:
-            console.warn(`Unknown farma type: ${farmaType}`);
-            return 2 * (lengthM + widthM); // Default to normal shataf
+            throw new Error(`نوع فارمة غير معروف: ${farmaType}`);
     }
 };
 
 /**
- * Get farma type info by value
+ * Get formula description in Arabic
+ * @param {string} farmaType - The farma type enum value
+ * @returns {string} Formula description in Arabic
  */
-export const getFarmaTypeInfo = (farmaType) => {
-    return FARMA_TYPES[farmaType] || FARMA_TYPES.NORMAL_SHATAF;
+export const getFarmaFormulaDescription = (farmaType) => {
+    const formulas = {
+        'NORMAL_SHATAF': '2 × (الطول + العرض)',
+        'HAND_SHATAF': '2 × (الطول + العرض)',
+        'ONE_HEAD_FARMA': '(3 × 2) + (الطول × العرض)',
+        'TWO_HEAD_FARMA': '(4 × 2) + (الطول × العرض)',
+        'ONE_SIDE_FARMA': '(2 × 3) + (الطول × العرض)',
+        'TWO_SIDE_FARMA': '(2 × 4) + (الطول × العرض)',
+        'HEAD_SIDE_FARMA': '3 × (الطول + العرض)',
+        'TWO_HEAD_ONE_SIDE_FARMA': '(4 × 3) + (الطول × العرض)',
+        'TWO_SIDE_ONE_HEAD_FARMA': '(3 × 4) + (الطول × العرض)',
+        'FULL_FARMA': '4 × (الطول + العرض)',
+        'WHEEL_CUT': '6 × القطر',
+        'ROTATION': 'إدخال يدوي',
+        'TABLEAUX': 'إدخال يدوي'
+    };
+
+    return formulas[farmaType] || 'غير معروف';
 };
 
 /**
- * Get all farma types as array
+ * Calculate detailed breakdown of farma calculation
+ * @param {string} farmaType - The farma type enum value
+ * @param {number} length - Length in meters
+ * @param {number} width - Width in meters
+ * @param {number|null} diameter - Diameter in meters
+ * @returns {Object} Calculation breakdown with steps
  */
-export const getAllFarmaTypes = () => {
-    return Object.values(FARMA_TYPES);
+export const getFarmaCalculationBreakdown = (farmaType, length, width, diameter = null) => {
+    try {
+        const result = calculateFarmaMeters(farmaType, length, width, diameter);
+        const formula = getFarmaFormulaDescription(farmaType);
+
+        let steps = [];
+
+        switch (farmaType) {
+            case 'NORMAL_SHATAF':
+            case 'HAND_SHATAF':
+                steps = [
+                    `الطول + العرض = ${length.toFixed(2)} + ${width.toFixed(2)} = ${(length + width).toFixed(2)} م`,
+                    `2 × ${(length + width).toFixed(2)} = ${result.toFixed(2)} متر`
+                ];
+                break;
+
+            case 'ONE_HEAD_FARMA':
+                steps = [
+                    `3 × 2 = 6`,
+                    `الطول × العرض = ${length.toFixed(2)} × ${width.toFixed(2)} = ${(length * width).toFixed(2)}`,
+                    `6 + ${(length * width).toFixed(2)} = ${result.toFixed(2)} متر`
+                ];
+                break;
+
+            case 'WHEEL_CUT':
+                steps = [
+                    `القطر = ${diameter.toFixed(2)} م`,
+                    `6 × ${diameter.toFixed(2)} = ${result.toFixed(2)} متر`
+                ];
+                break;
+
+            case 'ROTATION':
+            case 'TABLEAUX':
+                steps = ['يتم تحديد السعر يدوياً'];
+                break;
+
+            // Add more detailed breakdowns as needed
+            default:
+                steps = [`النتيجة = ${result.toFixed(2)} متر`];
+        }
+
+        return {
+            success: true,
+            result,
+            formula,
+            steps,
+            length,
+            width,
+            diameter
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message,
+            formula: getFarmaFormulaDescription(farmaType)
+        };
+    }
 };
 
 /**
- * Check if farma type requires diameter input
+ * Validate farma calculation inputs
+ * @param {string} farmaType - The farma type enum value
+ * @param {number} length - Length in meters
+ * @param {number} width - Width in meters
+ * @param {number|null} diameter - Diameter in meters
+ * @returns {Object} Validation result with isValid and errors
  */
-export const requiresDiameter = (farmaType) => {
-    const info = getFarmaTypeInfo(farmaType);
-    return info.requiresDiameter;
-};
+export const validateFarmaInputs = (farmaType, length, width, diameter = null) => {
+    const errors = [];
 
-/**
- * Check if farma type is manual (no formula)
- */
-export const isManualFarma = (farmaType) => {
-    const info = getFarmaTypeInfo(farmaType);
-    return info.isManual;
-};
-
-/**
- * Format farma calculation for display
- */
-export const formatFarmaCalculation = (farmaType, length, width, diameter, shatafMeters) => {
-    const info = getFarmaTypeInfo(farmaType);
-
-    if (info.isManual) {
-        return 'إدخال يدوي';
+    if (!farmaType) {
+        errors.push('نوع الفارمة مطلوب');
     }
 
-    if (farmaType === 'WHEEL_CUT') {
-        return `6 × ${diameter?.toFixed(2)} م = ${shatafMeters?.toFixed(2)} م`;
+    if (!length || length <= 0) {
+        errors.push('الطول مطلوب ويجب أن يكون أكبر من صفر');
     }
 
-    return `${info.formula} = ${shatafMeters?.toFixed(2)} م`;
+    if (!width || width <= 0) {
+        errors.push('العرض مطلوب ويجب أن يكون أكبر من صفر');
+    }
+
+    if (farmaType === 'WHEEL_CUT' && (!diameter || diameter <= 0)) {
+        errors.push('القطر مطلوب لحساب العجلة');
+    }
+
+    return {
+        isValid: errors.length === 0,
+        errors
+    };
 };

@@ -1,21 +1,86 @@
 import { get, post, put, del } from '@/api/axios';
 
 /**
- * Glass Type Service
- * Handles all glass type management (Admin/Owner only)
+ * Glass Type Service - Enhanced with comprehensive error handling
+ * Handles all glass type management operations
  */
 export const glassTypeService = {
     /**
-     * Get all glass types
-     * @returns {Promise<GlassType[]>}
+     * Get all glass types with enhanced error handling
+     * @returns {Promise<GlassType[]>} Array of glass types (never undefined)
      */
     async getAllGlassTypes() {
         try {
+            console.log('🔍 Fetching all glass types...');
             const response = await get('/glass-types');
-            return response;
+
+            // Defensive checks for undefined/null response
+            if (!response) {
+                console.warn('⚠️ Glass types API returned undefined/null, returning empty array');
+                return [];
+            }
+
+            // Check if response is an array
+            if (!Array.isArray(response)) {
+                console.warn('⚠️ Glass types API returned non-array:', {
+                    type: typeof response,
+                    value: response
+                });
+                return [];
+            }
+
+            console.log(`✅ Successfully loaded ${response.length} glass types`);
+
+            // Additional validation: check if glass types have required fields
+            const validGlassTypes = response.filter(type => {
+                const isValid = type.id && type.name && type.thickness !== undefined;
+                if (!isValid) {
+                    console.warn('⚠️ Invalid glass type found:', type);
+                }
+                return isValid;
+            });
+
+            if (validGlassTypes.length !== response.length) {
+                console.warn(`⚠️ Filtered out ${response.length - validGlassTypes.length} invalid glass types`);
+            }
+
+            return validGlassTypes;
+
         } catch (error) {
-            console.error('Get all glass types error:', error);
-            throw error;
+            console.error('❌ Get all glass types error:', error);
+
+            // Detailed error logging for debugging
+            if (error.response) {
+                // Server responded with error status
+                console.error('📡 Response error:', {
+                    status: error.response.status,
+                    statusText: error.response.statusText,
+                    data: error.response.data,
+                    headers: error.response.headers
+                });
+
+                // Specific error messages
+                if (error.response.status === 404) {
+                    console.error('🔍 Endpoint not found - Check API URL configuration');
+                } else if (error.response.status === 401 || error.response.status === 403) {
+                    console.error('🔐 Authentication/Authorization error');
+                } else if (error.response.status === 500) {
+                    console.error('💥 Server error - Check backend logs');
+                }
+            } else if (error.request) {
+                // Request was made but no response received
+                console.error('📡 Request error (no response received):', {
+                    request: error.request,
+                    message: 'Backend server may be down or unreachable'
+                });
+            } else {
+                // Error in request setup
+                console.error('⚙️ Setup error:', error.message);
+            }
+
+            // Return empty array instead of throwing
+            // This prevents UI components from breaking
+            return [];
         }
     },
 
@@ -25,26 +90,55 @@ export const glassTypeService = {
      */
     async getActiveGlassTypes() {
         try {
+            console.log('🔍 Fetching active glass types...');
             const response = await get('/glass-types/active');
+
+            if (!Array.isArray(response)) {
+                console.warn('⚠️ Active glass types returned non-array');
+                return [];
+            }
+
+            console.log(`✅ Loaded ${response.length} active glass types`);
             return response;
+
         } catch (error) {
-            console.error('Get active glass types error:', error);
-            throw error;
+            console.error('❌ Get active glass types error:', error);
+
+            // Fallback: try to get all and filter active ones
+            console.log('🔄 Attempting fallback: filtering from all glass types');
+            try {
+                const allTypes = await this.getAllGlassTypes();
+                const activeTypes = allTypes.filter(type => type.isActive !== false);
+                console.log(`✅ Fallback successful: ${activeTypes.length} active types`);
+                return activeTypes;
+            } catch (fallbackError) {
+                console.error('❌ Fallback also failed:', fallbackError);
+                return [];
+            }
         }
     },
 
     /**
      * Get glass type by ID
      * @param {string|number} id - Glass type ID
-     * @returns {Promise<GlassType>}
+     * @returns {Promise<GlassType|null>}
      */
     async getGlassType(id) {
         try {
+            console.log(`🔍 Fetching glass type ID: ${id}`);
             const response = await get(`/glass-types/${id}`);
+
+            if (!response) {
+                console.warn(`⚠️ Glass type ${id} not found`);
+                return null;
+            }
+
+            console.log(`✅ Glass type ${id} loaded:`, response.name);
             return response;
+
         } catch (error) {
-            console.error('Get glass type error:', error);
-            throw error;
+            console.error(`❌ Get glass type ${id} error:`, error);
+            return null;
         }
     },
 
@@ -52,20 +146,27 @@ export const glassTypeService = {
      * Create new glass type
      * @param {Object} glassTypeData - Glass type data
      * @param {string} glassTypeData.name - Glass type name
-     * @param {string} glassTypeData.nameArabic - Arabic name
-     * @param {number} glassTypeData.thickness - Glass thickness
-     * @param {string} [glassTypeData.color] - Glass color
-     * @param {string} [glassTypeData.description] - Description
-     * @param {number} glassTypeData.pricePerSquareMeter - Price per square meter
-     * @param {boolean} [glassTypeData.isActive=true] - Active status
+     * @param {number} glassTypeData.thickness - Thickness in mm
+     * @param {string} [glassTypeData.color] - Glass color (optional)
+     * @param {number} glassTypeData.pricePerMeter - Price per square meter
      * @returns {Promise<GlassType>}
      */
     async createGlassType(glassTypeData) {
         try {
+            console.log('Sending data to backend:', glassTypeData);
+            console.log('➕ Creating new glass type:', glassTypeData.name);
+
+            // Validate required fields before sending (FIXED: pricePerMeter not pricePerUnit)
+            if (!glassTypeData.name || !glassTypeData.thickness || !glassTypeData.pricePerMeter) {
+                throw new Error('Missing required fields: name, thickness, or pricePerMeter');
+            }
+
             const response = await post('/glass-types', glassTypeData);
+            console.log(`✅ Glass type created: ${response.name} (ID: ${response.id})`);
             return response;
+
         } catch (error) {
-            console.error('Create glass type error:', error);
+            console.error('❌ Create glass type error:', error);
             throw error;
         }
     },
@@ -78,10 +179,13 @@ export const glassTypeService = {
      */
     async updateGlassType(id, glassTypeData) {
         try {
+            console.log(`📝 Updating glass type ID: ${id}`);
             const response = await put(`/glass-types/${id}`, glassTypeData);
+            console.log(`✅ Glass type ${id} updated`);
             return response;
+
         } catch (error) {
-            console.error('Update glass type error:', error);
+            console.error(`❌ Update glass type ${id} error:`, error);
             throw error;
         }
     },
@@ -93,39 +197,12 @@ export const glassTypeService = {
      */
     async deleteGlassType(id) {
         try {
+            console.log(`🗑️ Deleting glass type ID: ${id}`);
             await del(`/glass-types/${id}`);
-        } catch (error) {
-            console.error('Delete glass type error:', error);
-            throw error;
-        }
-    },
+            console.log(`✅ Glass type ${id} deleted`);
 
-    /**
-     * Deactivate glass type (soft delete)
-     * @param {string|number} id - Glass type ID
-     * @returns {Promise<GlassType>}
-     */
-    async deactivateGlassType(id) {
-        try {
-            const response = await put(`/glass-types/${id}/deactivate`);
-            return response;
         } catch (error) {
-            console.error('Deactivate glass type error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Activate glass type
-     * @param {string|number} id - Glass type ID
-     * @returns {Promise<GlassType>}
-     */
-    async activateGlassType(id) {
-        try {
-            const response = await put(`/glass-types/${id}/activate`);
-            return response;
-        } catch (error) {
-            console.error('Activate glass type error:', error);
+            console.error(`❌ Delete glass type ${id} error:`, error);
             throw error;
         }
     },
@@ -137,109 +214,60 @@ export const glassTypeService = {
      */
     async getByThickness(thickness) {
         try {
+            console.log(`🔍 Fetching glass types with thickness: ${thickness}mm`);
             const params = new URLSearchParams({ thickness: thickness.toString() });
             const response = await get(`/glass-types/by-thickness?${params.toString()}`);
+
+            if (!Array.isArray(response)) {
+                console.warn('⚠️ By thickness returned non-array');
+                return [];
+            }
+
+            console.log(`✅ Found ${response.length} glass types with ${thickness}mm thickness`);
             return response;
+
         } catch (error) {
-            console.error('Get by thickness error:', error);
-            throw error;
+            console.error(`❌ Get by thickness ${thickness} error:`, error);
+            return [];
         }
     },
 
     /**
-     * Search glass types
-     * @param {string} query - Search query
-     * @returns {Promise<GlassType[]>}
+     * Test API connectivity
+     * @returns {Promise<boolean>} True if API is accessible
      */
-    async searchGlassTypes(query) {
+    async testConnection() {
         try {
-            const params = new URLSearchParams({ q: query });
-            const response = await get(`/glass-types/search?${params.toString()}`);
-            return response;
+            console.log('🔌 Testing glass types API connection...');
+            const response = await get('/glass-types');
+            console.log('✅ API connection successful');
+            return true;
         } catch (error) {
-            console.error('Search glass types error:', error);
-            throw error;
+            console.error('❌ API connection failed:', error);
+            return false;
         }
     },
 
     /**
-     * Get glass type usage statistics
-     * @param {string|number} id - Glass type ID
-     * @param {Object} params - Query parameters
-     * @param {string} [params.startDate] - Start date
-     * @param {string} [params.endDate] - End date
-     * @returns {Promise<GlassTypeStats>}
+     * Get API health status
+     * @returns {Promise<Object>} Health status information
      */
-    async getUsageStats(id, params = {}) {
+    async getHealthStatus() {
         try {
-            const queryParams = new URLSearchParams();
-            if (params.startDate) queryParams.append('startDate', params.startDate);
-            if (params.endDate) queryParams.append('endDate', params.endDate);
-
-            const response = await get(`/glass-types/${id}/stats?${queryParams.toString()}`);
-            return response;
+            const response = await get('/glass-types');
+            return {
+                status: 'healthy',
+                count: Array.isArray(response) ? response.length : 0,
+                timestamp: new Date().toISOString()
+            };
         } catch (error) {
-            console.error('Get usage stats error:', error);
-            throw error;
+            return {
+                status: 'unhealthy',
+                error: error.message,
+                timestamp: new Date().toISOString()
+            };
         }
-    },
-
-    /**
-     * Bulk update glass type prices
-     * @param {Object[]} updates - Array of price updates
-     * @param {string|number} updates[].id - Glass type ID
-     * @param {number} updates[].pricePerSquareMeter - New price
-     * @returns {Promise<GlassType[]>}
-     */
-    async bulkUpdatePrices(updates) {
-        try {
-            const response = await put('/glass-types/bulk-update-prices', { updates });
-            return response;
-        } catch (error) {
-            console.error('Bulk update prices error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Import glass types from file
-     * @param {File} file - CSV or Excel file
-     * @returns {Promise<ImportResult>}
-     */
-    async importGlassTypes(file) {
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const response = await post('/glass-types/import', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
-
-            return response;
-        } catch (error) {
-            console.error('Import glass types error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Export glass types to CSV
-     * @param {Object} params - Export parameters
-     * @returns {Promise<Blob>}
-     */
-    async exportGlassTypes(params = {}) {
-        try {
-            const queryParams = new URLSearchParams(params);
-            const response = await get(`/glass-types/export?${queryParams.toString()}`, {
-                responseType: 'blob',
-            });
-
-            return response;
-        } catch (error) {
-            console.error('Export glass types error:', error);
-            throw error;
-        }
-    },
+    }
 };
+
+export default glassTypeService;

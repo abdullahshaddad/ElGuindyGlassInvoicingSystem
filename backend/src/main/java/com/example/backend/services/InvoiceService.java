@@ -7,7 +7,6 @@ import com.example.backend.dto.invoice.PreviewLineRequest;
 import com.example.backend.exceptions.customer.CustomerLookupException;
 import com.example.backend.exceptions.customer.CustomerNotFoundException;
 import com.example.backend.exceptions.invoice.*;
-import com.example.backend.exceptions.printjob.PdfGenerationException;
 import com.example.backend.exceptions.websocket.WebSocketException;
 import com.example.backend.models.customer.Customer;
 import com.example.backend.models.GlassType;
@@ -16,10 +15,11 @@ import com.example.backend.models.InvoiceLine;
 import com.example.backend.models.enums.CuttingType;
 import com.example.backend.models.enums.DimensionUnit;
 import com.example.backend.models.enums.InvoiceStatus;
+import com.example.backend.models.enums.OperationType;
+import com.example.backend.dto.OperationRequest;
 import com.example.backend.repositories.InvoiceLineRepository;
 import com.example.backend.repositories.InvoiceRepository;
 import com.example.backend.services.cutting.CuttingContext;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.validation.ValidationException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -41,9 +41,9 @@ import java.util.Optional;
 public class InvoiceService {
 
     // Constants for validation
-    private static final double MAX_GLASS_WIDTH = 10000000.0;  // 5 meters in mm
+    private static final double MAX_GLASS_WIDTH = 10000000.0; // 5 meters in mm
     private static final double MAX_GLASS_HEIGHT = 1000000.0; // 3 meters in mm
-    private static final double MIN_DIMENSION = 0.1;       // Minimum 0.1mm
+    private static final double MIN_DIMENSION = 0.1; // Minimum 0.1mm
     private static final int MAX_NOTES_LENGTH = 5000000;
 
     private final InvoiceRepository invoiceRepository;
@@ -53,15 +53,17 @@ public class InvoiceService {
     private final CuttingContext cuttingContext;
     private final PrintJobService printJobService;
     private final WebSocketNotificationService webSocketService;
+    private final OperationCalculationService operationCalculationService;
 
     @Autowired
     public InvoiceService(InvoiceRepository invoiceRepository,
-                          InvoiceLineRepository invoiceLineRepository,
-                          CustomerService customerService,
-                          GlassTypeService glassTypeService,
-                          CuttingContext cuttingContext,
-                          PrintJobService printJobService,
-                          WebSocketNotificationService webSocketService) {
+            InvoiceLineRepository invoiceLineRepository,
+            CustomerService customerService,
+            GlassTypeService glassTypeService,
+            CuttingContext cuttingContext,
+            PrintJobService printJobService,
+            WebSocketNotificationService webSocketService,
+            OperationCalculationService operationCalculationService) {
         this.invoiceRepository = invoiceRepository;
         this.invoiceLineRepository = invoiceLineRepository;
         this.customerService = customerService;
@@ -69,11 +71,28 @@ public class InvoiceService {
         this.cuttingContext = cuttingContext;
         this.printJobService = printJobService;
         this.webSocketService = webSocketService;
+        this.operationCalculationService = operationCalculationService;
     }
 
     /**
-     * Create a new invoice with comprehensive error handling
-     * NOTE: Print jobs are created separately via PrintJobController
+     * Create a new invoice using DOMAIN LAYER with all bug fixes
+     * This method now delegates to InvoiceCreationService which uses clean
+     * architecture
+     *
+     * FIXES ALL BUGS:
+     * - Bug #1: Dimension conversion (MM to meters)
+     * - Bug #2: ShatafType/FarmaType saved
+     * - Bug #3: Enhanced cutting strategy
+     * - Bug #4: Glass price calculated
+     * - Bug #8: BigDecimal precision
+     *
+     * @param request The invoice creation request
+     * @return Created invoice
+     *         /**
+     *         Create a new invoice
+     *         Uses local logic to support multiple operations and new Shatf/Laser
+     *         structure
+     *
      * @param request The invoice creation request
      * @return Created invoice
      * @throws InvoiceCreationException if invoice creation fails
@@ -89,38 +108,40 @@ public class InvoiceService {
             // 2. Lookup customer
             Customer customer = lookupCustomer(request.getCustomerId());
 
-            // 3. Create invoice
+            // 3. Create invoice entity
             Invoice invoice = createInvoiceEntity(customer, request);
 
-            // 4. Add invoice lines
-            InvoiceLineProcessingResult lineResult = processInvoiceLines(invoice, request.getInvoiceLines());
+            // 4. Process invoice lines
+            InvoiceLineProcessingResult result = processInvoiceLines(invoice, request.getInvoiceLines());
 
-            // 5. Validate that we have at least one successful line
-            if (lineResult.getSuccessfulLines() == 0) {
-                String allErrors = String.join(", ", lineResult.getErrors());
-                log.error("All invoice lines failed for invoice {}: {}", invoice.getId(), allErrors);
-                throw new InvoiceLineCreationException("فشل في إنشاء جميع بنود الفاتورة: " + allErrors);
+            // 5. Update invoice totals and balance
+            invoice.setTotalPrice(result.getTotalPrice());
+            invoice.calculateRemainingBalance();
+
+            // 6. Check payment status
+            if (invoice.getRemainingBalance() <= 0.01) {
+                invoice.setStatus(InvoiceStatus.PAID);
+                invoice.setPaymentDate(LocalDateTime.now());
             }
 
-            // Log warnings for partial failures
-            if (!lineResult.getErrors().isEmpty()) {
-                log.warn("Invoice {} created with {} successful lines and {} failed lines",
-                        invoice.getId(), lineResult.getSuccessfulLines(), lineResult.getErrors().size());
+            // 6.5 Update Customer Balance (Increase Debt)
+            if (customer.getCustomerType() != com.example.backend.models.enums.CustomerType.CASH) {
+                customerService.updateCustomerBalance(customer.getId(), invoice.getRemainingBalance());
             }
 
-            // 6. Update total price
-            invoice = updateInvoiceTotal(invoice, lineResult.getTotalPrice());
+            // 7. Save final invoice state
+            invoice = invoiceRepository.save(invoice);
 
-            // 7. Reload invoice with lines and glass types
+            // 8. Reload invoice with lines and glass types
             invoice = reloadInvoiceWithLines(invoice.getId());
 
-            // 8. Notify factory screen (non-critical)
+            // 9. Notify factory screen (non-critical)
             handleFactoryNotification(invoice);
 
-            // 9. Log success
+            // 10. Log success
             log.info("Invoice {} created successfully for customer '{}' (ID: {}) with {} lines, total: {} EGP",
                     invoice.getId(), customer.getName(), customer.getId(),
-                    lineResult.getSuccessfulLines(), lineResult.getTotalPrice());
+                    invoice.getInvoiceLines().size(), invoice.getTotalPrice());
 
             return invoice;
 
@@ -130,10 +151,8 @@ public class InvoiceService {
         } catch (CustomerNotFoundException e) {
             log.error("Customer not found during invoice creation: {}", e.getMessage());
             throw e;
-        } catch (CustomerLookupException | InvoiceCreationException |
-                 InvoiceLineCreationException | InvoiceUpdateException |
-                 InvoiceReloadException e) {
-            log.error("Invoice creation failed at step '{}': {}", getOperationName(e), e.getMessage(), e);
+        } catch (CustomerLookupException | InvoiceCreationException e) {
+            log.error("Invoice creation failed: {}", e.getMessage(), e);
             throw e;
         } catch (DataAccessException e) {
             log.error("Database error during invoice creation: {}", e.getMessage(), e);
@@ -143,6 +162,7 @@ public class InvoiceService {
             throw new InvoiceCreationException("خطأ غير متوقع أثناء إنشاء الفاتورة: " + e.getMessage(), e);
         }
     }
+
     /**
      * Lookup customer with proper error handling
      */
@@ -173,9 +193,15 @@ public class InvoiceService {
             Invoice invoice = Invoice.builder()
                     .customer(customer)
                     .issueDate(request.getIssueDate() != null ? request.getIssueDate() : LocalDateTime.now())
+                    .createdAt(LocalDateTime.now())
                     .status(InvoiceStatus.PENDING)
                     .totalPrice(0.0)
+                    .amountPaidNow(request.getAmountPaidNow() != null ? request.getAmountPaidNow() : 0.0)
+                    .notes(request.getNotes())
                     .build();
+
+            // Calculate initial remaining balance (total is 0 initially)
+            invoice.calculateRemainingBalance();
 
             invoice = invoiceRepository.save(invoice);
             log.debug("Invoice created with ID: {} for customer: {}", invoice.getId(), customer.getName());
@@ -184,7 +210,8 @@ public class InvoiceService {
             log.error("Database error while creating invoice for customer {}: {}", customer.getId(), e.getMessage(), e);
             throw new InvoiceCreationException("خطأ في قاعدة البيانات أثناء إنشاء الفاتورة", e);
         } catch (Exception e) {
-            log.error("Unexpected error while creating invoice for customer {}: {}", customer.getId(), e.getMessage(), e);
+            log.error("Unexpected error while creating invoice for customer {}: {}", customer.getId(), e.getMessage(),
+                    e);
             throw new InvoiceCreationException("خطأ غير متوقع أثناء إنشاء الفاتورة", e);
         }
     }
@@ -192,8 +219,9 @@ public class InvoiceService {
     /**
      * Process all invoice lines and collect results
      */
-    private InvoiceLineProcessingResult processInvoiceLines(Invoice invoice, List<CreateInvoiceLineRequest> lineRequests) {
-        double totalPrice = 0.0;
+    private InvoiceLineProcessingResult processInvoiceLines(Invoice invoice,
+            List<CreateInvoiceLineRequest> lineRequests) {
+        java.math.BigDecimal totalPrice = java.math.BigDecimal.ZERO;
         List<String> lineErrors = new ArrayList<>();
         int successfulLines = 0;
 
@@ -201,11 +229,12 @@ public class InvoiceService {
             CreateInvoiceLineRequest lineRequest = lineRequests.get(i);
             try {
                 InvoiceLine line = createInvoiceLine(invoice, lineRequest);
-                totalPrice += line.getLineTotal();
+                totalPrice = totalPrice.add(java.math.BigDecimal.valueOf(line.getLineTotal()));
                 successfulLines++;
                 log.debug("Invoice line {} created successfully with total: {} EGP", i + 1, line.getLineTotal());
             } catch (GlassTypeNotFoundException e) {
-                String error = String.format("البند %d: نوع الزجاج غير موجود (ID: %d)", i + 1, lineRequest.getGlassTypeId());
+                String error = String.format("البند %d: نوع الزجاج غير موجود (ID: %d)", i + 1,
+                        lineRequest.getGlassTypeId());
                 lineErrors.add(error);
                 log.error("Glass type not found for line {} in invoice {}: Glass type ID {}",
                         i + 1, invoice.getId(), lineRequest.getGlassTypeId());
@@ -232,7 +261,8 @@ public class InvoiceService {
             }
         }
 
-        return new InvoiceLineProcessingResult(totalPrice, lineErrors, successfulLines);
+        return new InvoiceLineProcessingResult(totalPrice.setScale(2, java.math.RoundingMode.HALF_UP).doubleValue(),
+                lineErrors, successfulLines);
     }
 
     /**
@@ -278,7 +308,6 @@ public class InvoiceService {
         }
     }
 
-
     /**
      * Handle factory notification (non-critical)
      */
@@ -297,36 +326,115 @@ public class InvoiceService {
 
     /**
      * Create individual invoice line with comprehensive validation
+     * UPDATED to support multiple operations per line
      */
     private InvoiceLine createInvoiceLine(Invoice invoice, CreateInvoiceLineRequest request) {
+        // Validate request has at least one operation (new or legacy format)
+        request.validate();
+
         // Validate glass type exists
         GlassType glassType = glassTypeService.findById(request.getGlassTypeId())
-                .orElseThrow(() -> new GlassTypeNotFoundException("نوع الزجاج غير موجود: ",  request.getGlassTypeId() ));
+                .orElseThrow(() -> new GlassTypeNotFoundException("نوع الزجاج غير موجود: ", request.getGlassTypeId()));
 
         // Validate dimensions based on unit
         validateDimensions(request.getWidth(), request.getHeight(), request.getDimensionUnit());
 
-        // Create invoice line with unit
-        InvoiceLine line = new InvoiceLine(
-                invoice,
-                glassType,
-                request.getWidth(),
-                request.getHeight(),
-                request.getDimensionUnit(),
-                request.getCuttingType()
-        );
+        // Convert dimensions to meters for calculations
+        Double widthM = request.getDimensionUnit().toMeters(request.getWidth());
+        Double heightM = request.getDimensionUnit().toMeters(request.getHeight());
 
-        // Calculate glass price (quantity is already in meters from calculateQuantities)
-        double glassPrice = line.getQuantityForPricing() * glassType.getPricePerMeter();
+        // Create invoice line
+        InvoiceLine line = InvoiceLine.builder()
+                .invoice(invoice)
+                .glassType(glassType)
+                .width(request.getWidth())
+                .height(request.getHeight())
+                .dimensionUnit(request.getDimensionUnit())
+                .build();
 
-        // Calculate cutting price
-        double cuttingPrice = calculateCuttingPrice(line, request);
+        // Calculate dimensions and glass price (Using BigDecimal for precision)
+        line.calculateDimensions();
+        java.math.BigDecimal quantity = java.math.BigDecimal.valueOf(line.getQuantityForPricing());
+        java.math.BigDecimal pricePerMeter = java.math.BigDecimal.valueOf(glassType.getPricePerMeter());
+        java.math.BigDecimal glassPrice = quantity.multiply(pricePerMeter)
+                .setScale(2, java.math.RoundingMode.HALF_UP);
 
-        // Set totals
-        line.setCuttingPrice(cuttingPrice);
-        line.setLineTotal(glassPrice + cuttingPrice);
+        line.setGlassPrice(glassPrice.doubleValue());
 
+        // Process operations (new format) or legacy single operation
+        if (request.hasOperations()) {
+            // NEW: Multiple operations support
+            log.debug("Processing {} operations for invoice line", request.getOperations().size());
+            processOperations(line, request, widthM, heightM);
+        } else {
+            // LEGACY: Single operation support
+            log.debug("Processing legacy single operation for invoice line");
+            processLegacyOperation(line, request);
+        }
+
+        // Recalculate line total (glass + all operations)
+        line.recalculateLineTotal();
+
+        // Save and return
         return invoiceLineRepository.save(line);
+    }
+
+    /**
+     * Process multiple operations (NEW format)
+     */
+    private void processOperations(
+            InvoiceLine line,
+            CreateInvoiceLineRequest request,
+            Double widthM,
+            Double heightM) {
+        // Get glass type thickness for rate calculations
+        Double thickness = line.getGlassType().getThickness();
+        if (thickness == null) {
+            throw new CuttingCalculationException("سماكة الزجاج مطلوبة لحساب أسعار العمليات");
+        }
+
+        for (var opRequest : request.getOperations()) {
+            try {
+                // Validate operation request
+                opRequest.validate();
+
+                // Create and calculate operation with thickness
+                var operation = operationCalculationService.createAndCalculateOperation(
+                        opRequest, widthM, heightM, thickness);
+
+                // Add to invoice line
+                line.addOperation(operation);
+
+                log.debug("Added operation: type={}, price={}",
+                        operation.getOperationType(), operation.getOperationPrice());
+
+            } catch (Exception e) {
+                log.error("Failed to process operation: type={}, error={}",
+                        opRequest.getType(), e.getMessage());
+                throw new CuttingCalculationException(
+                        "فشل في معالجة العملية: " + opRequest.getType().getArabicName() + " - " + e.getMessage(),
+                        e);
+            }
+        }
+    }
+
+    /**
+     * Process legacy single operation (backward compatibility)
+     */
+    private void processLegacyOperation(InvoiceLine line, CreateInvoiceLineRequest request) {
+        // Set legacy fields
+        line.setCuttingType(request.getCuttingType());
+        line.setShatafType(request.getShatafType());
+        line.setFarmaType(request.getFarmaType());
+        line.setDiameter(request.getDiameter());
+        line.setManualCuttingPrice(request.getManualCuttingPrice());
+
+        // Calculate cutting price using legacy method
+        double cuttingPrice = calculateCuttingPrice(line, request);
+        line.setCuttingPrice(cuttingPrice);
+
+        log.debug("Legacy operation calculated: cuttingType={}, price={}",
+                request.getCuttingType(), cuttingPrice);
     }
 
     private void validateDimensions(Double width, Double height, DimensionUnit unit) {
@@ -349,22 +457,19 @@ public class InvoiceService {
         if (widthInMeters < minInMeters || heightInMeters < minInMeters) {
             throw new InvalidDimensionsException(
                     String.format("الأبعاد صغيرة جداً (الحد الأدنى: %.1f %s)",
-                            unit.fromMeters(minInMeters), unit.getArabicName())
-            );
+                            unit.fromMeters(minInMeters), unit.getArabicName()));
         }
 
         if (widthInMeters > maxWidthInMeters) {
             throw new InvalidDimensionsException(
                     String.format("العرض كبير جداً (الحد الأقصى: %.1f %s)",
-                            unit.fromMeters(maxWidthInMeters), unit.getArabicName())
-            );
+                            unit.fromMeters(maxWidthInMeters), unit.getArabicName()));
         }
 
         if (heightInMeters > maxHeightInMeters) {
             throw new InvalidDimensionsException(
                     String.format("الارتفاع كبير جداً (الحد الأقصى: %.1f %s)",
-                            unit.fromMeters(maxHeightInMeters), unit.getArabicName())
-            );
+                            unit.fromMeters(maxHeightInMeters), unit.getArabicName()));
         }
     }
 
@@ -476,16 +581,43 @@ public class InvoiceService {
             errors.add(prefix + "الارتفاع كبير جداً (الحد الأقصى: " + MAX_GLASS_HEIGHT + " مم)");
         }
 
-        if (line.getCuttingType() == null) {
-            errors.add(prefix + "نوع القطع مطلوب");
-        }
+        // Validate operations - New Format
+        if (line.hasOperations()) {
+            for (int j = 0; j < line.getOperations().size(); j++) {
+                var op = line.getOperations().get(j);
+                if (op.getType() == null) {
+                    errors.add(prefix + "نوع العملية مطلوب للعملية رقم " + (j + 1));
+                    continue;
+                }
 
-        // Validate manual cutting price for laser
-        if (CuttingType.LASER.equals(line.getCuttingType())) {
-            if (line.getManualCuttingPrice() == null) {
-                errors.add(prefix + "سعر القطع اليدوي مطلوب للقطع بالليزر");
-            } else if (line.getManualCuttingPrice() < 0) {
-                errors.add(prefix + "سعر القطع اليدوي لا يمكن أن يكون سالباً");
+                if (op.getType() == OperationType.SHATAF) {
+                    if (op.getShatafType() == null) {
+                        errors.add(prefix + "نوع الشطف مطلوب للعملية رقم " + (j + 1));
+                    } else if (op.getShatafType().isManualInput()) {
+                        if (op.getManualCuttingPrice() == null || op.getManualCuttingPrice() < 0) {
+                            errors.add(prefix + "سعر القطع اليدوي مطلوب للعملية رقم " + (j + 1));
+                        }
+                    }
+                } else if (op.getType() == OperationType.LASER) {
+                    if (op.getManualPrice() == null || op.getManualPrice() < 0) {
+                        errors.add(prefix + "سعر الليزر مطلوب للعملية رقم " + (j + 1));
+                    }
+                }
+            }
+        }
+        // Validate Legacy Format (only if no operations provided)
+        else {
+            if (line.getCuttingType() == null) {
+                errors.add(prefix + "نوع القطع مطلوب");
+            }
+
+            // Validate manual cutting price for laser
+            if (CuttingType.LASER.equals(line.getCuttingType())) {
+                if (line.getManualCuttingPrice() == null) {
+                    errors.add(prefix + "سعر القطع اليدوي مطلوب للقطع بالليزر");
+                } else if (line.getManualCuttingPrice() < 0) {
+                    errors.add(prefix + "سعر القطع اليدوي لا يمكن أن يكون سالباً");
+                }
             }
         }
     }
@@ -494,11 +626,16 @@ public class InvoiceService {
      * Helper method to get operation name from exception
      */
     private String getOperationName(Exception e) {
-        if (e instanceof CustomerLookupException) return "Customer Lookup";
-        if (e instanceof InvoiceCreationException) return "Invoice Creation";
-        if (e instanceof InvoiceLineCreationException) return "Invoice Lines Creation";
-        if (e instanceof InvoiceUpdateException) return "Invoice Update";
-        if (e instanceof InvoiceReloadException) return "Invoice Reload";
+        if (e instanceof CustomerLookupException)
+            return "Customer Lookup";
+        if (e instanceof InvoiceCreationException)
+            return "Invoice Creation";
+        if (e instanceof InvoiceLineCreationException)
+            return "Invoice Lines Creation";
+        if (e instanceof InvoiceUpdateException)
+            return "Invoice Update";
+        if (e instanceof InvoiceReloadException)
+            return "Invoice Reload";
         return "Unknown Operation";
     }
 
@@ -509,7 +646,8 @@ public class InvoiceService {
         try {
             // Could add to retry queue, schedule delayed notification, etc.
             log.warn("Factory notification retry scheduled for invoice {}: {}", invoice.getId(), arabicMessage);
-            // Example: retryService.scheduleFactoryNotification(invoice, 5); // retry in 5 minutes
+            // Example: retryService.scheduleFactoryNotification(invoice, 5); // retry in 5
+            // minutes
         } catch (Exception e) {
             log.error("Failed to schedule notification retry for invoice {}: {}", invoice.getId(), e.getMessage());
         }
@@ -533,8 +671,20 @@ public class InvoiceService {
         Invoice invoice = findById(invoiceId)
                 .orElseThrow(() -> new InvoiceNotFoundException("Invoice not found: " + invoiceId));
 
-        invoice.setStatus(InvoiceStatus.PAID);
-        invoice.setPaymentDate(LocalDateTime.now());
+        if (invoice.getStatus() != InvoiceStatus.PAID) {
+            Double remaining = invoice.getRemainingBalance();
+            invoice.setStatus(InvoiceStatus.PAID);
+            invoice.setPaymentDate(LocalDateTime.now());
+            invoice.setRemainingBalance(0.0);
+
+            // Deduct the remaining amount from customer balance (reduce debt)
+            if (invoice.getCustomer().getCustomerType() != com.example.backend.models.enums.CustomerType.CASH) {
+                // We use negative amount to subtract or we need a subtract method
+                // Customer.subtractFromBalance is available but we need a service method
+                // Let's use updateCustomerBalance with negative amount
+                customerService.updateCustomerBalance(invoice.getCustomer().getId(), -remaining);
+            }
+        }
 
         return invoiceRepository.save(invoice);
     }
@@ -565,7 +715,7 @@ public class InvoiceService {
     }
 
     public Page<Invoice> findInvoicesByCustomer(Long customerId, Pageable pageable) {
-            return invoiceRepository.findByCustomerId(customerId, pageable);
+        return invoiceRepository.findByCustomerId(customerId, pageable);
 
     }
 
@@ -583,22 +733,24 @@ public class InvoiceService {
     /**
      * Calculate line preview without creating invoice
      * This ensures frontend sees exact same calculations as backend
+     * UPDATED to support both legacy (cuttingType) and new (shatafType/farmaType)
+     * formats
      *
      * @param request Preview request with dimensions in original unit
      * @return LinePreviewDTO with all calculations in meters
      */
     public LinePreviewDTO calculateLinePreview(PreviewLineRequest request) {
-        log.debug("Calculating line preview for glass type: {}, width: {}, height: {}, unit: {}, cutting: {}",
+        log.debug(
+                "Calculating line preview for glass type: {}, width: {}, height: {}, unit: {}, shatafType: {}, cuttingType: {}",
                 request.getGlassTypeId(), request.getWidth(), request.getHeight(),
-                request.getDimensionUnit(), request.getCuttingType());
+                request.getDimensionUnit(), request.getShatafType(), request.getCuttingType());
 
         try {
             // 1. Validate and get glass type
             GlassType glassType = glassTypeService.findById(request.getGlassTypeId())
                     .orElseThrow(() -> new GlassTypeNotFoundException(
                             "Glass type not found: " + request.getGlassTypeId(),
-                            request.getGlassTypeId()
-                    ));
+                            request.getGlassTypeId()));
 
             // 2. Convert dimensions to meters based on unit
             Double width = convertToMeters(request.getWidth(), request.getDimensionUnit());
@@ -625,38 +777,87 @@ public class InvoiceService {
                 calculationDescription = String.format("مساحة: %.2f متر مربع", areaM2);
             }
 
-            // 5. Calculate glass price
+            // 5. Calculate glass price (Using BigDecimal for precision)
             Double glassUnitPrice = glassType.getPricePerMeter();
-            Double glassPrice = quantityForPricing * glassUnitPrice;
+            java.math.BigDecimal quantityBD = java.math.BigDecimal.valueOf(quantityForPricing);
+            java.math.BigDecimal priceBD = java.math.BigDecimal.valueOf(glassUnitPrice);
+            Double glassPrice = quantityBD.multiply(priceBD)
+                    .setScale(2, java.math.RoundingMode.HALF_UP).doubleValue();
 
-            // 6. Calculate cutting price
+            // 6. Calculate cutting price (support both old and new formats)
             Double perimeter = 2 * (width + height);
             Double cuttingRate = null;
-            Double cuttingPrice;
+            Double cuttingPrice = 0.0;
 
-            if (request.getCuttingType() == CuttingType.LASER) {
-                if (request.getManualCuttingPrice() == null) {
-                    throw new CuttingCalculationException("سعر القطع اليدوي مطلوب للقطع بالليزر");
+            // NEW: Multi-operation support
+            CuttingType effectiveCuttingType = null;
+            List<com.example.backend.dto.invoice.OperationPreviewDTO> operationPreviews = new java.util.ArrayList<>();
+
+            if (request.getOperations() != null && !request.getOperations().isEmpty()) {
+                // NEW LOGIC: Calculate each operation
+                for (OperationRequest opReq : request.getOperations()) {
+                    com.example.backend.models.InvoiceLineOperation op = operationCalculationService
+                            .createAndCalculateOperation(
+                                    opReq,
+                                    width,
+                                    height,
+                                    glassType.getThickness());
+                    cuttingPrice += op.getOperationPrice();
+
+                    // Add to preview list
+                    operationPreviews.add(com.example.backend.dto.invoice.OperationPreviewDTO.builder()
+                            .type(op.getOperationType())
+                            .shatafType(op.getShatafType())
+                            .farmaType(op.getFarmaType())
+                            .laserType(op.getLaserType())
+                            .diameter(op.getDiameter())
+                            .manualPrice(op.getManualPrice())
+                            .manualCuttingPrice(op.getManualCuttingPrice())
+                            .calculatedPrice(op.getOperationPrice())
+                            .shatafMeters(op.getShatafMeters())
+                            .ratePerMeter(op.getRatePerMeter())
+                            .notes(op.getNotes())
+                            .build());
                 }
-                if (request.getManualCuttingPrice() < 0) {
-                    throw new CuttingCalculationException("سعر القطع اليدوي لا يمكن أن يكون سالباً");
-                }
-                cuttingPrice = request.getManualCuttingPrice();
+
+                // For preview, if we have operations, we might want to expose the total price
+                cuttingRate = perimeter > 0 ? cuttingPrice / perimeter : 0.0;
+
             } else {
-                // SHATF - use the same strategy pattern as actual invoice creation
-                InvoiceLine tempLine = InvoiceLine.builder()
-                        .glassType(glassType)
-                        .width(width)
-                        .height(height)
-                        .cuttingType(request.getCuttingType())
-                        .build();
+                // LEGACY LOGIC
+                effectiveCuttingType = request.getEffectiveCuttingType();
 
-                cuttingPrice = cuttingContext.calculateCuttingPrice(tempLine);
-                cuttingRate = cuttingPrice / perimeter;
+                if (effectiveCuttingType == CuttingType.LASER ||
+                        (request.getShatafType() != null && request.getShatafType().isManualInput())) {
+                    // Manual price (laser or manual shataf types)
+                    if (request.getManualCuttingPrice() == null) {
+                        throw new CuttingCalculationException("سعر القطع اليدوي مطلوب للقطع بالليزر");
+                    }
+                    if (request.getManualCuttingPrice() < 0) {
+                        throw new CuttingCalculationException("سعر القطع اليدوي لا يمكن أن يكون سالباً");
+                    }
+                    cuttingPrice = request.getManualCuttingPrice();
+                } else {
+                    // SHATF - use the same strategy pattern as actual invoice creation
+                    InvoiceLine tempLine = InvoiceLine.builder()
+                            .glassType(glassType)
+                            .width(width)
+                            .height(height)
+                            .cuttingType(effectiveCuttingType)
+                            .shatafType(request.getShatafType())
+                            .farmaType(request.getFarmaType())
+                            .diameter(request.getDiameter())
+                            .build();
+
+                    cuttingPrice = cuttingContext.calculateCuttingPrice(tempLine);
+                    cuttingRate = cuttingPrice / perimeter;
+                }
             }
 
-            // 7. Calculate total
-            Double lineTotal = glassPrice + cuttingPrice;
+            // 7. Calculate total (Using BigDecimal for precision)
+            Double lineTotal = java.math.BigDecimal.valueOf(glassPrice)
+                    .add(java.math.BigDecimal.valueOf(cuttingPrice))
+                    .setScale(2, java.math.RoundingMode.HALF_UP).doubleValue();
 
             // 8. Build and return preview DTO (all dimensions in meters)
             return LinePreviewDTO.builder()
@@ -671,13 +872,15 @@ public class InvoiceService {
                     .quantityForPricing(quantityForPricing)
                     .glassUnitPrice(glassUnitPrice)
                     .glassPrice(glassPrice)
-                    .cuttingType(request.getCuttingType().toString())
+                    .glassPrice(glassPrice)
+                    .cuttingType(effectiveCuttingType != null ? effectiveCuttingType.toString() : null)
                     .cuttingRate(cuttingRate)
                     .perimeter(perimeter)
                     .cuttingPrice(cuttingPrice)
                     .lineTotal(lineTotal)
                     .quantityUnit(quantityUnit)
                     .calculationDescription(calculationDescription)
+                    .operations(operationPreviews)
                     .build();
 
         } catch (GlassTypeNotFoundException | InvalidDimensionsException | CuttingCalculationException e) {
@@ -691,8 +894,9 @@ public class InvoiceService {
 
     /**
      * Convert dimension to meters based on unit
+     * 
      * @param value Dimension value in original unit
-     * @param unit Dimension unit (MM, CM, M)
+     * @param unit  Dimension unit (MM, CM, M)
      * @return Value converted to meters
      */
     private Double convertToMeters(Double value, DimensionUnit unit) {

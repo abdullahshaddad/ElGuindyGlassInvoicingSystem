@@ -4,18 +4,18 @@ import Input from './Input';
 import Select from './Select';
 import Button from './Button';
 import { FiDollarSign, FiCreditCard, FiCheck } from 'react-icons/fi';
-import paymentService from '../services/paymentService';
+import paymentService from '@/services/paymentService';
 
 /**
  * Payment Modal Component
  * Modal for recording customer payments with validation
  */
-const PaymentModal = ({ 
-    isOpen, 
-    onClose, 
-    customer, 
+const PaymentModal = ({
+    isOpen,
+    onClose,
+    customer,
     invoice = null,
-    onPaymentRecorded 
+    onPaymentRecorded
 }) => {
     const [formData, setFormData] = useState({
         amount: invoice ? invoice.remainingBalance : '',
@@ -23,7 +23,7 @@ const PaymentModal = ({
         referenceNumber: '',
         notes: ''
     });
-    
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -55,7 +55,7 @@ const PaymentModal = ({
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!validateForm()) {
             return;
         }
@@ -74,7 +74,7 @@ const PaymentModal = ({
             };
 
             const result = await paymentService.recordPayment(paymentData);
-            
+
             // Call success callback
             if (onPaymentRecorded) {
                 onPaymentRecorded(result);
@@ -106,8 +106,29 @@ const PaymentModal = ({
             onClose={onClose}
             title="تسجيل دفعة"
             maxWidth="md"
+            footer={(
+                <div className="flex gap-3 justify-end w-full">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onClose}
+                        disabled={loading}
+                    >
+                        إلغاء
+                    </Button>
+                    <Button
+                        form="payment-form"
+                        type="submit"
+                        variant="primary"
+                        loading={loading}
+                        icon={FiDollarSign}
+                    >
+                        تسجيل الدفعة
+                    </Button>
+                </div>
+            )}
         >
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form id="payment-form" onSubmit={handleSubmit} className="space-y-4">
                 {/* Customer Info */}
                 <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
                     <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
@@ -252,26 +273,6 @@ const PaymentModal = ({
                         </p>
                     </div>
                 )}
-
-                {/* Actions */}
-                <div className="flex gap-3 justify-end pt-4">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={onClose}
-                        disabled={loading}
-                    >
-                        إلغاء
-                    </Button>
-                    <Button
-                        type="submit"
-                        variant="primary"
-                        loading={loading}
-                        icon={FiDollarSign}
-                    >
-                        تسجيل الدفعة
-                    </Button>
-                </div>
             </form>
         </Modal>
     );

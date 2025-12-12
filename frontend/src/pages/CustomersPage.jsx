@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiEye } from 'react-icons/fi';
 import {
@@ -12,8 +13,21 @@ import {
 import { customerService } from '@services/customerService';
 import useAuthorized from '@hooks/useAuthorized';
 
+const CUSTOMER_TYPES = {
+    CASH: 'CASH',
+    REGULAR: 'REGULAR',
+    COMPANY: 'COMPANY'
+};
+
+const CUSTOMER_TYPE_LABEL = {
+    [CUSTOMER_TYPES.CASH]: 'نقدي',
+    [CUSTOMER_TYPES.REGULAR]: 'عميل',
+    [CUSTOMER_TYPES.COMPANY]: 'شركة'
+};
+
 const CustomersPage = () => {
     const { t, i18n } = useTranslation();
+    const navigate = useNavigate();
     const { isAuthorized, isLoading: authLoading } = useAuthorized(['CASHIER', 'OWNER']);
 
     const [customers, setCustomers] = useState([]);
@@ -31,7 +45,8 @@ const CustomersPage = () => {
         phone: '',
         email: '',
         address: '',
-        notes: ''
+        notes: '',
+        customerType: CUSTOMER_TYPES.REGULAR
     });
     const [formErrors, setFormErrors] = useState({});
 
@@ -48,7 +63,12 @@ const CustomersPage = () => {
             setLoading(true);
             setError('');
             const data = await customerService.getAllCustomers();
-            setCustomers(data);
+            // defensive normalization (ensure numeric balance)
+            const normalized = (data || []).map(c => ({
+                ...c,
+                balance: typeof c.balance === 'number' ? c.balance : Number(c.balance || 0)
+            }));
+            setCustomers(normalized);
         } catch (err) {
             console.error('Load customers error:', err);
             setError(t('customers.messages.load_error', 'فشل تحميل العملاء'));
@@ -57,7 +77,7 @@ const CustomersPage = () => {
         }
     };
 
-    const validateForm = () => {
+    const validateForm = useCallback(() => {
         const errors = {};
 
         if (!formData.name || formData.name.trim().length < 2) {
@@ -74,7 +94,7 @@ const CustomersPage = () => {
 
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
-    };
+    }, [formData, t]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -82,6 +102,11 @@ const CustomersPage = () => {
         if (formErrors[name]) {
             setFormErrors(prev => ({ ...prev, [name]: '' }));
         }
+    };
+
+    const handleSelectCustomerType = (e) => {
+        const val = e.target.value;
+        setFormData(prev => ({ ...prev, customerType: val }));
     };
 
     const handleSubmit = async (e) => {
@@ -115,6 +140,20 @@ const CustomersPage = () => {
         }
     };
 
+    const handleCreateNew = () => {
+        setEditingCustomer(null);
+        setFormData({
+            name: '',
+            phone: '',
+            email: '',
+            address: '',
+            notes: '',
+            customerType: CUSTOMER_TYPES.REGULAR // default
+        });
+        setFormErrors({});
+        setShowModal(true);
+    };
+
     const handleEdit = (customer) => {
         setEditingCustomer(customer);
         setFormData({
@@ -122,8 +161,10 @@ const CustomersPage = () => {
             phone: customer.phone,
             email: customer.email || '',
             address: customer.address || '',
-            notes: customer.notes || ''
+            notes: customer.notes || '',
+            customerType: customer.customerType || CUSTOMER_TYPES.REGULAR
         });
+        setFormErrors({});
         setShowModal(true);
     };
 
@@ -144,7 +185,7 @@ const CustomersPage = () => {
         }
     };
 
-    const handleViewDetails = async (customer) => {
+    const handleViewDetails = (customer) => {
         setSelectedCustomer(customer);
         setShowDetailsModal(true);
     };
@@ -157,99 +198,172 @@ const CustomersPage = () => {
             phone: '',
             email: '',
             address: '',
-            notes: ''
+            notes: '',
+            customerType: CUSTOMER_TYPES.REGULAR
         });
         setFormErrors({});
         setError('');
     };
 
-    const filteredCustomers = customers.filter(customer => {
-        if (!searchQuery) return true;
-        const query = searchQuery.toLowerCase();
-        return (
-            customer.name?.toLowerCase().includes(query) ||
-            customer.phone?.toLowerCase().includes(query) ||
-            customer.email?.toLowerCase().includes(query)
-        );
-    });
+    // Helper functions for rendering & formatting (avoids inline functions)
+    const getCustomerTypeLabel = useCallback((type) => {
+        return CUSTOMER_TYPE_LABEL[type] || CUSTOMER_TYPE_LABEL[CUSTOMER_TYPES.REGULAR];
+    }, []);
+
+    const getCustomerTypeBadgeVariant = useCallback((type) => {
+        switch (type) {
+            case CUSTOMER_TYPES.CASH:
+                return 'success';
+            case CUSTOMER_TYPES.COMPANY:
+                return 'info';
+            default:
+                return 'default';
+        }
+    }, []);
+
+    const formatBalance = useCallback((customer) => {
+        if (!customer) return '-';
+        if (customer.customerType === CUSTOMER_TYPES.CASH) return '-';
+        const bal = typeof customer.balance === 'number' ? customer.balance : Number(customer.balance || 0);
+        const safe = Number.isFinite(bal) ? bal : 0;
+        const formatted = safe.toFixed(2);
+        return `${formatted} جنيه`;
+    }, []);
+
+    const balanceColorClass = useCallback((customer) => {
+        if (!customer) return '';
+        if (customer.customerType === CUSTOMER_TYPES.CASH) return 'text-gray-500';
+        const bal = typeof customer.balance === 'number' ? customer.balance : Number(customer.balance || 0);
+        if (!Number.isFinite(bal) || bal <= 0) return 'text-green-600';
+        return 'text-orange-600';
+    }, []);
+
+    // search includes name, phone, email, and customerType label
+    const filteredCustomers = useMemo(() => {
+        const q = (searchQuery || '').trim().toLowerCase();
+        if (!q) return customers;
+        return customers.filter(customer => {
+            const name = (customer.name || '').toLowerCase();
+            const phone = (customer.phone || '').toLowerCase();
+            const email = (customer.email || '').toLowerCase();
+            const typeLabel = (getCustomerTypeLabel(customer.customerType) || '').toLowerCase();
+            return (
+                name.includes(q) ||
+                phone.includes(q) ||
+                email.includes(q) ||
+                typeLabel.includes(q)
+            );
+        });
+    }, [customers, searchQuery, getCustomerTypeLabel]);
+
+    // Column renderers (named functions to avoid inline lambdas)
+    const renderNameCell = useCallback((customer) => (
+        <div className="flex items-center gap-2">
+            <span className="font-medium">{customer.name}</span>
+            <Badge
+                variant={getCustomerTypeBadgeVariant(customer.customerType)}
+                className="text-xs"
+            >
+                {getCustomerTypeLabel(customer.customerType)}
+            </Badge>
+        </div>
+    ), [getCustomerTypeBadgeVariant, getCustomerTypeLabel]);
+
+    const renderPhoneCell = useCallback((customer) => (
+        <span className="font-mono" dir="ltr">{customer.phone || '-'}</span>
+    ), []);
+
+    const renderBalanceCell = useCallback((customer) => (
+        <div className="text-left">
+            {customer.customerType === CUSTOMER_TYPES.CASH ? (
+                <span className="text-sm text-gray-500">-</span>
+            ) : (
+                <span className={`font-bold font-mono ${balanceColorClass(customer)}`}>
+                    {formatBalance(customer)}
+                </span>
+            )}
+        </div>
+    ), [balanceColorClass, formatBalance]);
+
+    const renderEmailCell = useCallback((customer) => (
+        <div className="text-gray-600 dark:text-gray-400" dir="ltr">
+            {customer.email || '-'}
+        </div>
+    ), []);
+
+    const renderCreatedAtCell = useCallback((customer) => (
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+            {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString('ar-EG') : '-'}
+        </div>
+    ), []);
+
+    const renderActionsCell = useCallback((customer) => (
+        <div className="flex items-center gap-2">
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    handleEdit(customer);
+                }}
+                className="text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                title={t('common.actions.edit', 'تعديل')}
+            >
+                <FiEdit2 size={16} />
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(customer.id);
+                }}
+                className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                title={t('common.actions.delete', 'حذف')}
+            >
+                <FiTrash2 size={16} />
+            </Button>
+        </div>
+    ), [t]);
 
     const columns = [
         {
             key: 'name',
-            label: t('customers.fields.name', 'الاسم'),
-            render: (value, row) => (
-                <div className="font-medium text-gray-900 dark:text-white">
-                    {value}
-                </div>
-            )
+            header: 'اسم العميل',
+            render: (_, customer) => renderNameCell(customer)
         },
         {
             key: 'phone',
-            label: t('customers.fields.phone', 'رقم الهاتف'),
-            render: (value) => (
-                <div className="text-gray-700 dark:text-gray-300 font-mono" dir="ltr">
-                    {value}
-                </div>
-            )
+            header: 'الهاتف',
+            render: (_, customer) => renderPhoneCell(customer)
+        },
+        {
+            key: 'balance',
+            header: 'الرصيد المستحق',
+            render: (_, customer) => renderBalanceCell(customer)
         },
         {
             key: 'email',
-            label: t('customers.fields.email', 'البريد الإلكتروني'),
-            render: (value) => (
-                <div className="text-gray-600 dark:text-gray-400" dir="ltr">
-                    {value || '-'}
-                </div>
-            )
+            header: t('customers.fields.email', 'البريد الإلكتروني'),
+            render: (_, customer) => renderEmailCell(customer)
         },
         {
             key: 'createdAt',
-            label: t('customers.fields.created_at', 'تاريخ الإضافة'),
-            render: (value) => (
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(value).toLocaleDateString('ar-EG')}
-                </div>
-            )
+            header: t('customers.fields.created_at', 'تاريخ الإضافة'),
+            render: (_, customer) => renderCreatedAtCell(customer)
         },
         {
             key: 'actions',
-            label: t('common.actions.actions', 'الإجراءات'),
-            render: (_, customer) => (
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleViewDetails(customer)}
-                        className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                        title={t('common.actions.view', 'عرض')}
-                    >
-                        <FiEye size={16} />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(customer)}
-                        className="text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
-                        title={t('common.actions.edit', 'تعديل')}
-                    >
-                        <FiEdit2 size={16} />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(customer.id)}
-                        className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        title={t('common.actions.delete', 'حذف')}
-                    >
-                        <FiTrash2 size={16} />
-                    </Button>
-                </div>
-            )
+            header: t('common.actions.actions', 'الإجراءات'),
+            sortable: false,
+            render: (_, customer) => renderActionsCell(customer)
         }
     ];
 
+
     if (authLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+            <div className="flex items-center justify-center   dark:bg-gray-900">
                 <div className="text-gray-600 dark:text-gray-400">
                     {t('common.loading', 'جاري التحميل...')}
                 </div>
@@ -259,7 +373,7 @@ const CustomersPage = () => {
 
     if (!isAuthorized) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+            <div className="flex items-center justify-center min-h-screen  dark:bg-gray-900">
                 <div className="text-red-600 dark:text-red-400">
                     {t('common.unauthorized', 'غير مصرح لك بالوصول')}
                 </div>
@@ -268,7 +382,7 @@ const CustomersPage = () => {
     }
 
     return (
-        <div className="space-y-6 p-6 bg-gray-50 dark:bg-gray-900 ">
+        <div className="space-y-6 p-6  dark:bg-gray-900 ">
             <PageHeader
                 title={t('customers.title', 'إدارة العملاء')}
                 subtitle={t('customers.subtitle', 'عرض وإدارة بيانات العملاء')}
@@ -279,7 +393,7 @@ const CustomersPage = () => {
                 actions={
                     <Button
                         variant="primary"
-                        onClick={() => setShowModal(true)}
+                        onClick={handleCreateNew}
                         className="flex items-center gap-2"
                     >
                         <FiPlus size={20} />
@@ -317,6 +431,7 @@ const CustomersPage = () => {
                 emptyMessage={t('customers.no_customers_found', 'لا توجد عملاء')}
                 loadingMessage={t('customers.messages.loading', 'جاري تحميل العملاء...')}
                 className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+                onRowClick={(customer) => navigate(`/customers/${customer.id}`)}
             />
 
             <Modal
@@ -325,9 +440,36 @@ const CustomersPage = () => {
                 title={editingCustomer ? t('customers.edit_customer', 'تعديل العميل') : t('customers.create_customer', 'إضافة عميل جديد')}
                 size="md"
                 className="dark:bg-gray-800 dark:border-gray-700"
+                footer={(
+                    <div className="flex gap-3 w-full">
+                        <Button
+                            form="customer-form"
+                            type="submit"
+                            variant="primary"
+                            disabled={isSubmitting}
+                            className="flex-1"
+                        >
+                            {isSubmitting
+                                ? t('common.loading', 'جاري الحفظ...')
+                                : editingCustomer
+                                    ? t('common.actions.update', 'تحديث')
+                                    : t('common.actions.create', 'إنشاء')
+                            }
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleCloseModal}
+                            disabled={isSubmitting}
+                            className="flex-1"
+                        >
+                            {t('common.actions.cancel', 'إلغاء')}
+                        </Button>
+                    </div>
+                )}
             >
                 <div className="bg-white dark:bg-gray-800">
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form id="customer-form" onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 {t('customers.fields.name', 'الاسم')} *
@@ -409,30 +551,24 @@ const CustomersPage = () => {
                             />
                         </div>
 
-                        <div className="flex gap-3 pt-4">
-                            <Button
-                                type="submit"
-                                variant="primary"
-                                disabled={isSubmitting}
-                                className="flex-1"
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {t('customers.fields.type', 'نوع العميل')}
+                            </label>
+                            <select
+                                name="customerType"
+                                value={formData.customerType}
+                                onChange={handleSelectCustomerType}
+                                className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-gray-900 dark:text-white"
                             >
-                                {isSubmitting
-                                    ? t('common.loading', 'جاري الحفظ...')
-                                    : editingCustomer
-                                        ? t('common.actions.update', 'تحديث')
-                                        : t('common.actions.create', 'إنشاء')
-                                }
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleCloseModal}
-                                disabled={isSubmitting}
-                                className="flex-1"
-                            >
-                                {t('common.actions.cancel', 'إلغاء')}
-                            </Button>
+                                <option value={CUSTOMER_TYPES.REGULAR}>{t('customers.type.regular', CUSTOMER_TYPE_LABEL[CUSTOMER_TYPES.REGULAR])}</option>
+                                <option value={CUSTOMER_TYPES.CASH}>{t('customers.type.cash', CUSTOMER_TYPE_LABEL[CUSTOMER_TYPES.CASH])}</option>
+                                <option value={CUSTOMER_TYPES.COMPANY}>{t('customers.type.company', CUSTOMER_TYPE_LABEL[CUSTOMER_TYPES.COMPANY])}</option>
+                            </select>
                         </div>
+
+                        {/* Note: balance is not editable here to avoid accidental manipulation.
+                            If you want a balance-edit feature, create a separate controlled flow. */}
                     </form>
                 </div>
             </Modal>
@@ -446,13 +582,21 @@ const CustomersPage = () => {
             >
                 {selectedCustomer && (
                     <div className="bg-white dark:bg-gray-800 space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center justify-between gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                                     {t('customers.fields.name', 'الاسم')}
                                 </label>
                                 <p className="text-gray-900 dark:text-white font-medium">{selectedCustomer.name}</p>
                             </div>
+                            <div>
+                                <Badge variant={getCustomerTypeBadgeVariant(selectedCustomer.customerType)}>
+                                    {getCustomerTypeLabel(selectedCustomer.customerType)}
+                                </Badge>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                                     {t('customers.fields.phone', 'رقم الهاتف')}
@@ -470,7 +614,15 @@ const CustomersPage = () => {
                                     {t('customers.fields.created_at', 'تاريخ الإضافة')}
                                 </label>
                                 <p className="text-gray-900 dark:text-white">
-                                    {new Date(selectedCustomer.createdAt).toLocaleDateString('ar-EG')}
+                                    {selectedCustomer.createdAt ? new Date(selectedCustomer.createdAt).toLocaleDateString('ar-EG') : '-'}
+                                </p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                    {t('customers.fields.balance', 'الرصيد الحالي')}
+                                </label>
+                                <p className={`text-lg font-mono ${balanceColorClass(selectedCustomer)}`}>
+                                    {selectedCustomer.customerType === CUSTOMER_TYPES.CASH ? '-' : formatBalance(selectedCustomer)}
                                 </p>
                             </div>
                         </div>

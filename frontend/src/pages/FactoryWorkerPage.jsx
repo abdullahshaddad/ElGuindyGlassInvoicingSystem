@@ -18,6 +18,7 @@ import {
     Modal
 } from '@components';
 import { ConfirmationDialog } from '@components/ui/ConfirmationDialog';
+import { invoiceService } from '@services/invoiceService';
 import { printJobService } from '@services/printJobService';
 import { printPDF, fetchAndPrintPDF, downloadPDF } from '@utils/printHelper';
 import useAuthorized from '@hooks/useAuthorized';
@@ -29,6 +30,9 @@ const FactoryWorkerPage = () => {
     const { showSuccess, showError, showInfo, showWarning } = useSnackbar();
 
     const [printJobs, setPrintJobs] = useState([]);
+    const [groupedJobs, setGroupedJobs] = useState({});
+    const [availableThicknesses, setAvailableThicknesses] = useState([]);
+    const [activeTab, setActiveTab] = useState('ALL');
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [processingJobId, setProcessingJobId] = useState(null);
@@ -61,7 +65,33 @@ const FactoryWorkerPage = () => {
             if (showLoader) setLoading(true);
 
             const jobs = await printJobService.getQueuedJobs();
-            setPrintJobs(jobs || []);
+
+            // Enrich jobs with invoice data for thickness
+            if (jobs && jobs.length > 0) {
+                const uniqueInvoiceIds = [...new Set(jobs.map(j => j.invoiceId))];
+                const invoicesData = await Promise.all(
+                    uniqueInvoiceIds.map(id => invoiceService.getInvoice(id).catch(() => null))
+                );
+
+                const invoicesMap = {};
+                invoicesData.forEach(inv => {
+                    if (inv) invoicesMap[inv.id] = inv;
+                });
+
+                // Attach invoice to job
+                const jobsWithInvoices = jobs.map(job => ({
+                    ...job,
+                    invoice: invoicesMap[job.invoiceId]
+                }));
+
+                setPrintJobs(jobsWithInvoices);
+                processGroups(jobsWithInvoices);
+            } else {
+                setPrintJobs([]);
+                setGroupedJobs({});
+                setAvailableThicknesses([]);
+            }
+
         } catch (err) {
             console.error('Load print queue error:', err);
             showError(t('factory.messages.load_error', 'فشل في تحميل قائمة الطباعة'));
@@ -69,6 +99,40 @@ const FactoryWorkerPage = () => {
             setLoading(false);
             setRefreshing(false);
         }
+    };
+
+    const processGroups = (jobs) => {
+        const groups = { 'ALL': jobs };
+        const thicknesses = new Set();
+
+        jobs.forEach(job => {
+            if (!job.invoice || !job.invoice.invoiceLines) return;
+
+            // Collect all thicknesses in this invoice
+            const jobThicknesses = new Set();
+            job.invoice.invoiceLines.forEach(line => {
+                if (line.glassType && line.glassType.thickness) {
+                    jobThicknesses.add(line.glassType.thickness);
+                }
+            });
+
+            // Add job to relevant thickness groups
+            jobThicknesses.forEach(thickness => {
+                const key = `${thickness}mm`;
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(job);
+                thicknesses.add(thickness);
+            });
+
+            // If mixed or empty?
+            if (jobThicknesses.size === 0) {
+                if (!groups['Unknown']) groups['Unknown'] = [];
+                groups['Unknown'].push(job);
+            }
+        });
+
+        setGroupedJobs(groups);
+        setAvailableThicknesses(Array.from(thicknesses).sort((a, b) => a - b));
     };
 
     const handleRefresh = () => {
@@ -489,9 +553,34 @@ const FactoryWorkerPage = () => {
                 </div>
             </div>
 
+            {/* Thickness Tabs */}
+            {availableThicknesses.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-2 border-b border-gray-200 dark:border-gray-700 mb-4">
+                    <Button
+                        variant={activeTab === 'ALL' ? 'primary' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('ALL')}
+                        className="whitespace-nowrap"
+                    >
+                        الكل ({groupedJobs['ALL']?.length || 0})
+                    </Button>
+                    {availableThicknesses.map(thickness => (
+                        <Button
+                            key={thickness}
+                            variant={activeTab === `${thickness}mm` ? 'primary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setActiveTab(`${thickness}mm`)}
+                            className="whitespace-nowrap"
+                        >
+                            {thickness} مم ({groupedJobs[`${thickness}mm`]?.length || 0})
+                        </Button>
+                    ))}
+                </div>
+            )}
+
             {/* Print Queue Table */}
             <DataTable
-                data={printJobs}
+                data={groupedJobs[activeTab] || []}
                 columns={columns}
                 loading={loading}
                 emptyMessage={t('factory.no_jobs', 'لا توجد مهام طباعة في الانتظار')}

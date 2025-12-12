@@ -7,12 +7,12 @@ import Select from './Select';
  * Allows selection between CASH, REGULAR, and COMPANY customer types
  * with visual indicators and descriptions
  */
-const CustomerTypeSelector = ({ 
-    value, 
-    onChange, 
+const CustomerTypeSelector = ({
+    value,
+    onChange,
     disabled = false,
     error = null,
-    showDescription = true 
+    showDescription = true
 }) => {
     const customerTypes = [
         {
@@ -24,7 +24,7 @@ const CustomerTypeSelector = ({
         },
         {
             value: 'REGULAR',
-            label: 'عميل عادي',
+            label: 'عميل',
             icon: FiUser,
             description: 'يمكنه الدفع جزئياً أو لاحقاً، يتم تتبع الرصيد المستحق',
             color: 'text-blue-600 dark:text-blue-400'
@@ -46,7 +46,7 @@ const CustomerTypeSelector = ({
                 نوع العميل
                 <span className="text-red-500 mr-1">*</span>
             </label>
-            
+
             {/* Dropdown Selection */}
             <Select
                 value={value}
@@ -78,7 +78,7 @@ const CustomerTypeSelector = ({
                     {customerTypes.map((type) => {
                         const Icon = type.icon;
                         const isSelected = value === type.value;
-                        
+
                         return (
                             <button
                                 key={type.value}
@@ -87,8 +87,8 @@ const CustomerTypeSelector = ({
                                 disabled={disabled}
                                 className={`
                                     p-4 rounded-lg border-2 transition-all text-right
-                                    ${isSelected 
-                                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' 
+                                    ${isSelected
+                                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
                                         : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
                                     }
                                     ${!disabled && 'hover:border-primary-300 dark:hover:border-primary-600 cursor-pointer'}
@@ -96,8 +96,8 @@ const CustomerTypeSelector = ({
                                 `}
                             >
                                 <div className="flex items-start gap-3">
-                                    <Icon 
-                                        size={24} 
+                                    <Icon
+                                        size={24}
                                         className={isSelected ? 'text-primary-600 dark:text-primary-400' : type.color}
                                     />
                                     <div className="flex-1">
@@ -123,9 +123,9 @@ const CustomerTypeSelector = ({
             {/* Selected Type Info (compact view when showDescription is false) */}
             {!showDescription && selectedType && (
                 <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-sm">
-                    {React.createElement(selectedType.icon, { 
-                        size: 16, 
-                        className: selectedType.color 
+                    {React.createElement(selectedType.icon, {
+                        size: 16,
+                        className: selectedType.color
                     })}
                     <span className="text-gray-700 dark:text-gray-300">
                         {selectedType.description}
