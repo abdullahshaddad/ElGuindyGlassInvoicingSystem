@@ -10,6 +10,7 @@ import com.example.backend.models.PrintJob;
 import com.example.backend.models.enums.PrintType;
 import com.example.backend.repositories.InvoiceRepository;
 import com.example.backend.services.PrintJobService;
+import com.example.backend.services.StorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -34,11 +35,29 @@ public class PrintJobController {
 
     private final PrintJobService printJobService;
     private final InvoiceRepository invoiceRepository;
+    private final StorageService storageService;
 
     @Autowired
-    public PrintJobController(PrintJobService printJobService, InvoiceRepository invoiceRepository) {
+    public PrintJobController(PrintJobService printJobService, InvoiceRepository invoiceRepository,
+            StorageService storageService) {
         this.printJobService = printJobService;
         this.invoiceRepository = invoiceRepository;
+        this.storageService = storageService;
+    }
+
+    /**
+     * Helper to resolve PDF URL (Presigned for S3, Direct for MinIO/Public)
+     */
+    private String resolveUrl(String path) {
+        if (path == null || path.trim().isEmpty()) {
+            return null;
+        }
+        // If it's already a full URL, return as is
+        if (path.startsWith("http://") || path.startsWith("https://")) {
+            return path;
+        }
+        // Otherwise treat as object key and get public/presigned URL
+        return storageService.getPublicUrl(path);
     }
 
     /**
@@ -64,6 +83,11 @@ public class PrintJobController {
             // Get status after creation
             PrintJobStatusDTO status = printJobService.getPrintJobStatus(invoiceId);
 
+            // Resolve URLs in status jobs
+            if (status.getJobs() != null) {
+                status.getJobs().forEach(job -> job.setPdfPath(resolveUrl(job.getPdfPath())));
+            }
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "تم إنشاء مهام الطباعة بنجاح");
@@ -80,23 +104,20 @@ public class PrintJobController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of(
                             "success", false,
-                            "error", e.getMessage()
-                    ));
+                            "error", e.getMessage()));
         } catch (PrintJobCreationException e) {
             log.error("Print job creation failed for invoice {}: {}", invoiceId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(
                             "success", false,
-                            "error", e.getMessage()
-                    ));
+                            "error", e.getMessage()));
         } catch (Exception e) {
             log.error("Unexpected error creating print jobs for invoice {}: {}",
                     invoiceId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(
                             "success", false,
-                            "error", "خطأ غير متوقع: " + e.getMessage()
-                    ));
+                            "error", "خطأ غير متوقع: " + e.getMessage()));
         }
     }
 
@@ -130,9 +151,8 @@ public class PrintJobController {
                     "id", printJob.getId(),
                     "type", printJob.getType(),
                     "status", printJob.getStatus(),
-                    "pdfPath", printJob.getPdfPath(),
-                    "createdAt", printJob.getCreatedAt()
-            ));
+                    "pdfPath", resolveUrl(printJob.getPdfPath()),
+                    "createdAt", printJob.getCreatedAt()));
 
             log.info("{} print job created successfully for invoice {}: PDF at {}",
                     printType, invoiceId, printJob.getPdfPath());
@@ -144,24 +164,21 @@ public class PrintJobController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of(
                             "success", false,
-                            "error", e.getMessage()
-                    ));
+                            "error", e.getMessage()));
         } catch (PrintJobCreationException e) {
             log.error("Error creating {} print job for invoice {}: {}",
                     printType, invoiceId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(
                             "success", false,
-                            "error", e.getMessage()
-                    ));
+                            "error", e.getMessage()));
         } catch (Exception e) {
             log.error("Unexpected error creating {} print job for invoice {}: {}",
                     printType, invoiceId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(
                             "success", false,
-                            "error", "خطأ غير متوقع: " + e.getMessage()
-                    ));
+                            "error", "خطأ غير متوقع: " + e.getMessage()));
         }
     }
 
@@ -179,6 +196,11 @@ public class PrintJobController {
             log.debug("REST API: Getting print job status for invoice {}", invoiceId);
 
             PrintJobStatusDTO status = printJobService.getPrintJobStatus(invoiceId);
+
+            // Resolve URLs
+            if (status.getJobs() != null) {
+                status.getJobs().forEach(job -> job.setPdfPath(resolveUrl(job.getPdfPath())));
+            }
 
             log.debug("Print job status retrieved for invoice {}: {} total jobs",
                     invoiceId, status.getTotalJobs());
@@ -220,9 +242,8 @@ public class PrintJobController {
                     "id", printJob.getId(),
                     "type", printJob.getType(),
                     "status", printJob.getStatus(),
-                    "pdfPath", printJob.getPdfPath(),
-                    "createdAt", printJob.getCreatedAt()
-            ));
+                    "pdfPath", resolveUrl(printJob.getPdfPath()),
+                    "createdAt", printJob.getCreatedAt()));
 
             log.info("Print job retry successful for invoice {}, type {}: new job ID {}",
                     invoiceId, printType, printJob.getId());
@@ -234,23 +255,20 @@ public class PrintJobController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of(
                             "success", false,
-                            "error", e.getMessage()
-                    ));
+                            "error", e.getMessage()));
         } catch (PrintJobException e) {
             log.error("Error retrying print job for invoice {} with type {}: {}",
                     invoiceId, printType, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(
                             "success", false,
-                            "error", e.getMessage()
-                    ));
+                            "error", e.getMessage()));
         } catch (Exception e) {
             log.error("Unexpected error retrying print job: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(
                             "success", false,
-                            "error", "خطأ غير متوقع: " + e.getMessage()
-                    ));
+                            "error", "خطأ غير متوقع: " + e.getMessage()));
         }
     }
 
@@ -271,6 +289,7 @@ public class PrintJobController {
             // Convert to DTOs to avoid lazy loading issues
             List<PrintJobDTO> queuedJobDTOs = queuedJobs.stream()
                     .map(PrintJobDTO::fromEntity)
+                    .peek(dto -> dto.setPdfPath(resolveUrl(dto.getPdfPath())))
                     .toList();
 
             log.debug("Found {} queued print jobs", queuedJobDTOs.size());
@@ -301,6 +320,7 @@ public class PrintJobController {
 
             PrintJob printJob = printJobService.markAsPrinting(jobId);
             PrintJobDTO dto = PrintJobDTO.fromEntity(printJob);
+            dto.setPdfPath(resolveUrl(dto.getPdfPath()));
 
             return ResponseEntity.ok(dto);
 
@@ -328,6 +348,7 @@ public class PrintJobController {
 
             PrintJob printJob = printJobService.markAsPrinted(jobId);
             PrintJobDTO dto = PrintJobDTO.fromEntity(printJob);
+            dto.setPdfPath(resolveUrl(dto.getPdfPath()));
 
             return ResponseEntity.ok(dto);
 
@@ -345,7 +366,7 @@ public class PrintJobController {
      * PUT /api/v1/print-jobs/{jobId}/failed
      *
      * @param jobId Print job ID
-     * @param body Request body with error message
+     * @param body  Request body with error message
      * @return Updated print job as DTO
      */
     @PutMapping("/{jobId}/failed")
@@ -360,6 +381,7 @@ public class PrintJobController {
 
             PrintJob printJob = printJobService.markAsFailed(jobId, errorMessage);
             PrintJobDTO dto = PrintJobDTO.fromEntity(printJob);
+            dto.setPdfPath(resolveUrl(dto.getPdfPath()));
 
             return ResponseEntity.ok(dto);
 
@@ -387,6 +409,10 @@ public class PrintJobController {
 
             return printJobService.findById(jobId)
                     .map(PrintJobDTO::fromEntity)
+                    .map(dto -> {
+                        dto.setPdfPath(resolveUrl(dto.getPdfPath()));
+                        return dto;
+                    })
                     .map(ResponseEntity::ok)
                     .orElseGet(() -> {
                         log.warn("Print job {} not found", jobId);
@@ -415,6 +441,7 @@ public class PrintJobController {
             List<PrintJob> printJobs = printJobService.findByInvoiceId(invoiceId);
             List<PrintJobDTO> printJobDTOs = printJobs.stream()
                     .map(PrintJobDTO::fromEntity)
+                    .peek(dto -> dto.setPdfPath(resolveUrl(dto.getPdfPath())))
                     .toList();
 
             log.debug("Found {} print jobs for invoice {}", printJobDTOs.size(), invoiceId);
@@ -443,6 +470,7 @@ public class PrintJobController {
             List<PrintJob> failedJobs = printJobService.findFailedJobs();
             List<PrintJobDTO> failedJobDTOs = failedJobs.stream()
                     .map(PrintJobDTO::fromEntity)
+                    .peek(dto -> dto.setPdfPath(resolveUrl(dto.getPdfPath())))
                     .toList();
 
             log.debug("Found {} failed print jobs", failedJobDTOs.size());
@@ -476,23 +504,20 @@ public class PrintJobController {
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "تم حذف مهمة الطباعة بنجاح",
-                    "jobId", jobId
-            ));
+                    "jobId", jobId));
 
         } catch (PrintJobException e) {
             log.error("Error deleting print job {}: {}", jobId, e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of(
                             "success", false,
-                            "error", e.getMessage()
-                    ));
+                            "error", e.getMessage()));
         } catch (Exception e) {
             log.error("Unexpected error deleting print job {}: {}", jobId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(
                             "success", false,
-                            "error", "خطأ غير متوقع: " + e.getMessage()
-                    ));
+                            "error", "خطأ غير متوقع: " + e.getMessage()));
         }
     }
 }
