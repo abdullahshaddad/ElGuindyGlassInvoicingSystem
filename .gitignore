@@ -34,3 +34,7 @@ tmp/
 *.pid
 *.seed
 *.pid.lock
+
+logs/
+*.log
+*.gz
