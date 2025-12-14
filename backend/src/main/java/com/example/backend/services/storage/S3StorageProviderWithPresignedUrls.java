@@ -206,14 +206,9 @@ public class S3StorageProviderWithPresignedUrls implements StorageProvider {
         if (!enabled) {
             return null;
         }
-        // Return Proxy Endpoint URL
-        // We assume the backend is hosted at the same domain/port as the API call,
-        // so relative path works if frontend uses it as src.
-        // However, MinIO returns "http://...".
-        // Let's use a relative path led by "/api/v1...".
-        // The frontend (React) usually proxies /api to backend, OR backend is on same
-        // origin.
-        return "/api/v1/storage/proxy?key=" + objectName;
+        // Return Direct S3 URL
+        // Format: https://{bucket}.s3.{region}.amazonaws.com/{key}
+        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, objectName);
     }
 
     public String generatePresignedUrl(String objectKey, Duration duration) {
