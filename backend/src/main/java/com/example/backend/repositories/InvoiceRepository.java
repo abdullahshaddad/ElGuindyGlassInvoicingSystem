@@ -47,4 +47,9 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
                         "LEFT JOIN FETCH i.customer " +
                         "WHERE i.id = :id")
         Optional<Invoice> findByIdWithDetails(@Param("id") Long id);
+
+        @org.springframework.data.jpa.repository.Modifying
+        @org.springframework.transaction.annotation.Transactional
+        @Query("UPDATE Invoice i SET i.pdfUrl = null")
+        void clearAllPdfUrls();
 }
