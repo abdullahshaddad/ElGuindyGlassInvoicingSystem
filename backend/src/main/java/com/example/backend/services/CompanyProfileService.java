@@ -14,6 +14,7 @@ public class CompanyProfileService {
 
     private final CompanyProfileRepository repository;
     private final StorageService storageService;
+    private final com.example.backend.repositories.InvoiceRepository invoiceRepository;
 
     public CompanyProfile getProfile() {
         return repository.findAll().stream().findFirst().orElseGet(this::createDefaultProfile);
@@ -33,7 +34,18 @@ public class CompanyProfileService {
 
         // Don't update logoUrl here, handled separately
 
-        return repository.save(existing);
+        CompanyProfile saved = repository.save(existing);
+
+        // Invalidate all cached invoice PDFs to force regeneration with new profile
+        // data
+        try {
+            invoiceRepository.clearAllPdfUrls();
+            log.info("Cleared all cached invoice PDF URLs due to profile update");
+        } catch (Exception e) {
+            log.error("Failed to clear PDF cache after profile update: {}", e.getMessage());
+        }
+
+        return saved;
     }
 
     public CompanyProfile updateLogo(MultipartFile file) {
@@ -42,7 +54,17 @@ public class CompanyProfileService {
         String logoUrl = storageService.storeFile(file, "company-assets");
         existing.setLogoUrl(logoUrl);
 
-        return repository.save(existing);
+        CompanyProfile saved = repository.save(existing);
+
+        // Invalidate all cached invoice PDFs to force regeneration with new logo
+        try {
+            invoiceRepository.clearAllPdfUrls();
+            log.info("Cleared all cached invoice PDF URLs due to logo update");
+        } catch (Exception e) {
+            log.error("Failed to clear PDF cache after logo update: {}", e.getMessage());
+        }
+
+        return saved;
     }
 
     private CompanyProfile createDefaultProfile() {

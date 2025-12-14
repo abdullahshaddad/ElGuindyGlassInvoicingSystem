@@ -78,6 +78,9 @@ public class Invoice {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "pdf_url")
+    private String pdfUrl;
+
     /**
      * Convenience constructor
      */

@@ -128,21 +128,21 @@ const getSidebarItems = (t) => [
                 label: t('navigation.glassTypes', 'أنواع الزجاج'),
                 roles: ['OWNER', 'ADMIN']
             },
-            {
-                id: 'cutting-prices',
-                to: '/admin/cutting-prices',
-                icon: icons.cuttingPrices,
-                label: t('navigation.cuttingPrices', 'أسعار القطع'),
-                roles: ['OWNER'],
-                badge: 'جديد'
-            },
-            {
-                id: 'operation-prices',
-                to: '/admin/operation-prices',
-                icon: icons.operationPrices,
-                label: t('navigation.operationPrices', 'أسعار العمليات'),
-                roles: ['OWNER', 'ADMIN']
-            }
+            // {
+            //     id: 'cutting-prices',
+            //     to: '/admin/cutting-prices',
+            //     icon: icons.cuttingPrices,
+            //     label: t('navigation.cuttingPrices', 'أسعار القطع'),
+            //     roles: ['OWNER'],
+            //     badge: 'جديد'
+            // },
+            // {
+            //     id: 'operation-prices',
+            //     to: '/admin/operation-prices',
+            //     icon: icons.operationPrices,
+            //     label: t('navigation.operationPrices', 'أسعار العمليات'),
+            //     roles: ['OWNER', 'ADMIN']
+            // }
         ]
     },
     {

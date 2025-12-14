@@ -187,18 +187,35 @@ public class PrintJobService {
 
             // Generate PDF and store in MinIO - returns public URL
             String pdfUrl;
-            try {
-                pdfUrl = pdfGenerationService.generateInvoicePdf(invoice, printType);
-                if (pdfUrl == null || pdfUrl.trim().isEmpty()) {
-                    throw new PdfGenerationException("PDF URL is null or empty for " + printType);
+
+            // Check if we can reuse existing PDF URL (Only for CLIENT type as it is the
+            // standard invoice)
+            if (printType == PrintType.CLIENT && invoice.getPdfUrl() != null && !invoice.getPdfUrl().isEmpty()) {
+                pdfUrl = invoice.getPdfUrl();
+                log.info("Using existing PDF URL for invoice {}: {}", invoice.getId(), pdfUrl);
+            } else {
+                try {
+                    pdfUrl = pdfGenerationService.generateInvoicePdf(invoice, printType);
+                    if (pdfUrl == null || pdfUrl.trim().isEmpty()) {
+                        throw new PdfGenerationException("PDF URL is null or empty for " + printType);
+                    }
+
+                    // Save URL to invoice if it's the standard client copy
+                    if (printType == PrintType.CLIENT) {
+                        invoice.setPdfUrl(pdfUrl);
+                        invoiceRepository.save(invoice);
+                        log.debug("Saved PDF URL to invoice {}", invoice.getId());
+                    }
+
+                    log.debug("PDF generated and stored in MinIO: {}", pdfUrl);
+                } catch (Exception e) {
+                    log.error("PDF generation failed for {}: {}", printType, e.getMessage());
+                    throw new PdfGenerationException(
+                            "فشل في إنشاء ملف PDF لنوع " + printType + ": " + e.getMessage(), e);
                 }
-                printJob.setPdfPath(pdfUrl); // Store MinIO URL
-                log.debug("PDF generated and stored in MinIO: {}", pdfUrl);
-            } catch (Exception e) {
-                log.error("PDF generation failed for {}: {}", printType, e.getMessage());
-                throw new PdfGenerationException(
-                        "فشل في إنشاء ملف PDF لنوع " + printType + ": " + e.getMessage(), e);
             }
+
+            printJob.setPdfPath(pdfUrl); // Store MinIO URL
 
             // Save to database
             try {
