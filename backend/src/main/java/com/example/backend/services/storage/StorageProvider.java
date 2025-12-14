@@ -23,6 +23,15 @@ public interface StorageProvider {
 
     String getPublicUrl(String objectName);
 
+    /**
+     * Get a temporary (signed) URL for the object.
+     * For providers with permanent public URLs (like MinIO public buckets), this
+     * may allow returning same as getPublicUrl.
+     */
+    default String getTemporaryUrl(String objectName) {
+        return getPublicUrl(objectName);
+    }
+
     String extractObjectName(String publicUrl);
 
     boolean isEnabled();

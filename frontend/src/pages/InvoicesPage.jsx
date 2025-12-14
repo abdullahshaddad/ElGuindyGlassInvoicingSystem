@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FiSearch, FiEye, FiDollarSign, FiFilter, FiPackage, FiPrinter } from 'react-icons/fi';
+import { FiSearch, FiEye, FiDollarSign, FiFilter, FiPackage, FiPrinter, FiTrash2, FiPlus } from 'react-icons/fi';
 import {
     Button,
     Input,
@@ -17,11 +17,13 @@ import { invoiceService } from '@services/invoiceService';
 import { printJobService } from '@services/printJobService';
 import { useSnackbar } from '@contexts/SnackbarContext';
 import useAuthorized from '@hooks/useAuthorized';
+import { useNavigate } from 'react-router-dom';
 
 const InvoicesPage = () => {
     const { t, i18n } = useTranslation();
     const { isAuthorized, isLoading: authLoading } = useAuthorized(['CASHIER', 'OWNER']);
     const { showSuccess, showError, showInfo } = useSnackbar();
+    const navigate = useNavigate();
 
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -198,6 +200,35 @@ const InvoicesPage = () => {
         }
     };
 
+    const handleAddInvoice = () => {
+        navigate('/sys-cashier');
+    };
+
+    const handleDeleteInvoice = (invoice) => {
+        setConfirmDialog({
+            isOpen: true,
+            title: 'حذف الفاتورة',
+            message: `هل أنت متأكد من حذف الفاتورة #${invoice.id}؟ سيتم حذف جميع المدفوعات المرتبطة وتحديث رصيد العميل.`,
+            type: 'danger',
+            confirmText: 'حذف',
+            cancelText: 'إلغاء',
+            onConfirm: async () => {
+                await executeDeleteInvoice(invoice);
+            }
+        });
+    };
+
+    const executeDeleteInvoice = async (invoice) => {
+        try {
+            await invoiceService.deleteInvoice(invoice.id);
+            showSuccess(`تم حذف الفاتورة ${invoice.id} بنجاح`);
+            await loadInvoices();
+        } catch (err) {
+            console.error('Delete invoice error:', err);
+            showError('فشل حذف الفاتورة');
+        }
+    };
+
     const clearFilters = () => {
         setFilters({
             startDate: '',
@@ -326,7 +357,7 @@ const InvoicesPage = () => {
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handlePrintInvoice(invoice)}
+                        onClick={(e) => { e.stopPropagation(); handlePrintInvoice(invoice); }}
                         disabled={isPrinting}
                         className="text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="طباعة"
@@ -342,7 +373,7 @@ const InvoicesPage = () => {
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleSendToFactory(invoice)}
+                        onClick={(e) => { e.stopPropagation(); handleSendToFactory(invoice); }}
                         disabled={isSendingToFactory}
                         className="text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="إرسال للمصنع"
@@ -354,18 +385,16 @@ const InvoicesPage = () => {
                         )}
                     </Button>
 
-                    {/*/!* Mark as Paid Button *!/*/}
-                    {/*{invoice.status === 'PENDING' && (*/}
-                    {/*    <Button*/}
-                    {/*        variant="ghost"*/}
-                    {/*        size="sm"*/}
-                    {/*        onClick={() => handleMarkAsPaid(invoice)}*/}
-                    {/*        className="text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"*/}
-                    {/*        title={t('invoices.actions.mark_paid', 'تسديد')}*/}
-                    {/*    >*/}
-                    {/*        <FiDollarSign size={16} />*/}
-                    {/*    </Button>*/}
-                    {/*)}*/}
+                    {/* Delete Button */}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteInvoice(invoice); }}
+                        className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        title="حذف"
+                    >
+                        <FiTrash2 size={16} />
+                    </Button>
                 </div>
             )
         }
@@ -400,6 +429,15 @@ const InvoicesPage = () => {
                     { label: t('navigation.home', 'الرئيسية'), href: '/' },
                     { label: t('invoices.title', 'الفواتير') }
                 ]}
+                action={
+                    <Button
+                        onClick={handleAddInvoice}
+                        className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white"
+                    >
+                        <FiPlus size={20} />
+                        <span>{t('invoices.actions.add_invoice', 'إضافة فاتورة')}</span>
+                    </Button>
+                }
             />
 
             {/* Filters Section */}

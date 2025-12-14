@@ -78,6 +78,13 @@ public class StorageService {
         return storageProvider.getPublicUrl(objectName);
     }
 
+    public String getTemporaryUrl(String objectName) {
+        if (!storageProvider.isEnabled()) {
+            return null;
+        }
+        return storageProvider.getTemporaryUrl(objectName);
+    }
+
     public String extractObjectName(String publicUrl) {
         if (!storageProvider.isEnabled()) {
             return null;

@@ -35,33 +35,32 @@ import java.time.LocalDateTime;
 @RequestMapping("/api/v1/invoices")
 @CrossOrigin(origins = "*")
 public class InvoiceController {
-    
+
     private final InvoiceService invoiceService;
     private final ExportService exportService;
     private final PrintJobService printJobService;
-    
+
     @Autowired
-    public InvoiceController(InvoiceService invoiceService, ExportService exportService, PrintJobService printJobService) {
+    public InvoiceController(InvoiceService invoiceService, ExportService exportService,
+            PrintJobService printJobService) {
         this.invoiceService = invoiceService;
         this.exportService = exportService;
         this.printJobService = printJobService;
     }
 
-
-    
     @PostMapping
     @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER')")
     public ResponseEntity<Invoice> createInvoice(@Valid @RequestBody CreateInvoiceRequest request) {
         Invoice invoice = invoiceService.createInvoice(request);
         return ResponseEntity.ok(invoice);
     }
-    
+
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER')")
     public ResponseEntity<Invoice> getInvoice(@PathVariable Long id) {
         return invoiceService.findById(id)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping
@@ -150,47 +149,54 @@ public class InvoiceController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
     @PutMapping("/{id}/pay")
     @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER')")
     public ResponseEntity<Invoice> markAsPaid(@PathVariable Long id) {
         Invoice invoice = invoiceService.markAsPaid(id);
         return ResponseEntity.ok(invoice);
     }
-    
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('OWNER') or hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteInvoice(@PathVariable Long id) {
+        invoiceService.deleteInvoice(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/revenue")
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<Double> getRevenue(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
-        
+
         Double revenue = invoiceService.getTotalRevenue(startDate, endDate);
         return ResponseEntity.ok(revenue != null ? revenue : 0.0);
     }
-    
+
     @GetMapping("/export")
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<byte[]> exportInvoices(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
-        
+
         if (startDate == null || endDate == null) {
             LocalDateTime now = LocalDateTime.now();
             endDate = now;
             startDate = now.minusDays(30);
         }
-        
+
         byte[] csvData = exportService.exportInvoicesToCsv(startDate, endDate);
-        
+
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=invoices_export.csv")
-            .contentType(MediaType.parseMediaType("text/csv"))
-            .body(csvData);
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=invoices_export.csv")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(csvData);
     }
 
     @PostMapping("/preview-line-total")
     public ResponseEntity<LinePreviewDTO> previewLineTotal(
-            @RequestBody PreviewLineRequest request
-    ) {
+            @RequestBody PreviewLineRequest request) {
         LinePreviewDTO preview = invoiceService.calculateLinePreview(request);
         return ResponseEntity.ok(preview);
     }
@@ -222,4 +228,3 @@ public class InvoiceController {
         }
     }
 }
-

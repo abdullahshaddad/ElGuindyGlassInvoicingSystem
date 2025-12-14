@@ -116,7 +116,10 @@ public class S3StorageProviderWithPresignedUrls implements StorageProvider {
             s3Client.putObject(putObjectRequest, RequestBody.fromBytes(bytes));
 
             log.info("✅ File stored in S3: {} (Type: {})", key, contentType);
-            return key;
+            log.info("✅ File stored in S3: {} (Type: {})", key, contentType);
+            // Return Proxy URL instead of key.
+            // This ensures frontend receives a usable permanent URL.
+            return getPublicUrl(key);
 
         } catch (S3Exception e) {
             log.error("❌ Failed to store file in S3: {}", e.getMessage());
@@ -191,11 +194,26 @@ public class S3StorageProviderWithPresignedUrls implements StorageProvider {
     }
 
     @Override
-    public String getPublicUrl(String objectName) {
+    public String getTemporaryUrl(String objectName) {
         if (!enabled) {
             return null;
         }
         return generatePresignedUrl(objectName, Duration.ofHours(1));
+    }
+
+    @Override
+    public String getPublicUrl(String objectName) {
+        if (!enabled) {
+            return null;
+        }
+        // Return Proxy Endpoint URL
+        // We assume the backend is hosted at the same domain/port as the API call,
+        // so relative path works if frontend uses it as src.
+        // However, MinIO returns "http://...".
+        // Let's use a relative path led by "/api/v1...".
+        // The frontend (React) usually proxies /api to backend, OR backend is on same
+        // origin.
+        return "/api/v1/storage/proxy?key=" + objectName;
     }
 
     public String generatePresignedUrl(String objectKey, Duration duration) {

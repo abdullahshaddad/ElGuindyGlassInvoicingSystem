@@ -54,6 +54,7 @@ public class InvoiceService {
     private final PrintJobService printJobService;
     private final WebSocketNotificationService webSocketService;
     private final OperationCalculationService operationCalculationService;
+    private final PaymentService paymentService;
 
     @Autowired
     public InvoiceService(InvoiceRepository invoiceRepository,
@@ -63,7 +64,8 @@ public class InvoiceService {
             CuttingContext cuttingContext,
             PrintJobService printJobService,
             WebSocketNotificationService webSocketService,
-            OperationCalculationService operationCalculationService) {
+            OperationCalculationService operationCalculationService,
+            PaymentService paymentService) {
         this.invoiceRepository = invoiceRepository;
         this.invoiceLineRepository = invoiceLineRepository;
         this.customerService = customerService;
@@ -72,6 +74,7 @@ public class InvoiceService {
         this.printJobService = printJobService;
         this.webSocketService = webSocketService;
         this.operationCalculationService = operationCalculationService;
+        this.paymentService = paymentService;
     }
 
     /**
@@ -124,9 +127,47 @@ public class InvoiceService {
                 invoice.setPaymentDate(LocalDateTime.now());
             }
 
-            // 6.5 Update Customer Balance (Increase Debt)
+            // 6.5 Update Customer Balance & Record Payment
             if (customer.getCustomerType() != com.example.backend.models.enums.CustomerType.CASH) {
-                customerService.updateCustomerBalance(customer.getId(), invoice.getRemainingBalance());
+                // For non-CASH customers:
+                // 1. Add FULL invoice amount to balance (increase debt)
+                customerService.updateCustomerBalance(customer.getId(), invoice.getTotalPrice());
+
+                // 2. If there is an initial payment, record it via PaymentService
+                // This validates the payment and creates a Payment entity
+                // It also automatically deducts from customer balance
+                if (request.getAmountPaidNow() != null && request.getAmountPaidNow() > 0) {
+                    try {
+                        paymentService.recordPayment(
+                                customer.getId(),
+                                invoice.getId(),
+                                request.getAmountPaidNow(),
+                                com.example.backend.models.enums.PaymentMethod.CASH, // Default to CASH for now
+                                null, // Reference number
+                                "دفعة أولية عند إنشاء الفاتورة",
+                                "System" // Or get current user
+                        );
+                        // Note: invoice.amountPaidNow is already set in createInvoiceEntity for
+                        // calculation purposes,
+                        // but PaymentService.recordPayment will update it again.
+                        // To avoid double counting or confusion, rely on recordPayment to handle the
+                        // updates.
+                        // However, createInvoiceEntity sets it initially.
+                        // Because recordPayment also updates the invoice's paid amount, we are fine.
+                    } catch (Exception e) {
+                        log.error("Failed to record initial payment for invoice {}: {}", invoice.getId(),
+                                e.getMessage());
+                        // Consider if this should rollback the transaction or just log error
+                        // For now, we log but don't fail the invoice creation, but user balance might
+                        // be affected
+                        // Ideally transaction rollback handles this if exception propagates.
+                        throw new InvoiceCreationException("فشل في تسجيل الدفعة الأولية: " + e.getMessage(), e);
+                    }
+                }
+            } else {
+                // For CASH customers:
+                // Existing logic (set amountPaidNow in entity, no Payment entity created)
+                // This is handled by createInvoiceEntity setting amountPaidNow
             }
 
             // 7. Save final invoice state
@@ -190,13 +231,31 @@ public class InvoiceService {
      */
     private Invoice createInvoiceEntity(Customer customer, CreateInvoiceRequest request) {
         try {
+            double initialPaid = 0.0;
+
+            // For CASH customers, we set the paid amount immediately to reflect full
+            // payment (usually) or partial
+            // For REGULAR customers, we initially set 0 and let PaymentService handle the
+            // payment to create a record
+            // UNLESS we want the invoice entity to start with the value.
+            // However, to ensure PaymentService logic is used, we should probably start
+            // with 0 for Regular
+            // and let recordPayment update it.
+
+            if (customer.getCustomerType() == com.example.backend.models.enums.CustomerType.CASH) {
+                initialPaid = request.getAmountPaidNow() != null ? request.getAmountPaidNow() : 0.0;
+            } else {
+                // For regular customers, we'll record the payment separately
+                initialPaid = 0.0;
+            }
+
             Invoice invoice = Invoice.builder()
                     .customer(customer)
                     .issueDate(request.getIssueDate() != null ? request.getIssueDate() : LocalDateTime.now())
                     .createdAt(LocalDateTime.now())
                     .status(InvoiceStatus.PENDING)
                     .totalPrice(0.0)
-                    .amountPaidNow(request.getAmountPaidNow() != null ? request.getAmountPaidNow() : 0.0)
+                    .amountPaidNow(initialPaid)
                     .notes(request.getNotes())
                     .build();
 
@@ -687,6 +746,39 @@ public class InvoiceService {
         }
 
         return invoiceRepository.save(invoice);
+    }
+
+    @Transactional
+    public void deleteInvoice(Long invoiceId) {
+        Invoice invoice = findById(invoiceId)
+                .orElseThrow(() -> new InvoiceNotFoundException("Invoice not found: " + invoiceId));
+
+        // 1. Reverse Payments (if any)
+        if (invoice.getStatus() == InvoiceStatus.PAID || invoice.getAmountPaidNow() > 0) {
+            List<com.example.backend.dto.PaymentDTO> payments = paymentService.getInvoicePayments(invoiceId);
+            for (com.example.backend.dto.PaymentDTO payment : payments) {
+                paymentService.deletePayment(payment.getId());
+                log.info("Reversed payment {} for deleted invoice {}", payment.getId(), invoiceId);
+            }
+        } else if (invoice.getStatus() == InvoiceStatus.PENDING) {
+            // Even if pending, if it's not a CASH customer, the invoice Total was added to
+            // balance as debt.
+            // We must reverse this debt.
+            // Note: If invoice was PAID, deletePayment() handles the credit reversal
+            // (Payment),
+            // but we still need to reverse the Debit (Invoice Total).
+            // So this logic applies to ALL non-CASH customers regardless of status.
+        }
+
+        // 2. Reverse Invoice Debt (for non-CASH customers)
+        if (invoice.getCustomer().getCustomerType() != com.example.backend.models.enums.CustomerType.CASH) {
+            customerService.updateCustomerBalance(invoice.getCustomer().getId(), -invoice.getTotalPrice());
+            log.info("Reversed invoice debt ({}) for customer {}", invoice.getTotalPrice(),
+                    invoice.getCustomer().getId());
+        }
+
+        invoiceRepository.delete(invoice);
+        log.info("Deleted invoice {}", invoiceId);
     }
 
     public Invoice markAsCancelled(Long invoiceId) {

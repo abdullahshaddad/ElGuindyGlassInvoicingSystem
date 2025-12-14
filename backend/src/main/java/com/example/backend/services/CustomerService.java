@@ -1,6 +1,7 @@
 package com.example.backend.services;
 
 import com.example.backend.models.customer.Customer;
+import com.example.backend.exceptions.customer.DuplicatePhoneNumberException;
 import com.example.backend.repositories.CustomerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,18 @@ public class CustomerService {
     public Customer saveCustomer(Customer customer) {
         // Clean and validate phone number
         if (customer.getPhone() != null) {
-            customer.setPhone(cleanPhoneNumber(customer.getPhone()));
+            String cleanedPhone = cleanPhoneNumber(customer.getPhone());
+            customer.setPhone(cleanedPhone);
+
+            // Check for duplicate phone number
+            Optional<Customer> existing = customerRepository.findByPhone(cleanedPhone);
+            if (existing.isPresent()) {
+                // If ID is different, it's a conflict
+                if (customer.getId() == null || !customer.getId().equals(existing.get().getId())) {
+                    throw new DuplicatePhoneNumberException(
+                            "رقم الهاتف مستخدم بالفعل لعميل آخر: " + existing.get().getName());
+                }
+            }
         }
         return customerRepository.save(customer);
     }
