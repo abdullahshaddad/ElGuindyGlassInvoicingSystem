@@ -16,5 +16,24 @@
         </introspection-scope>
       </schema-mapping>
     </data-source>
+    <data-source name="elguindyDB@render" uuid="3160824a-2c4b-4788-a7d6-d29100e59f53">
+      <database-info product="PostgreSQL" version="18.1 (Debian 18.1-1.pgdg12+2)" jdbc-version="4.2" driver-name="PostgreSQL JDBC Driver" driver-version="42.7.3" dbms="POSTGRES" exact-version="18.1" exact-driver-version="42.7">
+        <identifier-quote-string>&quot;</identifier-quote-string>
+      </database-info>
+      <case-sensitivity plain-identifiers="lower" quoted-identifiers="exact" />
+      <secret-storage>master_key</secret-storage>
+      <user-name>elguindydb_e0mt_user</user-name>
+      <schema-mapping>
+        <introspection-scope>
+          <node kind="database" qname="@">
+            <node kind="schema" qname="@" />
+          </node>
+        </introspection-scope>
+      </schema-mapping>
+      <ssl-config use-ide-store="true" use-java-store="true" use-system-store="true">
+        <enabled>true</enabled>
+        <mode>REQUIRE</mode>
+      </ssl-config>
+    </data-source>
   </component>
 </project>

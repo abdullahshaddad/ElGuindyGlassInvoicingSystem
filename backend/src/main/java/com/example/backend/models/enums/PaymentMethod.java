@@ -6,27 +6,32 @@ package com.example.backend.models.enums;
  */
 public enum PaymentMethod {
     /**
-     * Cash payment
+     * Cash payment - نقدي
      */
     CASH,
-    
+
     /**
-     * Credit/Debit card payment
+     * Credit/Debit card payment - بطاقة
      */
     CARD,
-    
+
     /**
-     * Bank transfer
+     * Bank transfer - تحويل بنكي
      */
     BANK_TRANSFER,
-    
+
     /**
-     * Check payment
+     * Check payment - شيك
      */
     CHECK,
-    
+
     /**
-     * Other payment methods
+     * Vodafone Cash - فودافون كاش
+     */
+    VODAFONE_CASH,
+
+    /**
+     * Other payment methods - أخرى
      */
     OTHER
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { FiUser, FiSearch, FiX, FiPlus, FiDollarSign } from 'react-icons/fi';
 import Input from '@components/ui/Input.jsx';
 import Button from '@components/ui/Button.jsx';
@@ -19,16 +20,18 @@ const CustomerSelection = ({
     onStartNewCustomer,
     onClearSelection
 }) => {
+    const { t } = useTranslation();
+
     // Get customer type badge variant
     const getCustomerTypeBadge = (customerType) => {
         switch (customerType) {
             case 'CASH':
-                return { variant: 'success', label: 'عميل نقدي' };
+                return { variant: 'success', label: t('customers.types.CASH') };
             case 'COMPANY':
-                return { variant: 'info', label: 'شركة' };
+                return { variant: 'info', label: t('customers.types.COMPANY') };
             case 'REGULAR':
             default:
-                return { variant: 'default', label: 'عميل' };
+                return { variant: 'default', label: t('customers.customer') };
         }
     };
 
@@ -38,7 +41,7 @@ const CustomerSelection = ({
                 <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
                     <FiUser className="text-blue-600 dark:text-blue-400" size={20} />
                 </div>
-                اختيار العميل
+                {t('invoices.selectCustomer')}
                 {selectedCustomer && (
                     <span className="mr-auto text-sm font-normal">
                         <Badge
@@ -98,18 +101,18 @@ const CustomerSelection = ({
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                         <FiDollarSign size={16} />
-                                        <span>الرصيد الحالي:</span>
+                                        <span>{t('payment.customerCurrentBalance')}</span>
                                     </div>
                                     <span className={`text-base font-bold font-mono ${(selectedCustomer.balance || 0) > 0
                                             ? 'text-orange-600 dark:text-orange-400'
                                             : 'text-green-600 dark:text-green-400'
                                         }`}>
-                                        {(selectedCustomer.balance || 0).toFixed(2)} جنيه
+                                        {(selectedCustomer.balance || 0).toFixed(2)} {t('payment.currency')}
                                     </span>
                                 </div>
                                 {(selectedCustomer.balance || 0) > 0 && (
                                     <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                                        لدى العميل رصيد مستحق
+                                        {t('customers.hasOutstandingBalance')}
                                     </p>
                                 )}
                             </div>
@@ -120,7 +123,7 @@ const CustomerSelection = ({
                             <div className="pt-3 border-t border-blue-200 dark:border-blue-800">
                                 <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 rounded px-3 py-2">
                                     <span>✓</span>
-                                    <span>عميل نقدي - يدفع كامل المبلغ عند الشراء</span>
+                                    <span>{t('customers.cashCustomerInfo')}</span>
                                 </div>
                             </div>
                         )}
@@ -131,7 +134,7 @@ const CustomerSelection = ({
                 <div className="space-y-3">
                     <div className="relative">
                         <Input
-                            placeholder="ابحث عن عميل بالاسم أو الهاتف..."
+                            placeholder={t('customers.searchPlaceholder')}
                             value={customerSearch}
                             onChange={(e) => onCustomerSearchChange(e.target.value)}
                             icon={<FiSearch />}
@@ -177,7 +180,7 @@ const CustomerSelection = ({
                                             {/* Balance indicator for REGULAR/COMPANY */}
                                             {customer.customerType !== 'CASH' && customer.balance > 0 && (
                                                 <div className="text-left mr-2">
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">رصيد:</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('customers.fields.balance')}:</p>
                                                     <p className="text-sm font-bold text-orange-600 dark:text-orange-400 font-mono">
                                                         {customer.balance.toFixed(2)}
                                                     </p>
@@ -197,7 +200,7 @@ const CustomerSelection = ({
                                 <FiUser size={32} className="text-gray-400 dark:text-gray-600" />
                             </div>
                             <p className="text-gray-600 dark:text-gray-400 mb-3">
-                                لم يتم العثور على عميل بهذا الاسم
+                                {t('customers.noResults')}
                             </p>
                             <Button
                                 variant="primary"
@@ -206,7 +209,7 @@ const CustomerSelection = ({
                                 className="mx-auto"
                             >
                                 <FiPlus className="ml-2" />
-                                إضافة عميل جديد: {customerSearch}
+                                {t('customers.addNewCustomer')}: {customerSearch}
                             </Button>
                         </div>
                     )}
@@ -217,7 +220,7 @@ const CustomerSelection = ({
                             <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full w-fit mx-auto mb-3">
                                 <FiSearch size={32} className="text-gray-400 dark:text-gray-600" />
                             </div>
-                            <p className="text-sm">ابحث عن عميل أو أضف عميل جديد</p>
+                            <p className="text-sm">{t('customers.searchOrAddNew')}</p>
                         </div>
                     )}
                 </div>

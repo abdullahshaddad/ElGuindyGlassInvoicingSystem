@@ -13,6 +13,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@stomp/stompjs": "^7.2.1",
     "@tailwindcss/postcss": "^4.1.13",
     "@tanstack/react-query": "^4.32.0",
     "@tanstack/react-query-devtools": "^4.32.0",
@@ -30,7 +31,8 @@
     "react-hot-toast": "^2.6.0",
     "react-i18next": "^13.5.0",
     "react-icons": "^5.5.0",
-    "react-router-dom": "^6.15.0"
+    "react-router-dom": "^6.15.0",
+    "sockjs-client": "^1.6.1"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.22.9",

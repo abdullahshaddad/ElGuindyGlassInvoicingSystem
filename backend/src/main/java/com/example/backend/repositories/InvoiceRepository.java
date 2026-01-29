@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
+public interface InvoiceRepository extends JpaRepository<Invoice, String> {
         List<Invoice> findByCustomerId(Long customerId);
 
         List<Invoice> findByStatus(InvoiceStatus status);
@@ -34,7 +34,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
                         @Param("endDate") LocalDateTime endDate);
 
         @Query("SELECT i FROM Invoice i LEFT JOIN FETCH i.invoiceLines il LEFT JOIN FETCH il.glassType WHERE i.id = :id")
-        Optional<Invoice> findByIdWithLines(@Param("id") Long id);
+        Optional<Invoice> findByIdWithLines(@Param("id") String id);
 
         // In InvoiceRepository.java
         Page<Invoice> findByCustomerId(Long customerId, Pageable pageable);
@@ -46,10 +46,13 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
                         "LEFT JOIN FETCH il.glassType " +
                         "LEFT JOIN FETCH i.customer " +
                         "WHERE i.id = :id")
-        Optional<Invoice> findByIdWithDetails(@Param("id") Long id);
+        Optional<Invoice> findByIdWithDetails(@Param("id") String id);
 
         @org.springframework.data.jpa.repository.Modifying
         @org.springframework.transaction.annotation.Transactional
         @Query("UPDATE Invoice i SET i.pdfUrl = null")
         void clearAllPdfUrls();
+
+        @Query("SELECT MAX(i.id) FROM Invoice i")
+        String findMaxNumericId();
 }

@@ -98,7 +98,7 @@ public class InvoiceCreationService {
         Dimensions dimensions = Dimensions.of(
             request.getWidth(),
             request.getHeight(),
-            request.getDimensionUnit() != null ? request.getDimensionUnit() : DimensionUnit.MM
+            request.getDimensionUnit() != null ? request.getDimensionUnit() : DimensionUnit.CM
         );
 
         log.debug("Dimensions created: {}", dimensions);
@@ -138,6 +138,7 @@ public class InvoiceCreationService {
             .manualCuttingPrice(request.getManualCuttingPrice() != null ?
                 Money.of(request.getManualCuttingPrice()) : null)
             .calculation(calculation)
+            .quantity(request.getQuantity())
             .build();
 
         log.debug("Domain invoice line created successfully");

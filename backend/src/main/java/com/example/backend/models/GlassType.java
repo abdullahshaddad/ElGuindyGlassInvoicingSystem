@@ -30,9 +30,11 @@ public class GlassType {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "calculation_method", nullable = false)
+    @Builder.Default
     private CalculationMethod calculationMethod = CalculationMethod.AREA;
 
     @Column(name = "active")
+    @Builder.Default
     private Boolean active = true;
 
     public GlassType(String name, Double thickness, String color, Double pricePerMeter) {

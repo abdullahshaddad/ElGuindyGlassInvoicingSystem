@@ -37,7 +37,7 @@ public class InvoiceMapper {
 
         // Reconstitute domain entity from database
         Invoice invoice = Invoice.reconstitute(
-            new InvoiceId(jpaInvoice.getId()),
+            InvoiceId.of(jpaInvoice.getId()),
             new CustomerId(jpaInvoice.getCustomer().getId()),
             Money.of(jpaInvoice.getTotalPrice()),
             Money.of(jpaInvoice.getAmountPaidNow() != null ? jpaInvoice.getAmountPaidNow() : 0.0),
@@ -126,6 +126,7 @@ public class InvoiceMapper {
             .manualCuttingPrice(jpaLine.getManualCuttingPrice() != null ?
                 Money.of(jpaLine.getManualCuttingPrice()) : null)
             .calculation(calculation)
+            .quantity(jpaLine.getQuantity())
             .build();
     }
 
@@ -148,15 +149,16 @@ public class InvoiceMapper {
 
         Dimensions dims = domainLine.getDimensions();
         Dimensions metersD = dims.convertToMeters();
-        Dimensions mmD = dims.convertToMillimeters();
+        Dimensions cmD = dims.convertToCentimeters();
 
         return com.example.backend.models.InvoiceLine.builder()
             .id(domainLine.getId() != null ? domainLine.getId().getValue() : null)
             .invoice(jpaInvoice)
             .glassType(jpaGlassType)
-            .width(mmD.getWidth())  // Store in MM as original
-            .height(mmD.getHeight())
+            .width(cmD.getWidth())  // Store in CM as original
+            .height(cmD.getHeight())
             .dimensionUnit(dims.getUnit())
+            .quantity(domainLine.getQuantity())
             .shatafType(domainLine.getShatafType())
             .farmaType(domainLine.getFarmaType())
             .diameter(domainLine.getDiameter())

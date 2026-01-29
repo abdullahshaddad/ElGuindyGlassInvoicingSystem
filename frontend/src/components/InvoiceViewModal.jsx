@@ -3,8 +3,7 @@ import { FiUser, FiPackage, FiPrinter, FiDollarSign, FiSend } from 'react-icons/
 import Button from '@components/ui/Button';
 import Modal from '@components/ui/Modal';
 import LoadingSpinner from '@components/ui/LoadingSpinner';
-import { SHATAF_TYPES } from '@/constants/shatafTypes'; // Keeping constants as is for now unless I confirm alias
-import { FARMA_TYPES } from '@/constants/farmaTypes';
+import { SHATAF_TYPES } from '@/constants/shatafTypes';
 import PaymentModal from '@components/ui/PaymentModal';
 import { invoiceService } from '@services/invoiceService';
 import PrintOptionsModal from '@components/ui/PrintOptionsModal';
@@ -216,34 +215,45 @@ const InvoiceViewModal = ({
                                                         {line.glassType?.name || 'نوع غير محدد'}
                                                     </h4>
                                                     <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 flex flex-wrap gap-2">
-                                                        <span>{line.width?.toFixed(0)} × {line.height?.toFixed(0)} مم</span>
+                                                        <span>{line.width?.toFixed(1)} × {line.height?.toFixed(1)} {line.dimensionUnit === 'MM' ? 'مم' : line.dimensionUnit === 'M' ? 'م' : 'سم'}</span>
                                                         {line.glassType?.thickness && (
                                                             <span>• {line.glassType.thickness} مم</span>
                                                         )}
+                                                        {line.quantity && line.quantity > 1 && (
+                                                            <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded text-xs font-medium">
+                                                                × {line.quantity} قطعة
+                                                            </span>
+                                                        )}
                                                     </div>
 
-                                                    {/* Operations Chips */}
+                                                    {/* Operations Chips - Only SHATF (Chamfer) and LASER */}
                                                     <div className="flex flex-wrap gap-1 mt-2">
                                                         {line.operations && line.operations.length > 0 ? (
-                                                            line.operations.map((op, i) => (
-                                                                <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                                                    {op.type === 'SHATAF' && (op.shatafType ? (SHATAF_TYPES[op.shatafType]?.arabicName || op.shatafType) : 'شطف')}
-                                                                    {op.type === 'FARMA' && (op.farmaType ? (FARMA_TYPES[op.farmaType]?.arabicName || op.farmaType) : 'فارمة')}
-                                                                    {op.type === 'LASER' && 'ليزر'}
-                                                                    {op.manualPrice > 0 && ` (${formatCurrency(op.manualPrice)})`}
-                                                                </span>
-                                                            ))
+                                                            line.operations.map((op, i) => {
+                                                                const opType = op.operationType || op.type;
+                                                                let displayName = '';
+                                                                if (opType === 'SHATAF' || opType === 'SHATF') {
+                                                                    displayName = op.shatafType
+                                                                        ? (SHATAF_TYPES[op.shatafType]?.arabicName || op.shatafType)
+                                                                        : 'شطف';
+                                                                } else if (opType === 'LASER') {
+                                                                    displayName = op.laserType || 'ليزر';
+                                                                } else {
+                                                                    displayName = op.description || opType || 'عملية';
+                                                                }
+                                                                return (
+                                                                    <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                                                        {displayName}
+                                                                        {(op.operationPrice || op.manualPrice) > 0 && ` (${formatCurrency(op.operationPrice || op.manualPrice)})`}
+                                                                    </span>
+                                                                );
+                                                            })
                                                         ) : (
                                                             /* Legacy Fallback */
                                                             <>
                                                                 {line.shatafType && (
                                                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                                                                         {SHATAF_TYPES[line.shatafType]?.arabicName || line.shatafType}
-                                                                    </span>
-                                                                )}
-                                                                {line.farmaType && (
-                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                                                                        {FARMA_TYPES[line.farmaType]?.arabicName || line.farmaType}
                                                                     </span>
                                                                 )}
                                                                 {line.cuttingType === 'LASER' && (
@@ -271,6 +281,12 @@ const InvoiceViewModal = ({
                                                             <span>المساحة:</span>
                                                             <span className="font-mono">{line.areaM2?.toFixed(3)} م²</span>
                                                         </div>
+                                                        {line.quantity && line.quantity > 1 && (
+                                                            <div className="flex justify-between text-gray-600 dark:text-gray-300">
+                                                                <span>الكمية:</span>
+                                                                <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{line.quantity} قطعة</span>
+                                                            </div>
+                                                        )}
                                                         {line.shatafMeters > 0 && (
                                                             <div className="flex justify-between text-gray-600 dark:text-gray-300">
                                                                 <span>أمتار الشطف:</span>

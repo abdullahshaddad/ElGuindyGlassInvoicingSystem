@@ -37,6 +37,7 @@ public class Customer {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "customer_type", nullable = false)
+    @Builder.Default
     private CustomerType customerType = CustomerType.REGULAR;
 
     /**
@@ -49,6 +50,7 @@ public class Customer {
     private Double balance = 0.0;
 
     @Column(name = "created_at", nullable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "updated_at")

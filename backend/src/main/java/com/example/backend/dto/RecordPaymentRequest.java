@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RecordPaymentRequest {
     private Long customerId;
-    private Long invoiceId; // Optional - null for general balance payment
+    private String invoiceId; // Optional - null for general balance payment
     private Double amount;
     private PaymentMethod paymentMethod = PaymentMethod.CASH;
     private String referenceNumber;

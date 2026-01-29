@@ -55,6 +55,7 @@ public class InvoiceService {
     private final WebSocketNotificationService webSocketService;
     private final OperationCalculationService operationCalculationService;
     private final PaymentService paymentService;
+    private final ReadableIdGeneratorService idGeneratorService;
 
     @Autowired
     public InvoiceService(InvoiceRepository invoiceRepository,
@@ -65,7 +66,8 @@ public class InvoiceService {
             PrintJobService printJobService,
             WebSocketNotificationService webSocketService,
             OperationCalculationService operationCalculationService,
-            PaymentService paymentService) {
+            PaymentService paymentService,
+            ReadableIdGeneratorService idGeneratorService) {
         this.invoiceRepository = invoiceRepository;
         this.invoiceLineRepository = invoiceLineRepository;
         this.customerService = customerService;
@@ -75,6 +77,7 @@ public class InvoiceService {
         this.webSocketService = webSocketService;
         this.operationCalculationService = operationCalculationService;
         this.paymentService = paymentService;
+        this.idGeneratorService = idGeneratorService;
     }
 
     /**
@@ -249,7 +252,11 @@ public class InvoiceService {
                 initialPaid = 0.0;
             }
 
+            // Generate readable ID before creating invoice
+            String invoiceId = idGeneratorService.generateInvoiceId();
+
             Invoice invoice = Invoice.builder()
+                    .id(invoiceId)
                     .customer(customer)
                     .issueDate(request.getIssueDate() != null ? request.getIssueDate() : LocalDateTime.now())
                     .createdAt(LocalDateTime.now())
@@ -345,7 +352,7 @@ public class InvoiceService {
     /**
      * Reload invoice with lines and glass types
      */
-    private Invoice reloadInvoiceWithLines(Long invoiceId) {
+    private Invoice reloadInvoiceWithLines(String invoiceId) {
         try {
             Invoice invoice = invoiceRepository.findByIdWithLines(invoiceId)
                     .orElseThrow(() -> new InvoiceNotFoundException("الفاتورة غير موجودة بعد الإنشاء: " + invoiceId));
@@ -714,7 +721,7 @@ public class InvoiceService {
 
     // ================ OTHER METHODS (unchanged) ================
 
-    public Optional<Invoice> findById(Long id) {
+    public Optional<Invoice> findById(String id) {
         return invoiceRepository.findByIdWithDetails(id);
     }
 
@@ -726,7 +733,7 @@ public class InvoiceService {
         return invoiceRepository.findByCustomerNameOrPhone(customerName, pageable);
     }
 
-    public Invoice markAsPaid(Long invoiceId) {
+    public Invoice markAsPaid(String invoiceId) {
         Invoice invoice = findById(invoiceId)
                 .orElseThrow(() -> new InvoiceNotFoundException("Invoice not found: " + invoiceId));
 
@@ -749,7 +756,7 @@ public class InvoiceService {
     }
 
     @Transactional
-    public void deleteInvoice(Long invoiceId) {
+    public void deleteInvoice(String invoiceId) {
         Invoice invoice = findById(invoiceId)
                 .orElseThrow(() -> new InvoiceNotFoundException("Invoice not found: " + invoiceId));
 
@@ -781,7 +788,7 @@ public class InvoiceService {
         log.info("Deleted invoice {}", invoiceId);
     }
 
-    public Invoice markAsCancelled(Long invoiceId) {
+    public Invoice markAsCancelled(String invoiceId) {
         Invoice invoice = findById(invoiceId)
                 .orElseThrow(() -> new InvoiceNotFoundException("Invoice not found: " + invoiceId));
 

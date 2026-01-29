@@ -42,24 +42,45 @@ public final class Dimensions implements Serializable {
         return new Dimensions(widthMm, heightMm, DimensionUnit.MM);
     }
 
+    public static Dimensions ofCentimeters(double widthCm, double heightCm) {
+        return new Dimensions(widthCm, heightCm, DimensionUnit.CM);
+    }
+
     public static Dimensions ofMeters(double widthM, double heightM) {
         return new Dimensions(widthM, heightM, DimensionUnit.M);
     }
 
     /**
      * Convert dimensions to meters
-     * FIX BUG #1: Proper conversion from MM to M
+     * Uses DimensionUnit.toMeters() for proper conversion from any unit
      */
     public Dimensions convertToMeters() {
         if (unit == DimensionUnit.M) {
             return this;
         }
 
-        // MM to M conversion: divide by 1000
         return new Dimensions(
-            width / 1000.0,
-            height / 1000.0,
+            unit.toMeters(width),
+            unit.toMeters(height),
             DimensionUnit.M
+        );
+    }
+
+    /**
+     * Convert dimensions to centimeters
+     */
+    public Dimensions convertToCentimeters() {
+        if (unit == DimensionUnit.CM) {
+            return this;
+        }
+
+        // First convert to meters, then to centimeters
+        double widthInMeters = unit.toMeters(width);
+        double heightInMeters = unit.toMeters(height);
+        return new Dimensions(
+            DimensionUnit.CM.fromMeters(widthInMeters),
+            DimensionUnit.CM.fromMeters(heightInMeters),
+            DimensionUnit.CM
         );
     }
 
@@ -71,10 +92,12 @@ public final class Dimensions implements Serializable {
             return this;
         }
 
-        // M to MM conversion: multiply by 1000
+        // First convert to meters, then to millimeters
+        double widthInMeters = unit.toMeters(width);
+        double heightInMeters = unit.toMeters(height);
         return new Dimensions(
-            width * 1000.0,
-            height * 1000.0,
+            DimensionUnit.MM.fromMeters(widthInMeters),
+            DimensionUnit.MM.fromMeters(heightInMeters),
             DimensionUnit.MM
         );
     }
@@ -111,6 +134,20 @@ public final class Dimensions implements Serializable {
     }
 
     /**
+     * Get width in centimeters (regardless of original unit)
+     */
+    public double getWidthInCentimeters() {
+        return convertToCentimeters().width;
+    }
+
+    /**
+     * Get height in centimeters (regardless of original unit)
+     */
+    public double getHeightInCentimeters() {
+        return convertToCentimeters().height;
+    }
+
+    /**
      * Get width in millimeters (regardless of original unit)
      */
     public double getWidthInMillimeters() {
@@ -129,6 +166,13 @@ public final class Dimensions implements Serializable {
      */
     public boolean isInMeters() {
         return unit == DimensionUnit.M;
+    }
+
+    /**
+     * Check if dimensions are in centimeters
+     */
+    public boolean isInCentimeters() {
+        return unit == DimensionUnit.CM;
     }
 
     /**

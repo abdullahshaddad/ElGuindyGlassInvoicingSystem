@@ -20,7 +20,7 @@ public class PaymentDTO {
     private Long id;
     private Long customerId;
     private String customerName;
-    private Long invoiceId;
+    private String invoiceId;
     private Double amount;
     private PaymentMethod paymentMethod;
     private LocalDateTime paymentDate;

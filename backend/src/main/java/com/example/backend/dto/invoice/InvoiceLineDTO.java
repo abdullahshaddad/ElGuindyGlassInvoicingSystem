@@ -3,6 +3,7 @@ package com.example.backend.dto.invoice;
 import com.example.backend.dto.GlassTypeDTO;
 import com.example.backend.models.InvoiceLine;
 import com.example.backend.models.enums.CuttingType;
+import com.example.backend.models.enums.LineStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,11 +20,13 @@ class InvoiceLineDTO {
     private String dimensionUnit;
     private Double areaM2;
     private Double lengthM;
+    private Integer quantity;
     private CuttingType cuttingType;
     private Double cuttingPrice;
     private Double lineTotal;
     private GlassTypeDTO glassType;
     private java.util.List<InvoiceLineOperationDTO> operations;
+    private LineStatus status;
 
     public static InvoiceLineDTO from(InvoiceLine line) {
         if (line == null)
@@ -36,6 +39,7 @@ class InvoiceLineDTO {
                 .dimensionUnit(line.getDimensionUnit().toString())
                 .areaM2(line.getAreaM2())
                 .lengthM(line.getLengthM())
+                .quantity(line.getQuantity())
                 .cuttingType(line.getCuttingType())
                 .cuttingPrice(line.getCuttingPrice())
                 .lineTotal(line.getLineTotal())
@@ -44,6 +48,7 @@ class InvoiceLineDTO {
                         .map(InvoiceLineOperationDTO::from)
                         .collect(java.util.stream.Collectors.toList())
                         : java.util.List.of())
+                .status(line.getStatus())
                 .build();
     }
 }

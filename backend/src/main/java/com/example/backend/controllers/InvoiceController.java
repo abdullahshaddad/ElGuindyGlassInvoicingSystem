@@ -12,7 +12,9 @@ import com.example.backend.models.Invoice;
 import com.example.backend.models.enums.InvoiceStatus;
 import com.example.backend.services.ExportService;
 import com.example.backend.services.InvoiceService;
+import com.example.backend.services.PdfGenerationService;
 import com.example.backend.services.PrintJobService;
+import com.example.backend.repositories.InvoiceRepository;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,13 +41,18 @@ public class InvoiceController {
     private final InvoiceService invoiceService;
     private final ExportService exportService;
     private final PrintJobService printJobService;
+    private final PdfGenerationService pdfGenerationService;
+    private final InvoiceRepository invoiceRepository;
 
     @Autowired
     public InvoiceController(InvoiceService invoiceService, ExportService exportService,
-            PrintJobService printJobService) {
+            PrintJobService printJobService, PdfGenerationService pdfGenerationService,
+            InvoiceRepository invoiceRepository) {
         this.invoiceService = invoiceService;
         this.exportService = exportService;
         this.printJobService = printJobService;
+        this.pdfGenerationService = pdfGenerationService;
+        this.invoiceRepository = invoiceRepository;
     }
 
     @PostMapping
@@ -57,7 +64,7 @@ public class InvoiceController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER')")
-    public ResponseEntity<Invoice> getInvoice(@PathVariable Long id) {
+    public ResponseEntity<Invoice> getInvoice(@PathVariable String id) {
         return invoiceService.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -152,14 +159,14 @@ public class InvoiceController {
 
     @PutMapping("/{id}/pay")
     @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER')")
-    public ResponseEntity<Invoice> markAsPaid(@PathVariable Long id) {
+    public ResponseEntity<Invoice> markAsPaid(@PathVariable String id) {
         Invoice invoice = invoiceService.markAsPaid(id);
         return ResponseEntity.ok(invoice);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('OWNER') or hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteInvoice(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteInvoice(@PathVariable String id) {
         invoiceService.deleteInvoice(id);
         return ResponseEntity.noContent().build();
     }
@@ -224,6 +231,144 @@ public class InvoiceController {
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
             log.error("Error previewing line calculation: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Stream invoice PDF on-demand (no storage)
+     * Returns 2-page Arabic RTL PDF with نسخة الشركة and نسخة العميل
+     * GET /api/v1/invoices/{id}/pdf
+     */
+    @GetMapping("/{id}/pdf")
+    @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER') or hasRole('WORKER')")
+    public ResponseEntity<byte[]> getInvoicePdf(@PathVariable String id) {
+        try {
+            log.info("Streaming on-demand PDF for invoice {}", id);
+
+            // Load invoice with all details
+            Invoice invoice = invoiceRepository.findByIdWithDetails(id)
+                    .orElse(null);
+
+            if (invoice == null) {
+                log.warn("Invoice not found: {}", id);
+                return ResponseEntity.notFound().build();
+            }
+
+            // Generate PDF on-demand (no storage)
+            byte[] pdfBytes = pdfGenerationService.generateInvoicePdfOnDemand(invoice);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("inline", "invoice_" + id + ".pdf");
+            headers.setContentLength(pdfBytes.length);
+
+            log.info("PDF streamed successfully for invoice {}, size: {} bytes", id, pdfBytes.length);
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            log.error("Error generating PDF for invoice {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Download invoice PDF (triggers download instead of inline view)
+     * GET /api/v1/invoices/{id}/pdf/download
+     */
+    @GetMapping("/{id}/pdf/download")
+    @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER')")
+    public ResponseEntity<byte[]> downloadInvoicePdf(@PathVariable String id) {
+        try {
+            log.info("Downloading PDF for invoice {}", id);
+
+            Invoice invoice = invoiceRepository.findByIdWithDetails(id)
+                    .orElse(null);
+
+            if (invoice == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            byte[] pdfBytes = pdfGenerationService.generateInvoicePdfOnDemand(invoice);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "فاتورة_" + id + ".pdf");
+            headers.setContentLength(pdfBytes.length);
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            log.error("Error downloading PDF for invoice {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Stream invoice sticker PDF on-demand (no storage)
+     * One A5 page per invoice line, sorted by thickness
+     * GET /api/v1/invoices/{id}/sticker
+     */
+    @GetMapping("/{id}/sticker")
+    @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER') or hasRole('WORKER')")
+    public ResponseEntity<byte[]> getInvoiceSticker(@PathVariable String id) {
+        try {
+            log.info("Streaming on-demand sticker PDF for invoice {}", id);
+
+            Invoice invoice = invoiceRepository.findByIdWithDetails(id)
+                    .orElse(null);
+
+            if (invoice == null) {
+                log.warn("Invoice not found: {}", id);
+                return ResponseEntity.notFound().build();
+            }
+
+            byte[] pdfBytes = pdfGenerationService.generateStickerPdfOnDemand(invoice);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("inline", "sticker_" + id + ".pdf");
+            headers.setContentLength(pdfBytes.length);
+
+            log.info("Sticker PDF streamed successfully for invoice {}, size: {} bytes", id, pdfBytes.length);
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            log.error("Error generating sticker for invoice {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Download invoice sticker PDF
+     * GET /api/v1/invoices/{id}/sticker/download
+     */
+    @GetMapping("/{id}/sticker/download")
+    @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER') or hasRole('WORKER')")
+    public ResponseEntity<byte[]> downloadInvoiceSticker(@PathVariable String id) {
+        try {
+            log.info("Downloading sticker PDF for invoice {}", id);
+
+            Invoice invoice = invoiceRepository.findByIdWithDetails(id)
+                    .orElse(null);
+
+            if (invoice == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            byte[] pdfBytes = pdfGenerationService.generateStickerPdfOnDemand(invoice);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "ملصق_" + id + ".pdf");
+            headers.setContentLength(pdfBytes.length);
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            log.error("Error downloading sticker for invoice {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

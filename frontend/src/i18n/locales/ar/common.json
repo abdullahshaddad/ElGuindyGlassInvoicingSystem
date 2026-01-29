@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "النظام العربي",
+    "name": "الجيندي للزجاج",
     "welcome": "مرحباً بك",
     "loading": "جاري التحميل...",
     "error": "حدث خطأ",
@@ -8,12 +8,38 @@
     "retry": "إعادة المحاولة"
   },
   "navigation": {
+    "main": "الرئيسية",
     "home": "الرئيسية",
     "dashboard": "لوحة التحكم",
     "profile": "الملف الشخصي",
     "settings": "الإعدادات",
     "logout": "تسجيل الخروج",
-    "menu": "القائمة"
+    "menu": "القائمة",
+    "sales": "المبيعات",
+    "invoices": "الفواتير",
+    "customers": "العملاء",
+    "cashier": "الكاشير",
+    "cashierInvoice": "فاتورة الكاشير",
+    "factory": "المصنع",
+    "factoryTasks": "مهام المصنع",
+    "admin": "الإدارة",
+    "companyProfile": "بيانات الشركة",
+    "glassTypes": "أنواع الزجاج",
+    "cuttingPrices": "أسعار القطع",
+    "operationPrices": "أسعار العمليات"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "username": "اسم المستخدم",
+    "password": "كلمة المرور",
+    "rememberMe": "تذكرني",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "loginButton": "دخول",
+    "loggingIn": "جاري تسجيل الدخول...",
+    "loginError": "فشل تسجيل الدخول",
+    "invalidCredentials": "اسم المستخدم أو كلمة المرور غير صحيحة",
+    "sessionExpired": "انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى"
   },
   "actions": {
     "save": "حفظ",
@@ -31,7 +57,15 @@
     "back": "رجوع",
     "next": "التالي",
     "previous": "السابق",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "add": "إضافة",
+    "remove": "حذف",
+    "refresh": "تحديث",
+    "print": "طباعة",
+    "export": "تصدير",
+    "import": "استيراد",
+    "download": "تحميل",
+    "upload": "رفع"
   },
   "forms": {
     "required": "مطلوب",
@@ -39,7 +73,10 @@
     "placeholder": "أدخل {{field}}",
     "select": "اختر {{field}}",
     "upload": "رفع ملف",
-    "drop_files": "اسحب الملفات هنا أو اضغط للاختيار"
+    "drop_files": "اسحب الملفات هنا أو اضغط للاختيار",
+    "selectOption": "-- اختر --",
+    "loading": "جاري التحميل...",
+    "noOptions": "لا توجد خيارات"
   },
   "status": {
     "active": "نشط",
@@ -48,7 +85,11 @@
     "approved": "موافق عليه",
     "rejected": "مرفوض",
     "completed": "مكتمل",
-    "in_progress": "قيد التنفيذ"
+    "in_progress": "قيد التنفيذ",
+    "cancelled": "ملغي",
+    "paid": "مدفوع",
+    "unpaid": "غير مدفوع",
+    "partial": "جزئي"
   },
   "time": {
     "now": "الآن",
@@ -58,15 +99,19 @@
     "this_week": "هذا الأسبوع",
     "last_week": "الأسبوع الماضي",
     "this_month": "هذا الشهر",
-    "last_month": "الشهر الماضي"
+    "last_month": "الشهر الماضي",
+    "date": "التاريخ",
+    "time": "الوقت"
   },
   "theme": {
-    "light": "فاتح",
-    "dark": "داكن",
+    "title": "المظهر",
+    "light": "الوضع النهاري",
+    "dark": "الوضع الليلي",
     "system": "النظام",
     "toggle": "تغيير المظهر"
   },
   "language": {
+    "title": "اللغة",
     "ar": "العربية",
     "en": "English",
     "toggle": "تغيير اللغة"
@@ -80,6 +125,7 @@
     "search_placeholder": "البحث في المستخدمين...",
     "no_users_found": "لم يتم العثور على مستخدمين",
     "get_started": "ابدأ بإنشاء مستخدم جديد",
+    "user": "مستخدم",
     "fields": {
       "username": "اسم المستخدم",
       "first_name": "الاسم الأول",
@@ -91,7 +137,7 @@
     "roles": {
       "OWNER": "مالك",
       "ADMIN": "مدير",
-      "CASHIER": "أمين صندوق",
+      "CASHIER": "كاشير",
       "WORKER": "عامل",
       "descriptions": {
         "OWNER": "وصول كامل للنظام وإدارة المستخدمين",
@@ -119,9 +165,46 @@
       "loading": "جاري التحميل..."
     }
   },
+  "customers": {
+    "title": "العملاء",
+    "subtitle": "إدارة بيانات العملاء",
+    "addCustomer": "إضافة عميل",
+    "editCustomer": "تعديل العميل",
+    "customerDetails": "تفاصيل العميل",
+    "searchPlaceholder": "بحث عن عميل...",
+    "noCustomers": "لا يوجد عملاء",
+    "customer": "عميل",
+    "fields": {
+      "name": "الاسم",
+      "phone": "رقم الهاتف",
+      "address": "العنوان",
+      "email": "البريد الإلكتروني",
+      "type": "نوع العميل",
+      "balance": "الرصيد",
+      "notes": "ملاحظات"
+    },
+    "types": {
+      "CASH": "عميل نقدي",
+      "REGULAR": "عميل",
+      "COMPANY": "شركة"
+    },
+    "messages": {
+      "createSuccess": "تم إنشاء العميل بنجاح",
+      "updateSuccess": "تم تحديث العميل بنجاح",
+      "deleteSuccess": "تم حذف العميل بنجاح",
+      "deleteConfirm": "هل أنت متأكد من حذف هذا العميل؟"
+    },
+    "hasOutstandingBalance": "لدى العميل رصيد مستحق",
+    "cashCustomerInfo": "عميل نقدي - يدفع كامل المبلغ عند الشراء",
+    "noResults": "لم يتم العثور على عميل بهذا الاسم",
+    "addNewCustomer": "إضافة عميل جديد",
+    "searchOrAddNew": "ابحث عن عميل أو أضف عميل جديد"
+  },
   "invoices": {
-    "title": "فواتير الكاشير",
-    "subtitle": "إنشاء وإدارة الفواتير",
+    "title": "الفواتير",
+    "subtitle": "إدارة الفواتير",
+    "cashierTitle": "فواتير الكاشير",
+    "cashierSubtitle": "إنشاء وإدارة الفواتير",
     "createNew": "إنشاء فاتورة جديدة",
     "customer": "العميل",
     "selectCustomer": "اختر العميل",
@@ -138,6 +221,7 @@
     "widthCm": "العرض (سم)",
     "heightCm": "الارتفاع (سم)",
     "area": "المساحة",
+    "areaM2": "م²",
     "cuttingType": "نوع القص",
     "shatf": "شطف",
     "laser": "ليزر",
@@ -160,6 +244,9 @@
     "cancelled": "ملغاة",
     "markAsPaid": "تحديد كمدفوعة",
     "viewDetails": "عرض التفاصيل",
+    "createInvoice": "انشاء الفاتورة",
+    "creatingInvoice": "جاري انشاء الفاتورة...",
+    "creatingPrintJobs": "جاري انشاء مهام الطباعة...",
     "exportCsv": "تصدير CSV",
     "invoiceDetails": "تفاصيل الفاتورة",
     "customerInfo": "بيانات العميل",
@@ -177,7 +264,192 @@
     "loading": "جاري التحميل...",
     "noData": "لا توجد بيانات",
     "required": "مطلوب",
-    "optional": "اختياري"
+    "optional": "اختياري",
+    "quantity": "الكمية",
+    "unitPrice": "سعر الوحدة",
+    "pricePerMeter": "جنيه/م",
+    "thickness": "السمك",
+    "thicknessMm": "مم",
+    "amountPaid": "المدفوع",
+    "remaining": "متبقي",
+    "sendToFactory": "إرسال للمصنع",
+    "allStatuses": "جميع الحالات",
+    "workStatus": "حالة التصنيع",
+    "itemsCount": "عدد البنود",
+    "invoice": "فاتورة"
+  },
+  "factory": {
+    "title": "شاشة القطع",
+    "subtitle": "طلبات القطع مرتبة حسب سمك الزجاج",
+    "cuttingJobs": "طلب قطع",
+    "waiting": "في الانتظار",
+    "totalPieces": "قطعة إجمالي",
+    "noCuttingJobs": "لا توجد طلبات قطع",
+    "connected": "متصل",
+    "disconnected": "غير متصل",
+    "refresh": "تحديث",
+    "viewSticker": "عرض الملصق",
+    "thickness": "سمك",
+    "unspecified": "غير محدد",
+    "orders": "طلب",
+    "pieces": "قطعة",
+    "piece": "قطعة",
+    "dimensions": "المقاس (سم)",
+    "operations": "العمليات",
+    "chamferType": "نوع الشطف",
+    "chamferMeters": "متر شطف",
+    "notes": "ملاحظات",
+    "newCuttingJob": "طلب قطع جديد",
+    "all": "الكل",
+    "status": {
+      "PENDING": "في الانتظار",
+      "IN_PROGRESS": "قيد التنفيذ",
+      "COMPLETED": "مكتمل"
+    },
+    "workStatus": {
+      "PENDING": "لم يبدأ",
+      "IN_PROGRESS": "قيد التنفيذ",
+      "COMPLETED": "مكتمل",
+      "CANCELLED": "ملغي"
+    },
+    "invoiceWorkStatusChanged": "تغيرت حالة الفاتورة",
+    "hideCompleted": "إخفاء المكتمل",
+    "showCompleted": "إظهار المكتمل",
+    "startWork": "بدء العمل",
+    "markComplete": "اكتمل",
+    "statusUpdated": "تم تحديث الحالة بنجاح",
+    "statusUpdateError": "فشل في تحديث الحالة"
+  },
+  "payment": {
+    "title": "تفاصيل السداد",
+    "selectCustomerFirst": "يرجى اختيار عميل أولاً",
+    "invoiceTotal": "إجمالي الفاتورة",
+    "amountPaidNow": "المبلغ المدفوع الآن",
+    "paymentMethod": "طريقة الدفع",
+    "remainingBalance": "المبلغ المتبقي على هذه الفاتورة:",
+    "customerCurrentBalance": "الرصيد الحالي للعميل:",
+    "newBalanceAfter": "الرصيد الجديد بعد هذه الفاتورة:",
+    "remainingWillBeAdded": "سيتم إضافة المبلغ المتبقي إلى رصيد العميل",
+    "paidInFull": "الفاتورة مدفوعة بالكامل",
+    "paymentInfoValid": "معلومات الدفع صحيحة",
+    "fixPaymentInfo": "يرجى تصحيح معلومات الدفع",
+    "cashCustomer": "عميل نقدي",
+    "company": "شركة",
+    "cashCustomerWarning": "العميل النقدي يجب أن يدفع المبلغ بالكامل عند إصدار الفاتورة. لا يمكن ترك رصيد متبقي.",
+    "cashMustPayFull": "العميل النقدي يجب أن يدفع المبلغ بالكامل عند إصدار الفاتورة.",
+    "invalidAmount": "من فضلك أدخل قيمة صحيحة للمبلغ المدفوع.",
+    "amountExceedsTotal": "المبلغ المدفوع لا يمكن أن يكون أكبر من إجمالي الفاتورة.",
+    "currency": "جنيه",
+    "methods": {
+      "CASH": "نقدي",
+      "CARD": "بطاقة",
+      "BANK_TRANSFER": "تحويل بنكي",
+      "CHECK": "شيك",
+      "VODAFONE_CASH": "فودافون كاش"
+    }
+  },
+  "product": {
+    "addNewItem": "إضافة صنف جديد",
+    "showDetails": "عرض التفاصيل",
+    "hideDetails": "إخفاء التفاصيل",
+    "glassType": "نوع الزجاج",
+    "selectGlassType": "-- اختر نوع الزجاج --",
+    "width": "العرض (سم)",
+    "height": "الارتفاع (سم)",
+    "quantity": "الكمية",
+    "operations": "العمليات",
+    "addShataf": "شطف",
+    "addLaser": "ليزر",
+    "noOperationsYet": "لم تقم بإضافة أي عملية بعد",
+    "clickToAddOperation": "اضغط على أحد الأزرار أعلاه لإضافة شطف أو ليزر",
+    "addToCart": "إضافة إلى السلة",
+    "removeOperation": "حذف العملية",
+    "calculationMethod": "طريقة الحساب",
+    "diameter": "القطر (مم)",
+    "manualCalcPrice": "سعر الحساب اليدوي",
+    "manualCuttingPrice": "سعر القطع اليدوي",
+    "laserType": "نوع الليزر",
+    "selectLaserType": "-- اختر نوع الليزر --",
+    "laserPrice": "سعر الليزر",
+    "notes": "ملاحظات",
+    "notesOptional": "ملاحظات (اختياري)",
+    "laser": {
+      "NORMAL": "ليزر عادي",
+      "DEEP": "ليزر عميق",
+      "ENGRAVE": "حفر ليزر",
+      "POLISH": "تلميع ليزر"
+    },
+    "maxOperationsReached": "تم الوصول للحد الأقصى من العمليات",
+    "validation": {
+      "glassTypeRequired": "نوع الزجاج مطلوب",
+      "widthRequired": "العرض مطلوب ويجب أن يكون أكبر من صفر",
+      "heightRequired": "الارتفاع مطلوب ويجب أن يكون أكبر من صفر",
+      "operationRequired": "يجب إضافة عملية واحدة على الأقل (شطف أو ليزر)",
+      "shatafTypeRequired": "نوع الشطف مطلوب",
+      "farmaRequired": "طريقة الحساب (الفارمة) مطلوبة",
+      "diameterRequired": "القطر مطلوب لطريقة الحساب المحددة",
+      "manualPriceRequired": "السعر اليدوي مطلوب لطريقة الحساب اليدوية",
+      "cuttingPriceRequired": "سعر القطع اليدوي مطلوب",
+      "laserTypeRequired": "نوع الليزر مطلوب",
+      "laserPriceRequired": "سعر الليزر مطلوب",
+      "operationPrefix": "العملية",
+      "fixErrors": "يرجى تصحيح الأخطاء التالية:"
+    }
+  },
+  "cart": {
+    "title": "سلة المشتريات",
+    "empty": "لا توجد منتجات في السلة",
+    "addItemsHint": "ابدأ بإضافة منتجات للفاتورة",
+    "items": "أصناف",
+    "total": "الإجمالي",
+    "checkout": "إتمام الطلب",
+    "clear": "تفريغ السلة",
+    "removeItem": "حذف الصنف"
+  },
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "welcome": "مرحباً",
+    "todaysSales": "مبيعات اليوم",
+    "totalInvoices": "إجمالي الفواتير",
+    "pendingOrders": "الطلبات المعلقة",
+    "totalCustomers": "إجمالي العملاء",
+    "recentInvoices": "أحدث الفواتير",
+    "recentActivity": "النشاط الأخير",
+    "quickActions": "إجراءات سريعة"
+  },
+  "glassTypes": {
+    "title": "أنواع الزجاج",
+    "subtitle": "إدارة أنواع الزجاج والأسعار",
+    "addType": "إضافة نوع زجاج",
+    "editType": "تعديل نوع الزجاج",
+    "fields": {
+      "name": "الاسم",
+      "thickness": "السمك (مم)",
+      "pricePerMeter": "السعر لكل متر",
+      "calculationMethod": "طريقة الحساب",
+      "active": "نشط"
+    },
+    "calculationMethods": {
+      "AREA": "المساحة (م²)",
+      "LENGTH": "الطول (م)"
+    }
+  },
+  "companyProfile": {
+    "title": "بيانات الشركة",
+    "subtitle": "إدارة معلومات الشركة",
+    "fields": {
+      "companyName": "اسم الشركة (إنجليزي)",
+      "companyNameArabic": "اسم الشركة (عربي)",
+      "address": "العنوان",
+      "phone": "رقم الهاتف",
+      "email": "البريد الإلكتروني",
+      "taxId": "الرقم الضريبي",
+      "commercialRegister": "السجل التجاري",
+      "footerText": "نص التذييل",
+      "logo": "شعار الشركة"
+    },
+    "uploadLogo": "رفع الشعار",
+    "removeLogo": "حذف الشعار"
   },
   "messages": {
     "invoiceCreatedSuccess": "تم إنشاء الفاتورة بنجاح وإرسالها للطباعة",
@@ -188,9 +460,70 @@
     "fillGlassItemsError": "يرجى ملء جميع بيانات أصناف الزجاج",
     "loadingData": "جاري تحميل البيانات...",
     "loadingInvoices": "جاري تحميل الفواتير...",
+    "loadingCuttingJobs": "فشل في تحميل طلبات القطع",
     "noInvoices": "لا توجد فواتير",
     "noGlassItems": "لا توجد أصناف",
     "unauthorized": "غير مصرح لك بالوصول",
-    "cashierOnly": "هذه الصفحة مخصصة للكاشير والإدارة فقط"
+    "cashierOnly": "هذه الصفحة مخصصة للكاشير والإدارة فقط",
+    "saveSuccess": "تم الحفظ بنجاح",
+    "saveError": "حدث خطأ أثناء الحفظ",
+    "deleteSuccess": "تم الحذف بنجاح",
+    "deleteError": "حدث خطأ أثناء الحذف",
+    "confirmDelete": "هل أنت متأكد من الحذف؟",
+    "networkError": "خطأ في الاتصال بالشبكة",
+    "serverError": "خطأ في الخادم"
+  },
+  "errors": {
+    "notFound": "الصفحة غير موجودة",
+    "unauthorized": "غير مصرح لك بالوصول",
+    "forbidden": "الوصول محظور",
+    "serverError": "خطأ في الخادم",
+    "networkError": "خطأ في الاتصال",
+    "goBack": "الرجوع",
+    "goHome": "الذهاب للرئيسية",
+    "tryAgain": "حاول مرة أخرى"
+  },
+  "toast": {
+    "success": "نجاح",
+    "error": "خطأ",
+    "warning": "تحذير",
+    "info": "معلومة"
+  },
+  "table": {
+    "noData": "لا توجد بيانات",
+    "loading": "جاري التحميل...",
+    "rowsPerPage": "عدد الصفوف",
+    "of": "من",
+    "page": "صفحة",
+    "first": "الأولى",
+    "last": "الأخيرة",
+    "previous": "السابقة",
+    "next": "التالية"
+  },
+  "common": {
+    "yes": "نعم",
+    "no": "لا",
+    "ok": "حسناً",
+    "or": "أو",
+    "and": "و",
+    "all": "الكل",
+    "none": "لا شيء",
+    "select": "اختر",
+    "selected": "محدد",
+    "currency": "جنيه",
+    "meter": "متر",
+    "squareMeter": "م²",
+    "centimeter": "سم",
+    "millimeter": "مم",
+    "unspecified": "غير محدد"
+  },
+  "keyboard": {
+    "shortcuts": "اختصارات لوحة المفاتيح",
+    "addToCart": "اضافة للسلة",
+    "cancelOperation": "الغاء العملية"
+  },
+  "printJob": {
+    "retrySuccess": "تم اعادة محاولة مهام الطباعة",
+    "retryFailed": "فشل في اعادة محاولة مهام الطباعة"
   }
 }

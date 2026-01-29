@@ -67,7 +67,7 @@ public class InvoiceLine {
     @Enumerated(EnumType.STRING)
     @Column(name = "dimension_unit", nullable = false)
     @Builder.Default
-    private DimensionUnit dimensionUnit = DimensionUnit.MM;
+    private DimensionUnit dimensionUnit = DimensionUnit.CM;
 
     /**
      * Diameter (for WHEEL_CUT farma type)
@@ -88,6 +88,13 @@ public class InvoiceLine {
      */
     @Column(name = "length_m")
     private Double lengthM;
+
+    /**
+     * Quantity - number of pieces
+     */
+    @Column(name = "quantity", nullable = false)
+    @Builder.Default
+    private Integer quantity = 1;
 
     /**
      * Calculated shataf meters based on farma formula
@@ -151,6 +158,20 @@ public class InvoiceLine {
     @Column(name = "line_total")
     private Double lineTotal;
 
+    /**
+     * Notes for this line (for factory workers)
+     */
+    @Column(name = "notes", columnDefinition = "TEXT")
+    private String notes;
+
+    /**
+     * Line status for factory tracking (PENDING, IN_PROGRESS, COMPLETED, CANCELLED)
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    @Builder.Default
+    private LineStatus status = LineStatus.PENDING;
+
     // ========== CONSTRUCTORS ==========
 
     /**
@@ -163,7 +184,7 @@ public class InvoiceLine {
         this.glassType = glassType;
         this.width = width;
         this.height = height;
-        this.dimensionUnit = unit != null ? unit : DimensionUnit.MM;
+        this.dimensionUnit = unit != null ? unit : DimensionUnit.CM;
         this.cuttingType = cuttingType;
 
         // Set default farma type for legacy cutting types
@@ -183,7 +204,7 @@ public class InvoiceLine {
         this.glassType = glassType;
         this.width = width;
         this.height = height;
-        this.dimensionUnit = unit != null ? unit : DimensionUnit.MM;
+        this.dimensionUnit = unit != null ? unit : DimensionUnit.CM;
         this.shatafType = shatafType;
         this.farmaType = farmaType;
         this.diameter = diameter;
@@ -350,7 +371,7 @@ public class InvoiceLine {
     }
 
     /**
-     * Recalculate line total including glass price and all operations
+     * Recalculate line total including glass price and all operations, multiplied by quantity
      */
     public void recalculateLineTotal() {
         // Glass price (already set)
@@ -362,8 +383,12 @@ public class InvoiceLine {
         // Update cutting price to match operations total
         this.cuttingPrice = operationsCost.doubleValue();
 
-        // Update line total
+        // Get quantity (default to 1 if not set)
+        int qty = (quantity != null && quantity > 0) ? quantity : 1;
+
+        // Update line total (glass + operations) × quantity
         this.lineTotal = glassCost.add(operationsCost)
+                .multiply(java.math.BigDecimal.valueOf(qty))
                 .setScale(2, java.math.RoundingMode.HALF_UP)
                 .doubleValue();
     }

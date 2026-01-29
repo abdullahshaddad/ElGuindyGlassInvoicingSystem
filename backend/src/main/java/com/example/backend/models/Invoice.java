@@ -2,6 +2,8 @@ package com.example.backend.models;
 
 import com.example.backend.models.customer.Customer;
 import com.example.backend.models.enums.InvoiceStatus;
+import com.example.backend.models.enums.LineStatus;
+import com.example.backend.models.enums.WorkStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,20 +23,21 @@ import java.util.List;
 public class Invoice {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
     @Column(name = "issue_date", nullable = false)
+    @Builder.Default
     private LocalDateTime issueDate = LocalDateTime.now();
 
     @Column(name = "payment_date")
     private LocalDateTime paymentDate;
 
     @Column(name = "total_price", nullable = false)
+    @Builder.Default
     private Double totalPrice = 0.0;
 
     /**
@@ -55,7 +58,17 @@ public class Invoice {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
+    @Builder.Default
     private InvoiceStatus status = InvoiceStatus.PENDING;
+
+    /**
+     * Work/Factory status - tracks progress of factory work on this invoice
+     * Separate from payment status (InvoiceStatus)
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "work_status")
+    @Builder.Default
+    private WorkStatus workStatus = WorkStatus.PENDING;
 
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @Builder.Default
@@ -73,6 +86,7 @@ public class Invoice {
     private String notes;
 
     @Column(name = "created_at", nullable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "updated_at")
@@ -92,6 +106,7 @@ public class Invoice {
         this.amountPaidNow = 0.0;
         this.remainingBalance = 0.0;
         this.status = InvoiceStatus.PENDING;
+        this.workStatus = WorkStatus.PENDING;
         this.invoiceLines = new ArrayList<>();
         this.printJobs = new ArrayList<>();
         this.payments = new ArrayList<>();
@@ -136,5 +151,45 @@ public class Invoice {
     public boolean isFullyPaid() {
         return this.status == InvoiceStatus.PAID ||
                 (this.remainingBalance != null && this.remainingBalance <= 0.01);
+    }
+
+    /**
+     * Calculate and update work status based on line statuses
+     */
+    public void updateWorkStatus() {
+        if (this.invoiceLines == null || this.invoiceLines.isEmpty()) {
+            this.workStatus = WorkStatus.PENDING;
+            return;
+        }
+
+        boolean allCompleted = true;
+        boolean anyInProgress = false;
+        boolean anyCompleted = false;
+
+        for (InvoiceLine line : this.invoiceLines) {
+            LineStatus lineStatus = line.getStatus();
+            if (lineStatus == null) {
+                lineStatus = LineStatus.PENDING;
+            }
+
+            if (lineStatus == LineStatus.COMPLETED) {
+                anyCompleted = true;
+            } else if (lineStatus == LineStatus.IN_PROGRESS) {
+                anyInProgress = true;
+                allCompleted = false;
+            } else if (lineStatus == LineStatus.PENDING) {
+                allCompleted = false;
+            }
+        }
+
+        if (allCompleted && (anyCompleted || this.invoiceLines.size() > 0)) {
+            this.workStatus = WorkStatus.COMPLETED;
+        } else if (anyInProgress || anyCompleted) {
+            this.workStatus = WorkStatus.IN_PROGRESS;
+        } else {
+            this.workStatus = WorkStatus.PENDING;
+        }
+
+        this.updatedAt = LocalDateTime.now();
     }
 }

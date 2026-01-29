@@ -7,27 +7,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ElGuindy Glass Invoicing System is a full-stack web application for managing glass cutting and invoicing operations. The system handles customer management, invoice generation, glass type configurations, cutting rate calculations, and print job management with real-time WebSocket notifications.
 
 **Tech Stack:**
-- **Backend:** Spring Boot 3.5.5 with Java 21, PostgreSQL, JWT authentication
+- **Backend:** Spring Boot 3.5.5 with Java 21, PostgreSQL, JWT authentication, Lombok
 - **Frontend:** React 18 with Vite, TailwindCSS, React Router, React Query, i18next (Arabic RTL support)
 - **Infrastructure:** Docker Compose (PostgreSQL, MinIO for S3-compatible storage)
 
 ## Development Commands
 
-### Backend (Spring Boot + Maven)
+### Backend (Spring Boot + Maven Wrapper)
 
 ```bash
-# Run backend locally (requires PostgreSQL on localhost:5432)
 cd backend
-mvn spring-boot:run
 
-# Build backend
-mvn clean package
+# Run locally (requires PostgreSQL on localhost:5432)
+./mvnw spring-boot:run
+
+# Build
+./mvnw clean package
 
 # Run tests
-mvn test
+./mvnw test
+
+# Run a single test class
+./mvnw test -Dtest=InvoiceServiceTest
 
 # Skip tests during build
-mvn clean package -DskipTests
+./mvnw clean package -DskipTests
 ```
 
 ### Frontend (React + Vite)
@@ -38,23 +42,23 @@ cd frontend
 # Install dependencies
 npm install
 
-# Start dev server (runs on port 3000)
+# Start dev server (port 3000)
 npm run dev
 
 # Build for production
 npm run build
 
-# Preview production build
-npm run preview
-
 # Run tests
 npm test
 
+# Run a single test file
+npm test -- CustomerService.test.js
+
 # Run tests in watch mode
-npm test:watch
+npm run test:watch
 
 # Run tests with coverage
-npm test:coverage
+npm run test:coverage
 
 # Lint code
 npm run lint
@@ -64,9 +68,6 @@ npm run lint
 
 ```bash
 # Start all services (backend, PostgreSQL, MinIO)
-docker compose up
-
-# Start in detached mode
 docker compose up -d
 
 # Rebuild backend container
@@ -75,7 +76,7 @@ docker compose up --build backend
 # Stop all services
 docker compose down
 
-# View logs
+# View backend logs
 docker compose logs -f backend
 ```
 
@@ -83,185 +84,162 @@ docker compose logs -f backend
 
 ### Backend Structure
 
-The backend follows a standard Spring Boot layered architecture:
+Hybrid layered/DDD architecture with domain modules:
 
-- **`controllers/`** - REST API endpoints (e.g., `InvoiceController`, `CustomerController`, `GlassTypeController`)
+- **`controllers/`** - REST API endpoints
 - **`services/`** - Business logic layer
-  - `InvoiceService` - Core invoice creation, validation, and management
+  - `InvoiceService` - Invoice CRUD, validation, management
+  - `InvoiceCreationService` - Invoice creation with line/operation processing
+  - `OperationCalculationService` - Calculates operation pricing (cutting, polishing, etc.)
   - `PrintJobService` - PDF generation and print job management
-  - `WebSocketNotificationService` - Real-time notifications
-  - `cutting/` - Cutting rate calculation services (`CuttingRateService`, `ShatafRateService`, `CuttingContext`)
-- **`repositories/`** - Spring Data JPA repositories for database access
+  - `PdfGenerationService` - PDF document generation with iText
+  - `ReadableIdGeneratorService` - Generates human-readable invoice IDs
+  - `StorageService` - Abstraction for MinIO/S3 storage
+  - `ExportService` - Data export functionality
+  - `cutting/` - Cutting rate calculations (`CuttingRateService`, `ShatafRateService`, `CuttingContext`)
+  - `storage/` - Storage provider implementations
+- **`domain/`** - Domain-Driven Design modules (evolving)
+  - `customer/`, `glass/`, `invoice/`, `payment/`, `shataf/`, `shared/`
+  - Each module contains: `model/`, `repository/`, `service/`, `exception/`
+- **`infrastructure/`** - Infrastructure concerns
+  - `adapter/` - External service adapters
+  - `mapper/` - Entity-DTO mappers
+- **`repositories/`** - Spring Data JPA repositories
 - **`models/`** - JPA entities
-  - Core entities: `Invoice`, `InvoiceLine`, `Customer`, `GlassType`, `PrintJob`, `Payment`
-  - `enums/` - Business enums (`InvoiceStatus`, `PrintStatus`, `PaymentMethod`, `CuttingType`, `FarmaType`, `ShatafType`)
-  - `customer/`, `user/`, `notification/` - Domain-specific models
-- **`dto/`** - Data Transfer Objects for API requests/responses
+  - Core: `Invoice`, `InvoiceLine`, `InvoiceLineOperation`, `Customer`, `GlassType`, `PrintJob`, `Payment`
+  - Supporting: `CuttingRate`, `ShatafRate`, `OperationPrice`, `CompanyProfile`
+  - `enums/` - `InvoiceStatus`, `LineStatus`, `PrintStatus`, `PaymentMethod`, `CuttingType`, `ShatafType`, `OperationType`
+  - `customer/` - Customer entity, `user/` - User/Role entities, `notification/` - Notification entity
+- **`dto/`** - Data Transfer Objects (`invoice/` subdirectory for invoice-related DTOs)
+- **`application/dto/`** - Application layer DTOs (being migrated)
 - **`config/`** - Application configuration
   - `security/` - JWT authentication (`JwtAuthenticationFilter`, `JwtService`, `SecurityConfiguration`)
-  - `WebSocket/` - WebSocket configuration and event handlers
-  - `ApplicationConfig`, `PrintJobConfig`, `StorageConfig`
-- **`authentication/`** - Auth request/response DTOs
+  - `WebSocket/` - WebSocket configuration and handlers
+- **`authentication/`** - Authentication-related components
+- **`monitoring/`** - `PrintJobMonitor` and health monitoring
 - **`exceptions/`** - Custom exception hierarchy (`customer/`, `invoice/`, `printjob/`, `websocket/`)
-- **`monitoring/`** - Health check and metrics
 
 **Key Backend Concepts:**
 
-1. **Invoice Creation Flow:** Invoices are created via `InvoiceService.createInvoice()` which validates dimensions, calculates cutting costs using `CuttingContext`, and saves invoice lines. Print jobs are created separately through `PrintJobController`.
+1. **Invoice Creation Flow:** `InvoiceService.createInvoice()` validates dimensions, calculates pricing via `OperationCalculationService`, and persists invoice with lines and operations.
 
-2. **Cutting Calculations:** The system uses a strategy pattern via `CuttingContext` to calculate costs based on cutting type (SHATF, LASER). Rates are configurable per dimension range via `CuttingRate` and `ShatafRate` entities.
+2. **Cutting Calculations:** Strategy pattern via `CuttingContext` for cutting type (SHATF, LASER). Rates configurable per dimension range via `CuttingRate` and `ShatafRate` entities.
 
-3. **Authentication:** JWT-based authentication with role-based access control (OWNER, ADMIN, CASHIER, WORKER). Security configuration in `SecurityConfiguration.java`.
+3. **Operations:** Each invoice line can have multiple operations (cutting, polishing, etc.) tracked via `InvoiceLineOperation`. Prices managed in `OperationPrice` table.
 
-4. **WebSocket:** Real-time notifications for invoice updates and print job status changes via `/ws/**` endpoints.
+4. **Authentication:** JWT-based with roles (OWNER, ADMIN, CASHIER, WORKER). Config in `SecurityConfiguration.java`.
 
-5. **Storage:** Configurable storage (MinIO/S3 or disabled) for PDF storage. Configuration in `application.properties` via `storage.type`.
+5. **WebSocket:** Real-time notifications for invoice/print job updates via `/ws/**` endpoints.
+
+6. **Storage:** Configurable via `storage.type` property (minio, s3, or disabled) for PDF storage.
 
 ### Frontend Structure
 
-The frontend is a React SPA with role-based routing and Arabic (RTL) internationalization:
+React SPA with role-based routing and Arabic (RTL) internationalization:
 
 - **`pages/`** - Page components organized by role
   - `auth/` - Login page
-  - `admin/` - Admin-only pages (`GlassTypesPage`, `UserManagementPage`, `CuttingPricesConfigPage`)
-  - `cashier/` - Cashier interface (`CashierInvoicePage`, components for invoice creation)
-  - `FactoryWorkerPage`, `DashboardPage`, `CustomersPage`, `InvoicesPage`
-  - `errors/` - Error pages (`NotFoundPage`, `UnauthorizedPage`)
+  - `admin/` - Admin pages (`GlassTypesPage`, `UserManagementPage`, `CuttingPricesConfigPage`, `OperationPricesPage`, `CompanyProfilePage`)
+  - `cashier/` - Cashier interface (`CashierInvoicePage`, `components/` with invoice creation UI)
+  - Root-level: `DashboardPage`, `CustomersPage`, `InvoicesPage`, `FactoryWorkerPage`
+  - `errors/` - `NotFoundPage`, `UnauthorizedPage`
 - **`components/`** - Reusable UI components
-  - `layout/` - Layout wrappers (`Layout` for main app, `CashierLayout` for cashier)
+  - `layout/` - Layout wrappers (`Layout`, `CashierLayout`)
   - `ui/` - UI primitives
-  - `AppRouter.jsx` - Main routing configuration with role-based route protection
-  - `ErrorBoundary.jsx`
+  - `AppRouter.jsx` - Main routing with role-based protection
 - **`contexts/`** - React contexts (`AuthContext`, `ThemeContext`, `SnackbarContext`)
-- **`services/`** - API service modules (axios-based)
+- **`services/`** - API service modules (axios-based): `invoiceService`, `customerService`, `glassTypeService`, `paymentService`, `printJobService`, `operationPriceService`, etc.
 - **`api/`** - Axios configuration and interceptors
 - **`hooks/`** - Custom React hooks
-- **`utils/`** - Utility functions
-- **`constants/`** - Constants and enums matching backend (e.g., `farmaTypes.js`)
-- **`i18n/`** - Internationalization setup (Arabic translations)
+- **`constants/`** - Application constants and enums
+- **`i18n/`** - Internationalization (Arabic translations)
 - **`styles/`** - Global styles and SCSS variables
-- **`tests/`** - Jest tests
-- **`types/`** - TypeScript/PropTypes definitions
+- **`tests/`** - Test files and mocks
+- **`types/`** - TypeScript type definitions
+- **`utils/`** - Utility functions (`dimensionUtils`, `invoiceUtils`, etc.)
 
 **Key Frontend Concepts:**
 
-1. **Routing & Roles:** `AppRouter.jsx` defines role-based routes. The `RoleRoute` component protects routes based on user role. Roles: `OWNER`, `ADMIN`, `CASHIER`, `WORKER`.
+1. **Routing & Roles:** `AppRouter.jsx` defines role-based routes via `RoleRoute` component. Roles: `OWNER`, `ADMIN`, `CASHIER`, `WORKER`.
 
-2. **Authentication Flow:** `AuthContext` manages auth state. Login redirects users to role-appropriate landing pages (dashboard for OWNER/ADMIN, /cashier for CASHIER, /factory for WORKER).
+2. **Authentication:** `AuthContext` manages auth state. Login redirects to role-appropriate pages (dashboard for OWNER/ADMIN, /cashier for CASHIER, /factory for WORKER).
 
-3. **Path Aliases:** Vite configured with path aliases (`@/`, `@components`, `@pages`, `@services`, etc.) - use these instead of relative imports.
+3. **Path Aliases:** Use Vite aliases (`@/`, `@components`, `@pages`, `@services`, `@hooks`, `@utils`, `@contexts`, `@styles`, `@i18n`, `@types`) instead of relative imports.
 
-4. **State Management:** React Query (`@tanstack/react-query`) for server state, React Context for global UI state.
+4. **State Management:** React Query for server state, React Context for global UI state.
 
-5. **Styling:** TailwindCSS with dark mode support via `ThemeContext`. RTL support for Arabic.
+5. **Styling:** TailwindCSS with dark mode via `ThemeContext`. RTL support for Arabic.
 
-6. **API Proxy:** Vite dev server proxies `/api` requests to backend (localhost:8080 by default, configurable via `VITE_API_URL`).
+6. **API Proxy:** Dev server proxies `/api` to backend (localhost:8080, configurable via `VITE_API_URL`). **Note:** The proxy rewrites paths, stripping the `/api` prefix (e.g., `/api/invoices` → `/invoices` on backend).
 
 ### Database Schema
 
 Main entities:
-- **Invoice** - Header record with customer, total, status, timestamps
-- **InvoiceLine** - Line items with glass dimensions, quantity, cutting details, unit price
+- **Invoice** - Header with customer, total, status, readable ID, timestamps
+- **InvoiceLine** - Line items with glass dimensions, quantity, unit price, status
+- **InvoiceLineOperation** - Operations per line (cutting, polishing, etc.) with calculated costs
 - **Customer** - Customer records with type (INDIVIDUAL, COMPANY, GOVERNMENT)
 - **GlassType** - Glass types with base price per square meter
+- **OperationPrice** - Configurable prices for operations (by operation type)
 - **CuttingRate** - Laser cutting rates by dimension ranges
 - **ShatafRate** - Shataf cutting rates by dimension ranges
 - **PrintJob** - PDF generation jobs linked to invoices with status tracking
 - **Payment** - Payment records with method and amount
 - **User** - User accounts with roles and JWT authentication
-- **Notification** - System notifications
+- **CompanyProfile** - Company information for invoices/receipts
 
-The database is auto-created and updated via JPA (`spring.jpa.hibernate.ddl-auto=update`).
+Database auto-managed via JPA (`spring.jpa.hibernate.ddl-auto=update`).
 
 ## Configuration
 
-### Backend Configuration
+### Backend (`application.properties`)
 
-**`backend/src/main/resources/application.properties`** contains all backend configuration:
+Key configuration sections:
+- **Database:** PostgreSQL (localhost:5432 for local dev, overridden by compose.yaml in Docker)
+- **JWT:** `jwt.secret`, `jwt.expiration` (env vars: `JWT_SECRET`, `JWT_EXPIRATION`)
+- **Storage:** `storage.type` (minio/s3/disabled), MinIO config (`minio.*`), AWS S3 config (`aws.s3.*`)
+- **Print Jobs:** `app.print-jobs.*` (retries, timeout, PDF storage)
+- **Cutting Rates:** `app.cutting-rates.*` (defaults, overlap detection)
+- **WebSocket:** `app.websocket.*` (heartbeat, timeout)
+- **Logging:** File logging to `logs/elguindy-backend.log` (rolling, 10MB max, 30 days retention)
 
-- **Database:** PostgreSQL connection (localhost:5432 for local dev, overridden by compose.yaml in Docker)
-- **JWT:** Secret key and expiration (configurable via env vars `JWT_SECRET`, `JWT_EXPIRATION`)
-- **Storage:** MinIO/S3 configuration (`storage.type`, `minio.*`, `aws.s3.*`)
-- **CORS:** Allowed origins for frontend (localhost:3000, localhost:5173, Vercel deployment)
-- **Print Jobs:** Max retries, timeout, PDF storage directory
-- **Cutting Rates:** Default rates, overlap detection settings
-- **WebSocket:** Heartbeat interval, session timeout
-- **Logging:** File logging to `logs/elguindy-backend.log` with rolling policy
+Docker deployment uses `compose.yaml` environment variables to override database and MinIO settings.
 
-For Docker deployment, `compose.yaml` overrides database and MinIO settings via environment variables.
+### Frontend (`vite.config.js`)
 
-### Frontend Configuration
-
-**`frontend/vite.config.js`** configures:
-- Path aliases for imports
-- Dev server port (3000) and proxy to backend
-- Build optimizations with code splitting (vendor, router, i18n chunks)
-
-**Environment Variables:** Use `.env` files for `VITE_API_URL` to change backend URL.
-
-## Testing
-
-### Backend Tests
-- Tests located in `backend/src/test/java`
-- Run with `mvn test`
-
-### Frontend Tests
-- Jest + React Testing Library
-- Test files in `frontend/src/tests/`
-- Run with `npm test`, `npm test:watch`, or `npm test:coverage`
-
-## Common Patterns
-
-### Adding a New Backend Endpoint
-
-1. Create/update DTO in `dto/`
-2. Add business logic method to appropriate service
-3. Create/update controller method with `@RequestMapping`
-4. Update security config if endpoint needs different auth
-5. Consider adding WebSocket notification if real-time updates needed
-
-### Adding a New Frontend Page
-
-1. Create page component in `pages/` (appropriate subdirectory by role)
-2. Add route in `AppRouter.jsx` with correct `RoleRoute` wrapper
-3. Update navigation in layout component if needed
-4. Create API service method in `services/` if calling new backend endpoint
-5. Use React Query hooks for data fetching
-
-### Invoice Creation Process
-
-Backend creates invoices via `InvoiceService.createInvoice()`:
-1. Validates customer exists
-2. Validates all invoice lines (dimensions, glass types, cutting details)
-3. Calculates cutting costs using `CuttingContext` (delegates to `CuttingRateService` or `ShatafRateService`)
-4. Calculates totals (line item prices, cutting costs, invoice total)
-5. Saves invoice and lines to database
-6. Returns created invoice (print jobs created separately via `PrintJobController`)
-
-Frontend (Cashier) creates invoices via multi-step form:
-1. Customer selection/creation (`CustomerSelection.jsx`)
-2. Product entry with glass type, dimensions, cutting details (`EnhancedProductEntry.jsx`)
-3. Payment entry (`PaymentPanel.jsx`)
-4. Preview and confirmation (`InvoiceConfirmationDialog.jsx`)
-5. Submit to backend, optionally create print job
+- Path aliases for imports (see "Path Aliases" above)
+- Dev server on port 3000 with proxy to backend
+- Code splitting: vendor, router, i18n, utils chunks
+- Environment variable `VITE_API_URL` to change backend URL
 
 ## Role-Based Access
 
-- **OWNER:** Full system access (all admin features, user management, cutting prices config)
-- **ADMIN:** Management and sales features (dashboard, invoices, customers, glass types, users)
-- **CASHIER:** Sales only (invoice creation via dedicated cashier UI at `/cashier`)
-- **WORKER:** Factory operations (view invoices for production at `/factory`)
+| Role | Access |
+|------|--------|
+| OWNER | Full system access (all admin features, user management, pricing config) |
+| ADMIN | Management features (dashboard, invoices, customers, glass types, users) |
+| CASHIER | Sales only (invoice creation at `/cashier`) |
+| WORKER | Factory operations (view invoices at `/factory`) |
 
-Frontend enforces role-based routing. Backend endpoints protected via JWT + Spring Security role checks.
+Frontend enforces via `RoleRoute` component. Backend protects endpoints via JWT + Spring Security.
+
+## Invoice Creation Flow
+
+**Backend (`InvoiceService.createInvoice()`):**
+1. Validate customer exists
+2. Validate invoice lines (dimensions, glass types)
+3. Calculate operations via `OperationCalculationService`
+4. Calculate cutting costs via `CuttingContext` (SHATF or LASER strategy)
+5. Generate readable ID via `ReadableIdGeneratorService`
+6. Persist invoice, lines, and operations
+
+**Frontend (Cashier UI):**
+1. Customer selection/creation (`CustomerSelection.jsx`)
+2. Product entry with dimensions, glass type, operations (`EnhancedProductEntry.jsx`)
+3. Payment entry (`PaymentPanel.jsx`)
+4. Preview and confirm (`InvoiceConfirmationDialog.jsx`)
+5. Submit to backend, optionally create print job
 
 ## Internationalization
 
-The app supports Arabic (RTL layout) via i18next. Translation files in `frontend/src/i18n/`. Use `useTranslation()` hook for translated strings. Backend error messages also support Arabic.
-
-## Logging
-
-Backend logs to:
-- Console (stdout)
-- File: `logs/elguindy-backend.log` (rolling, max 10MB per file, 30 day retention)
-
-Log levels configured per package in `application.properties`. Set to DEBUG for most services, INFO for invoice/print job services.
+Arabic (RTL) support via i18next. Translations in `frontend/src/i18n/`. Use `useTranslation()` hook.

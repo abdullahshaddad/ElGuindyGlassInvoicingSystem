@@ -9,9 +9,12 @@ import java.util.List;
 
 @Repository
 public interface InvoiceLineRepository extends JpaRepository<InvoiceLine, Long> {
-    List<InvoiceLine> findByInvoiceId(Long invoiceId);
+    List<InvoiceLine> findByInvoiceId(String invoiceId);
 
     List<InvoiceLine> findByGlassTypeId(Long glassTypeId);
 
     List<InvoiceLine> findByCuttingType(CuttingType cuttingType);
+
+    @org.springframework.data.jpa.repository.Query("SELECT MAX(il.id) FROM InvoiceLine il")
+    Long findMaxNumericId();
 }

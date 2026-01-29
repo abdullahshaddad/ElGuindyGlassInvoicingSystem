@@ -162,16 +162,25 @@ public class PrintJobService {
      * @return Created PrintJob with MinIO URL
      */
     public PrintJob createSinglePrintJobByType(Invoice invoice, PrintType printType) {
+        PrintJob printJob;
         if (printType == PrintType.STICKER) {
-            return createStickerPrintJob(invoice);
+            printJob = createStickerPrintJob(invoice);
+            // Notify factory when STICKER is created (send to factory)
+            try {
+                webSocketService.notifyNewInvoice(invoice);
+                log.info("Factory notification sent for sticker creation, invoice {}", invoice.getId());
+            } catch (Exception e) {
+                log.warn("Failed to send factory notification for sticker: {}", e.getMessage());
+            }
         } else {
-            return createSinglePrintJob(invoice, printType);
+            printJob = createSinglePrintJob(invoice, printType);
         }
+        return printJob;
     }
 
     /**
      * Create a single print job (CLIENT or OWNER type)
-     * PDF is generated and stored in MinIO/S3
+     * PDFs are generated on-demand when requested, not stored.
      */
     private PrintJob createSinglePrintJob(Invoice invoice, PrintType printType) {
         try {
@@ -182,40 +191,10 @@ public class PrintJobService {
                 throw new PrintJobCreationException("Invoice has no lines");
             }
 
-            // Create print job entity
+            // Create print job entity - PDFs are generated on-demand
             PrintJob printJob = new PrintJob(invoice, printType);
-
-            // Generate PDF and store in MinIO - returns public URL
-            String pdfUrl;
-
-            // Check if we can reuse existing PDF URL (Only for CLIENT type as it is the
-            // standard invoice)
-            if (printType == PrintType.CLIENT && invoice.getPdfUrl() != null && !invoice.getPdfUrl().isEmpty()) {
-                pdfUrl = invoice.getPdfUrl();
-                log.info("Using existing PDF URL for invoice {}: {}", invoice.getId(), pdfUrl);
-            } else {
-                try {
-                    pdfUrl = pdfGenerationService.generateInvoicePdf(invoice, printType);
-                    if (pdfUrl == null || pdfUrl.trim().isEmpty()) {
-                        throw new PdfGenerationException("PDF URL is null or empty for " + printType);
-                    }
-
-                    // Save URL to invoice if it's the standard client copy
-                    if (printType == PrintType.CLIENT) {
-                        invoice.setPdfUrl(pdfUrl);
-                        invoiceRepository.save(invoice);
-                        log.debug("Saved PDF URL to invoice {}", invoice.getId());
-                    }
-
-                    log.debug("PDF generated and stored in MinIO: {}", pdfUrl);
-                } catch (Exception e) {
-                    log.error("PDF generation failed for {}: {}", printType, e.getMessage());
-                    throw new PdfGenerationException(
-                            "فشل في إنشاء ملف PDF لنوع " + printType + ": " + e.getMessage(), e);
-                }
-            }
-
-            printJob.setPdfPath(pdfUrl); // Store MinIO URL
+            // Set a reference path for tracking (PDF generated on-demand)
+            printJob.setPdfPath(String.format("invoice_%s_%s", invoice.getId(), printType.name().toLowerCase()));
 
             // Save to database
             try {
@@ -229,7 +208,7 @@ public class PrintJobService {
                         "فشل في حفظ مهمة الطباعة: " + e.getMessage(), e);
             }
 
-        } catch (PrintJobCreationException | PdfGenerationException | PrintJobDatabaseException e) {
+        } catch (PrintJobCreationException | PrintJobDatabaseException e) {
             throw e;
         } catch (Exception e) {
             log.error("Unexpected error creating {} print job: {}", printType, e.getMessage(), e);
@@ -240,26 +219,15 @@ public class PrintJobService {
 
     /**
      * Create sticker print job (special handling)
+     * PDFs are generated on-demand when requested.
      */
     private PrintJob createStickerPrintJob(Invoice invoice) {
         try {
             log.debug("Creating STICKER print job for invoice {}", invoice.getId());
 
             PrintJob stickerJob = new PrintJob(invoice, PrintType.STICKER);
-
-            // Generate sticker PDF (different method)
-            String pdfPath;
-            try {
-                pdfPath = pdfGenerationService.generateStickerPdf(invoice);
-                if (pdfPath == null || pdfPath.trim().isEmpty()) {
-                    throw new PdfGenerationException("Sticker PDF path is null or empty");
-                }
-                stickerJob.setPdfPath(pdfPath);
-                log.debug("Sticker PDF generated successfully: {}", pdfPath);
-            } catch (Exception e) {
-                log.error("Sticker PDF generation failed: {}", e.getMessage());
-                throw new PdfGenerationException("فشل في إنشاء ملف PDF للملصق: " + e.getMessage(), e);
-            }
+            // Set a reference path for tracking (PDF generated on-demand)
+            stickerJob.setPdfPath(String.format("sticker_%s", invoice.getId()));
 
             // Save to database
             try {
@@ -280,7 +248,7 @@ public class PrintJobService {
                 throw new PrintJobDatabaseException("فشل في حفظ مهمة طباعة الملصق: " + e.getMessage(), e);
             }
 
-        } catch (PdfGenerationException | PrintJobDatabaseException e) {
+        } catch (PrintJobDatabaseException e) {
             throw e;
         } catch (Exception e) {
             log.error("Unexpected error creating sticker print job: {}", e.getMessage(), e);
@@ -291,13 +259,13 @@ public class PrintJobService {
     /**
      * Handle partial failure notifications
      */
-    private void notifyPrintJobPartialFailure(Long invoiceId, int successCount, int totalCount, List<String> errors) {
+    private void notifyPrintJobPartialFailure(String invoiceId, int successCount, int totalCount, List<String> errors) {
         try {
             log.info("Notifying partial print job failure for invoice {}: {}/{} successful",
                     invoiceId, successCount, totalCount);
 
             // Could send email, create alert, etc.
-            String message = String.format("تم إنشاء %d من %d مهام طباعة للفاتورة %d. الأخطاء: %s",
+            String message = String.format("تم إنشاء %d من %d مهام طباعة للفاتورة %s. الأخطاء: %s",
                     successCount, totalCount, invoiceId, String.join(", ", errors));
 
             // Example: emailService.notifyAdminPartialFailure(invoiceId, message);
@@ -312,7 +280,7 @@ public class PrintJobService {
     /**
      * Retry failed print jobs
      */
-    public void retryFailedPrintJobs(Long invoiceId) {
+    public void retryFailedPrintJobs(String invoiceId) {
         try {
             log.info("Retrying failed print jobs for invoice {}", invoiceId);
 
@@ -365,7 +333,7 @@ public class PrintJobService {
     /**
      * Check print job status and health
      */
-    public PrintJobStatus checkPrintJobStatus(Long invoiceId) {
+    public PrintJobStatus checkPrintJobStatus(String invoiceId) {
         try {
             List<PrintJob> jobs = printJobRepository.findByInvoiceId(invoiceId);
 
@@ -468,7 +436,7 @@ public class PrintJobService {
         return savedJob;
     }
 
-    public List<PrintJob> findByInvoiceId(Long invoiceId) {
+    public List<PrintJob> findByInvoiceId(String invoiceId) {
         return printJobRepository.findByInvoiceId(invoiceId);
     }
 
@@ -476,12 +444,12 @@ public class PrintJobService {
         return printJobRepository.findById(id);
     }
 
-    public PrintJob createStickerPrintJob(Long invoiceId) {
+    public PrintJob createStickerPrintJob(String invoiceId) {
         Invoice invoice = invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new RuntimeException("Invoice not found: " + invoiceId));
 
         PrintJob stickerJob = new PrintJob(invoice, PrintType.STICKER);
-        stickerJob.setPdfPath(pdfGenerationService.generateStickerPdf(invoice));
+        stickerJob.setPdfPath(String.format("sticker_%s", invoiceId));
         return printJobRepository.save(stickerJob);
     }
 
@@ -513,7 +481,7 @@ public class PrintJobService {
     /**
      * الحصول على حالة مهام الطباعة لفاتورة معينة
      */
-    public PrintJobStatusDTO getPrintJobStatus(Long invoiceId) {
+    public PrintJobStatusDTO getPrintJobStatus(String invoiceId) {
         try {
             log.debug("Fetching print job status for invoice {}", invoiceId);
 
@@ -545,7 +513,7 @@ public class PrintJobService {
      * إعادة محاولة إنشاء مهمة طباعة فاشلة
      */
     @Transactional(rollbackFor = Exception.class)
-    public PrintJob retryPrintJob(Long invoiceId, PrintType printType) {
+    public PrintJob retryPrintJob(String invoiceId, PrintType printType) {
         try {
             log.info("Retrying print job for invoice {} with type {}", invoiceId, printType);
 

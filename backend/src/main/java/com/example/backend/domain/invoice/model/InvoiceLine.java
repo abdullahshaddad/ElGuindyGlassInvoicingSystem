@@ -27,6 +27,7 @@ public class InvoiceLine {
     private final Double diameter;              // For wheel cut (العجلة)
     private final Money manualCuttingPrice;     // For manual shataf types
     private final LineCalculation calculation;  // FIX BUG #4: All prices calculated
+    private final Integer quantity;             // Number of pieces (default 1)
 
     private InvoiceLine(Builder builder) {
         this.id = builder.id;
@@ -37,6 +38,7 @@ public class InvoiceLine {
         this.diameter = builder.diameter;
         this.manualCuttingPrice = builder.manualCuttingPrice;
         this.calculation = Objects.requireNonNull(builder.calculation, "Calculation cannot be null");
+        this.quantity = builder.quantity != null && builder.quantity > 0 ? builder.quantity : 1;
 
         validateDiameter();
     }
@@ -55,6 +57,7 @@ public class InvoiceLine {
         private Double diameter;
         private Money manualCuttingPrice;
         private LineCalculation calculation;
+        private Integer quantity;
 
         public Builder id(InvoiceLineId id) {
             this.id = id;
@@ -96,6 +99,11 @@ public class InvoiceLine {
             return this;
         }
 
+        public Builder quantity(Integer quantity) {
+            this.quantity = quantity;
+            return this;
+        }
+
         public InvoiceLine build() {
             return new InvoiceLine(this);
         }
@@ -104,9 +112,18 @@ public class InvoiceLine {
     // Business methods
 
     /**
-     * Get total price for this line (glass + cutting)
+     * Get total price for this line (glass + cutting) × quantity
      */
     public Money getTotalPrice() {
+        Money unitPrice = calculation.getTotalPrice();
+        int qty = (quantity != null && quantity > 0) ? quantity : 1;
+        return unitPrice.multiply(qty);
+    }
+
+    /**
+     * Get unit price for this line (glass + cutting) without quantity
+     */
+    public Money getUnitPrice() {
         return calculation.getTotalPrice();
     }
 

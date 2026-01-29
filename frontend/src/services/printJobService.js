@@ -1,14 +1,152 @@
-import { get, post, put, del } from '@/api/axios';
+import api, { get, post, put, del } from '@/api/axios';
 
 /**
- * Print Job Service - Aligned with New Backend Implementation
- * Handles all print job management including on-demand creation
+ * Print Job Service - Supports ON-DEMAND PDF generation
+ * PDFs generated instantly without storage, fetched with auth token
  */
 export const printJobService = {
-    // ===== PRINT JOB CREATION (NEW) =====
+
+    // ===== ON-DEMAND PDF GENERATION (NO STORAGE) =====
+
+    /**
+     * Fetch and open invoice PDF in new tab (with auth)
+     * @param {string|number} invoiceId - Invoice ID
+     * @param {string} printType - Print type (CLIENT, OWNER)
+     */
+    async openInvoicePdf(invoiceId, printType = 'CLIENT') {
+        try {
+            const response = await api.get(`/print-jobs/pdf/invoice/${invoiceId}/${printType}`, {
+                responseType: 'blob'
+            });
+
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+
+            // Clean up the URL after a delay
+            setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+        } catch (error) {
+            console.error('Error opening invoice PDF:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Fetch and open sticker PDF in new tab (with auth)
+     * @param {string|number} invoiceId - Invoice ID
+     */
+    async openStickerPdf(invoiceId) {
+        try {
+            const response = await api.get(`/print-jobs/pdf/invoice/${invoiceId}/STICKER`, {
+                responseType: 'blob'
+            });
+
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+
+            // Clean up the URL after a delay
+            setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+        } catch (error) {
+            console.error('Error opening sticker PDF:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Download invoice PDF (with auth)
+     * @param {string|number} invoiceId - Invoice ID
+     * @param {string} filename - Optional filename
+     * @param {string} printType - Print type (CLIENT, OWNER)
+     */
+    async downloadInvoicePdf(invoiceId, filename, printType = 'CLIENT') {
+        try {
+            const response = await api.get(`/print-jobs/pdf/invoice/${invoiceId}/${printType}`, {
+                responseType: 'blob'
+            });
+
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename || `فاتورة_${invoiceId}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error downloading invoice PDF:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Download sticker PDF (with auth)
+     * @param {string|number} invoiceId - Invoice ID
+     * @param {string} filename - Optional filename
+     */
+    async downloadStickerPdf(invoiceId, filename) {
+        try {
+            const response = await api.get(`/print-jobs/pdf/invoice/${invoiceId}/STICKER`, {
+                responseType: 'blob'
+            });
+
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename || `ملصق_${invoiceId}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error downloading sticker PDF:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Get PDF URL (for legacy compatibility - but won't have auth)
+     * @deprecated Use openInvoicePdf or openStickerPdf instead
+     */
+    getInvoicePdfUrl(invoiceId) {
+        return `/api/v1/invoices/${invoiceId}/pdf`;
+    },
+
+    getStickerPdfUrl(invoiceId) {
+        return `/api/v1/invoices/${invoiceId}/sticker`;
+    },
+
+    /**
+     * Print invoice or sticker on-demand
+     * @param {string|number} invoiceId - Invoice ID
+     * @param {string} printType - Print type (CLIENT, OWNER, STICKER)
+     */
+    async createSinglePrintJob(invoiceId, printType) {
+        // Open PDF directly based on type
+        if (printType === 'STICKER') {
+            await this.openStickerPdf(invoiceId);
+        } else {
+            await this.openInvoicePdf(invoiceId, printType);
+        }
+
+        return {
+            success: true,
+            printJob: {
+                id: null,
+                type: printType,
+                status: 'READY',
+                pdfPath: null
+            }
+        };
+    },
+
+    // ===== LEGACY PRINT JOB CREATION (with storage) =====
 
     /**
      * Create all print jobs (CLIENT, OWNER, STICKER) for an invoice
+     * @deprecated Use on-demand PDF methods instead
      * @param {string|number} invoiceId - Invoice ID
      * @returns {Promise<{success: boolean, message: string, status: PrintJobStatus}>}
      */
@@ -23,12 +161,13 @@ export const printJobService = {
     },
 
     /**
-     * Create a single print job for an invoice
+     * Create a single print job for an invoice (legacy with storage)
+     * @deprecated Use createSinglePrintJob which now uses on-demand generation
      * @param {string|number} invoiceId - Invoice ID
      * @param {string} printType - Print type (CLIENT, OWNER, STICKER)
      * @returns {Promise<{success: boolean, message: string, printJob: PrintJob}>}
      */
-    async createSinglePrintJob(invoiceId, printType) {
+    async createSinglePrintJobLegacy(invoiceId, printType) {
         try {
             const response = await post(`/print-jobs/invoice/${invoiceId}/${printType}`);
             return response;

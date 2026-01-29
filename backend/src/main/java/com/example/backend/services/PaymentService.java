@@ -48,7 +48,7 @@ public class PaymentService {
     @Transactional
     public PaymentDTO recordPayment(
             Long customerId,
-            Long invoiceId,
+            String invoiceId,
             Double amount,
             PaymentMethod paymentMethod,
             String referenceNumber,
@@ -150,7 +150,7 @@ public class PaymentService {
     /**
      * Get all payments for an invoice
      */
-    public List<PaymentDTO> getInvoicePayments(Long invoiceId) {
+    public List<PaymentDTO> getInvoicePayments(String invoiceId) {
         // Verify invoice exists
         if (!invoiceRepository.existsById(invoiceId)) {
             throw new InvoiceNotFoundException(invoiceId);

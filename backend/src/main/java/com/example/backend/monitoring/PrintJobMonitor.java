@@ -35,9 +35,9 @@ public class PrintJobMonitor {
 
             // Find invoices created in the last hour that might have missing print jobs
             LocalDateTime cutoff = LocalDateTime.now().minusHours(1);
-            List<Long> recentInvoiceIds = findRecentInvoiceIds(cutoff);
+            List<String> recentInvoiceIds = findRecentInvoiceIds(cutoff);
 
-            for (Long invoiceId : recentInvoiceIds) {
+            for (String invoiceId : recentInvoiceIds) {
                 try {
                     PrintJobStatus status = printJobService.checkPrintJobStatus(invoiceId);
 
@@ -83,7 +83,7 @@ public class PrintJobMonitor {
         }
     }
 
-    private List<Long> findRecentInvoiceIds(LocalDateTime cutoff) {
+    private List<String> findRecentInvoiceIds(LocalDateTime cutoff) {
         // Implementation to find recent invoice IDs
         // This would query the invoice repository
         return new ArrayList<>();

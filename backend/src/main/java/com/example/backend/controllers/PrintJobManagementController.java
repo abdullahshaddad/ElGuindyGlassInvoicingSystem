@@ -21,7 +21,7 @@ public class PrintJobManagementController {
      * Retry failed print jobs for an invoice
      */
     @PostMapping("/retry/{invoiceId}")
-    public ResponseEntity<String> retryPrintJobs(@PathVariable Long invoiceId) {
+    public ResponseEntity<String> retryPrintJobs(@PathVariable String invoiceId) {
         try {
             printJobService.retryFailedPrintJobs(invoiceId);
             return ResponseEntity.ok("تم إعادة محاولة مهام الطباعة بنجاح");
@@ -35,7 +35,7 @@ public class PrintJobManagementController {
      * Check print job status for an invoice
      */
     @GetMapping("/status/{invoiceId}")
-    public ResponseEntity<PrintJobStatus> checkStatus(@PathVariable Long invoiceId) {
+    public ResponseEntity<PrintJobStatus> checkStatus(@PathVariable String invoiceId) {
         try {
             PrintJobStatus status = printJobService.checkPrintJobStatus(invoiceId);
             return ResponseEntity.ok(status);

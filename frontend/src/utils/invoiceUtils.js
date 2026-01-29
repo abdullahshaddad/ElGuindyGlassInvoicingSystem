@@ -9,8 +9,8 @@ export const invoiceUtils = {
     /**
      * Convert dimension to meters
      */
-    toMeters(value, unit = 'MM') {
-        return parseFloat(value) * (this.UNITS[unit]?.toMeters || 0.001);
+    toMeters(value, unit = 'CM') {
+        return parseFloat(value) * (this.UNITS[unit]?.toMeters || 0.01);
     },
 
     /**
@@ -24,8 +24,8 @@ export const invoiceUtils = {
             return line.lineTotal;
         }
 
-        const widthM = this.toMeters(line.width, line.dimensionUnit || 'MM');
-        const heightM = this.toMeters(line.height, line.dimensionUnit || 'MM');
+        const widthM = this.toMeters(line.width, line.dimensionUnit || 'CM');
+        const heightM = this.toMeters(line.height, line.dimensionUnit || 'CM');
 
         // Calculate glass price
         const area = widthM * heightM;
@@ -75,7 +75,7 @@ export const invoiceUtils = {
             };
         }
 
-        const unit = line.dimensionUnit || 'MM';
+        const unit = line.dimensionUnit || 'CM';
         const width = parseFloat(line.width);
         const height = parseFloat(line.height);
 
@@ -153,15 +153,15 @@ export const invoiceUtils = {
     /**
      * Format dimensions for display with unit
      */
-    formatDimensions(width, height, unit = 'MM') {
-        const unitLabel = this.UNITS[unit]?.label || 'مم';
+    formatDimensions(width, height, unit = 'CM') {
+        const unitLabel = this.UNITS[unit]?.label || 'سم';
         return `${width} × ${height} ${unitLabel}`;
     },
 
     /**
      * Calculate area in square meters
      */
-    calculateArea(width, height, unit = 'MM') {
+    calculateArea(width, height, unit = 'CM') {
         if (!width || !height) return 0;
         const widthM = this.toMeters(width, unit);
         const heightM = this.toMeters(height, unit);

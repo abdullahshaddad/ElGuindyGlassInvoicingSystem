@@ -9,11 +9,13 @@ import com.example.backend.models.Invoice;
 import com.example.backend.models.PrintJob;
 import com.example.backend.models.enums.PrintType;
 import com.example.backend.repositories.InvoiceRepository;
+import com.example.backend.services.PdfGenerationService;
 import com.example.backend.services.PrintJobService;
-import com.example.backend.services.StorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +27,7 @@ import java.util.Map;
 /**
  * Controller for managing print jobs
  * Allows on-demand creation of print jobs after invoice creation
- * PDFs are generated and stored in MinIO/S3
+ * PDFs are generated on-demand and served directly
  */
 @RestController
 @RequestMapping("/api/v1/print-jobs")
@@ -35,29 +37,14 @@ public class PrintJobController {
 
     private final PrintJobService printJobService;
     private final InvoiceRepository invoiceRepository;
-    private final StorageService storageService;
+    private final PdfGenerationService pdfGenerationService;
 
     @Autowired
     public PrintJobController(PrintJobService printJobService, InvoiceRepository invoiceRepository,
-            StorageService storageService) {
+            PdfGenerationService pdfGenerationService) {
         this.printJobService = printJobService;
         this.invoiceRepository = invoiceRepository;
-        this.storageService = storageService;
-    }
-
-    /**
-     * Helper to resolve PDF URL (Presigned for S3, Direct for MinIO/Public)
-     */
-    private String resolveUrl(String path) {
-        if (path == null || path.trim().isEmpty()) {
-            return null;
-        }
-        // If it's already a full URL, return as is
-        if (path.startsWith("http://") || path.startsWith("https://")) {
-            return path;
-        }
-        // Otherwise treat as object key and get public/presigned URL
-        return storageService.getPublicUrl(path);
+        this.pdfGenerationService = pdfGenerationService;
     }
 
     /**
@@ -69,7 +56,7 @@ public class PrintJobController {
      */
     @PostMapping("/invoice/{invoiceId}")
     @PreAuthorize("hasAnyRole('OWNER', 'MANAGER')")
-    public ResponseEntity<Map<String, Object>> createPrintJobsForInvoice(@PathVariable Long invoiceId) {
+    public ResponseEntity<Map<String, Object>> createPrintJobsForInvoice(@PathVariable String invoiceId) {
         try {
             log.info("REST API: Creating print jobs for invoice {}", invoiceId);
 
@@ -82,11 +69,6 @@ public class PrintJobController {
 
             // Get status after creation
             PrintJobStatusDTO status = printJobService.getPrintJobStatus(invoiceId);
-
-            // Resolve URLs in status jobs
-            if (status.getJobs() != null) {
-                status.getJobs().forEach(job -> job.setPdfPath(resolveUrl(job.getPdfPath())));
-            }
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -132,7 +114,7 @@ public class PrintJobController {
     @PostMapping("/invoice/{invoiceId}/{printType}")
     @PreAuthorize("hasAnyRole('OWNER', 'MANAGER')")
     public ResponseEntity<Map<String, Object>> createSinglePrintJob(
-            @PathVariable Long invoiceId,
+            @PathVariable String invoiceId,
             @PathVariable PrintType printType) {
         try {
             log.info("REST API: Creating {} print job for invoice {}", printType, invoiceId);
@@ -151,7 +133,7 @@ public class PrintJobController {
                     "id", printJob.getId(),
                     "type", printJob.getType(),
                     "status", printJob.getStatus(),
-                    "pdfPath", resolveUrl(printJob.getPdfPath()),
+                    "pdfPath", printJob.getPdfPath(),
                     "createdAt", printJob.getCreatedAt()));
 
             log.info("{} print job created successfully for invoice {}: PDF at {}",
@@ -191,16 +173,11 @@ public class PrintJobController {
      */
     @GetMapping("/invoice/{invoiceId}/status")
     @PreAuthorize("hasAnyRole('OWNER', 'MANAGER', 'WORKER')")
-    public ResponseEntity<PrintJobStatusDTO> getPrintJobStatus(@PathVariable Long invoiceId) {
+    public ResponseEntity<PrintJobStatusDTO> getPrintJobStatus(@PathVariable String invoiceId) {
         try {
             log.debug("REST API: Getting print job status for invoice {}", invoiceId);
 
             PrintJobStatusDTO status = printJobService.getPrintJobStatus(invoiceId);
-
-            // Resolve URLs
-            if (status.getJobs() != null) {
-                status.getJobs().forEach(job -> job.setPdfPath(resolveUrl(job.getPdfPath())));
-            }
 
             log.debug("Print job status retrieved for invoice {}: {} total jobs",
                     invoiceId, status.getTotalJobs());
@@ -228,7 +205,7 @@ public class PrintJobController {
     @PostMapping("/invoice/{invoiceId}/retry/{printType}")
     @PreAuthorize("hasAnyRole('OWNER', 'MANAGER')")
     public ResponseEntity<Map<String, Object>> retryPrintJob(
-            @PathVariable Long invoiceId,
+            @PathVariable String invoiceId,
             @PathVariable PrintType printType) {
         try {
             log.info("REST API: Retrying {} print job for invoice {}", printType, invoiceId);
@@ -242,7 +219,7 @@ public class PrintJobController {
                     "id", printJob.getId(),
                     "type", printJob.getType(),
                     "status", printJob.getStatus(),
-                    "pdfPath", resolveUrl(printJob.getPdfPath()),
+                    "pdfPath", printJob.getPdfPath(),
                     "createdAt", printJob.getCreatedAt()));
 
             log.info("Print job retry successful for invoice {}, type {}: new job ID {}",
@@ -289,7 +266,6 @@ public class PrintJobController {
             // Convert to DTOs to avoid lazy loading issues
             List<PrintJobDTO> queuedJobDTOs = queuedJobs.stream()
                     .map(PrintJobDTO::fromEntity)
-                    .peek(dto -> dto.setPdfPath(resolveUrl(dto.getPdfPath())))
                     .toList();
 
             log.debug("Found {} queued print jobs", queuedJobDTOs.size());
@@ -320,7 +296,6 @@ public class PrintJobController {
 
             PrintJob printJob = printJobService.markAsPrinting(jobId);
             PrintJobDTO dto = PrintJobDTO.fromEntity(printJob);
-            dto.setPdfPath(resolveUrl(dto.getPdfPath()));
 
             return ResponseEntity.ok(dto);
 
@@ -348,7 +323,6 @@ public class PrintJobController {
 
             PrintJob printJob = printJobService.markAsPrinted(jobId);
             PrintJobDTO dto = PrintJobDTO.fromEntity(printJob);
-            dto.setPdfPath(resolveUrl(dto.getPdfPath()));
 
             return ResponseEntity.ok(dto);
 
@@ -381,7 +355,6 @@ public class PrintJobController {
 
             PrintJob printJob = printJobService.markAsFailed(jobId, errorMessage);
             PrintJobDTO dto = PrintJobDTO.fromEntity(printJob);
-            dto.setPdfPath(resolveUrl(dto.getPdfPath()));
 
             return ResponseEntity.ok(dto);
 
@@ -409,10 +382,6 @@ public class PrintJobController {
 
             return printJobService.findById(jobId)
                     .map(PrintJobDTO::fromEntity)
-                    .map(dto -> {
-                        dto.setPdfPath(resolveUrl(dto.getPdfPath()));
-                        return dto;
-                    })
                     .map(ResponseEntity::ok)
                     .orElseGet(() -> {
                         log.warn("Print job {} not found", jobId);
@@ -434,14 +403,13 @@ public class PrintJobController {
      */
     @GetMapping("/invoice/{invoiceId}")
     @PreAuthorize("hasAnyRole('OWNER', 'MANAGER', 'WORKER')")
-    public ResponseEntity<List<PrintJobDTO>> getPrintJobsByInvoice(@PathVariable Long invoiceId) {
+    public ResponseEntity<List<PrintJobDTO>> getPrintJobsByInvoice(@PathVariable String invoiceId) {
         try {
             log.debug("REST API: Getting print jobs for invoice {}", invoiceId);
 
             List<PrintJob> printJobs = printJobService.findByInvoiceId(invoiceId);
             List<PrintJobDTO> printJobDTOs = printJobs.stream()
                     .map(PrintJobDTO::fromEntity)
-                    .peek(dto -> dto.setPdfPath(resolveUrl(dto.getPdfPath())))
                     .toList();
 
             log.debug("Found {} print jobs for invoice {}", printJobDTOs.size(), invoiceId);
@@ -470,7 +438,6 @@ public class PrintJobController {
             List<PrintJob> failedJobs = printJobService.findFailedJobs();
             List<PrintJobDTO> failedJobDTOs = failedJobs.stream()
                     .map(PrintJobDTO::fromEntity)
-                    .peek(dto -> dto.setPdfPath(resolveUrl(dto.getPdfPath())))
                     .toList();
 
             log.debug("Found {} failed print jobs", failedJobDTOs.size());
@@ -518,6 +485,56 @@ public class PrintJobController {
                     .body(Map.of(
                             "success", false,
                             "error", "خطأ غير متوقع: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Generate and serve invoice PDF on-demand
+     * GET /api/v1/print-jobs/pdf/invoice/{invoiceId}/{printType}
+     *
+     * @param invoiceId Invoice ID
+     * @param printType Print type (CLIENT, OWNER, STICKER)
+     * @return PDF file as byte array
+     */
+    @GetMapping("/pdf/invoice/{invoiceId}/{printType}")
+    @PreAuthorize("hasAnyRole('OWNER', 'MANAGER', 'WORKER', 'CASHIER')")
+    public ResponseEntity<byte[]> getInvoicePdf(
+            @PathVariable String invoiceId,
+            @PathVariable PrintType printType) {
+        try {
+            log.info("REST API: Generating {} PDF on-demand for invoice {}", printType, invoiceId);
+
+            Invoice invoice = invoiceRepository.findByIdWithDetails(invoiceId)
+                    .orElseThrow(() -> new InvoiceNotFoundException("الفاتورة غير موجودة: " + invoiceId));
+
+            byte[] pdfBytes;
+            String filename;
+
+            if (printType == PrintType.STICKER) {
+                pdfBytes = pdfGenerationService.generateStickerPdf(invoice);
+                filename = String.format("sticker_%s.pdf", invoiceId);
+            } else {
+                pdfBytes = pdfGenerationService.generateInvoicePdf(invoice, printType);
+                filename = String.format("invoice_%s_%s.pdf", invoiceId, printType.name().toLowerCase());
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("inline", filename);
+            headers.setContentLength(pdfBytes.length);
+
+            log.debug("PDF generated successfully for invoice {}, type {}: {} bytes",
+                    invoiceId, printType, pdfBytes.length);
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+
+        } catch (InvoiceNotFoundException e) {
+            log.error("Invoice not found: {}", invoiceId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            log.error("Error generating PDF for invoice {}, type {}: {}",
+                    invoiceId, printType, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

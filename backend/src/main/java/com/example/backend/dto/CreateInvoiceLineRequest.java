@@ -38,6 +38,13 @@ public class CreateInvoiceLineRequest {
     @NotNull(message = "Dimension unit is required")
     private DimensionUnit dimensionUnit;
 
+    /**
+     * Quantity - number of pieces (default 1)
+     */
+    @Positive(message = "Quantity must be positive")
+    @Builder.Default
+    private Integer quantity = 1;
+
     // NEW: Multiple operations support
     @Valid
     @Builder.Default

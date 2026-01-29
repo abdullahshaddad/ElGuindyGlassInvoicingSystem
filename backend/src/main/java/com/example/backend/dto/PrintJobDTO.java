@@ -21,8 +21,8 @@ import java.time.LocalDateTime;
 public class PrintJobDTO {
 
     private Long id;
-    private Long invoiceId;
-    private String invoiceNumber; // e.g., "INV-000025"
+    private String invoiceId;
+    private String invoiceNumber; // e.g., "INV-0001"
     private String customerName;
     private PrintType type;
     private PrintStatus status;
@@ -51,7 +51,7 @@ public class PrintJobDTO {
         // Safely extract invoice information
         if (printJob.getInvoice() != null) {
             builder.invoiceId(printJob.getInvoice().getId());
-            builder.invoiceNumber(String.format("INV-%06d", printJob.getInvoice().getId()));
+            builder.invoiceNumber(printJob.getInvoice().getId()); // ID is already in readable format (e.g., "INV-0001")
 
             // Safely extract customer information
             if (printJob.getInvoice().getCustomer() != null) {

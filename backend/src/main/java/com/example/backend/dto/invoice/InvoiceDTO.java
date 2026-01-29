@@ -3,6 +3,7 @@ package com.example.backend.dto.invoice;
 import com.example.backend.dto.CustomerDTO;
 import com.example.backend.models.Invoice;
 import com.example.backend.models.enums.InvoiceStatus;
+import com.example.backend.models.enums.WorkStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -13,10 +14,11 @@ import java.util.stream.Collectors;
 @Data
 @Builder
 public class InvoiceDTO {
-    private Long id;
+    private String id;
     private LocalDateTime issueDate;
     private LocalDateTime paymentDate;
     private InvoiceStatus status;
+    private WorkStatus workStatus;
     private Double totalPrice;
     private String notes;
     private CustomerDTO customer;
@@ -37,6 +39,7 @@ public class InvoiceDTO {
                 .issueDate(invoice.getIssueDate())
                 .paymentDate(invoice.getPaymentDate())
                 .status(invoice.getStatus())
+                .workStatus(invoice.getWorkStatus())
                 .totalPrice(invoice.getTotalPrice())
                 .notes(invoice.getNotes())
                 .customer(CustomerDTO.from(invoice.getCustomer()))
@@ -63,6 +66,7 @@ public class InvoiceDTO {
                 .issueDate(invoice.getIssueDate())
                 .paymentDate(invoice.getPaymentDate())
                 .status(invoice.getStatus())
+                .workStatus(invoice.getWorkStatus())
                 .totalPrice(invoice.getTotalPrice())
                 .notes(invoice.getNotes())
                 .customer(CustomerDTO.from(invoice.getCustomer()))

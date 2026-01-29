@@ -1,23 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FiSearch, FiEye, FiDollarSign, FiFilter, FiPackage, FiPrinter, FiTrash2, FiPlus } from 'react-icons/fi';
+import { FiPlus, FiWifi, FiWifiOff } from 'react-icons/fi';
 import {
     Button,
-    Input,
-    Modal,
-    DataTable,
     PageHeader,
-    Badge,
-    Select
 } from '@components';
 import { ConfirmationDialog } from '@components/ui/ConfirmationDialog';
 import PrintOptionsModal from '@components/ui/PrintOptionsModal';
-import { InvoiceViewModal } from '@components';
 import { invoiceService } from '@services/invoiceService';
 import { printJobService } from '@services/printJobService';
 import { useSnackbar } from '@contexts/SnackbarContext';
 import useAuthorized from '@hooks/useAuthorized';
+import { useWebSocket, WEBSOCKET_TOPICS } from '@hooks/useWebSocket';
 import { useNavigate } from 'react-router-dom';
+import InvoiceList from '@/pages/cashier/components/InvoiceList';
 
 const InvoicesPage = () => {
     const { t, i18n } = useTranslation();
@@ -27,20 +23,50 @@ const InvoicesPage = () => {
 
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [selectedInvoice, setSelectedInvoice] = useState(null);
-    const [showDetailsModal, setShowDetailsModal] = useState(false);
-    const [isPrintOptionsOpen, setIsPrintOptionsOpen] = useState(false);
-    const [invoiceToPrint, setInvoiceToPrint] = useState(null);
-    const [isPrinting, setIsPrinting] = useState(false);
-    const [isSendingToFactory, setIsSendingToFactory] = useState(false);
 
+    // WebSocket message handler for real-time updates
+    const handleWebSocketMessage = useCallback((topic, data) => {
+        console.log('Invoices page WebSocket message:', topic, data);
+
+        if (topic === WEBSOCKET_TOPICS.DASHBOARD_INVOICE_CREATED) {
+            showInfo(i18n.language === 'ar'
+                ? `فاتورة جديدة #${data.invoiceId}`
+                : `New invoice #${data.invoiceId}`
+            );
+            // Reload invoices to show the new one
+            loadInvoices();
+        } else if (topic === WEBSOCKET_TOPICS.DASHBOARD_INVOICE_STATUS) {
+            showInfo(i18n.language === 'ar'
+                ? `تم تحديث الفاتورة #${data.invoiceId}`
+                : `Invoice #${data.invoiceId} updated`
+            );
+            loadInvoices();
+        }
+    }, [i18n.language]);
+
+    // WebSocket connection
+    const { connected: wsConnected } = useWebSocket({
+        topics: [
+            WEBSOCKET_TOPICS.DASHBOARD_INVOICE_CREATED,
+            WEBSOCKET_TOPICS.DASHBOARD_INVOICE_STATUS
+        ],
+        onMessage: handleWebSocketMessage,
+        enabled: isAuthorized
+    });
+
+    // Filters match InvoiceList expectations
     const [filters, setFilters] = useState({
+        invoiceId: '',
         startDate: '',
         endDate: '',
         customerName: '',
         status: ''
     });
+
+    const [isPrintOptionsOpen, setIsPrintOptionsOpen] = useState(false);
+    const [invoiceToPrint, setInvoiceToPrint] = useState(null);
+    const [isPrinting, setIsPrinting] = useState(false);
+    const [isSendingToFactory, setIsSendingToFactory] = useState(false);
 
     const [pagination, setPagination] = useState({
         page: 0,
@@ -58,8 +84,6 @@ const InvoicesPage = () => {
         type: 'warning'
     });
 
-    const isRTL = i18n.language === 'ar';
-
     useEffect(() => {
         if (isAuthorized) {
             loadInvoices();
@@ -70,10 +94,15 @@ const InvoicesPage = () => {
         try {
             setLoading(true);
 
+            // Filter out empty values
+            const activeFilters = Object.fromEntries(
+                Object.entries(filters).filter(([_, v]) => v !== '')
+            );
+
             const params = {
                 page: pagination.page,
                 size: pagination.size,
-                ...filters
+                ...activeFilters
             };
 
             const response = await invoiceService.listInvoices(params);
@@ -102,8 +131,7 @@ const InvoicesPage = () => {
     };
 
     const handleViewDetails = (invoice) => {
-        setSelectedInvoice(invoice);
-        setShowDetailsModal(true);
+        navigate(`/invoices/${invoice.id}`);
     };
 
     const handlePrintInvoice = (invoice) => {
@@ -117,14 +145,9 @@ const InvoicesPage = () => {
 
         try {
             setIsPrinting(true);
-            const response = await printJobService.createSinglePrintJob(invoiceToPrint.id, type);
-
-            if (response && response.printJob) {
-                printJobService.openPdf(response.printJob);
-                showSuccess(`تم فتح ${printJobService.getTypeText(type)} للفاتورة ${invoiceToPrint.id}`);
-            } else {
-                throw new Error("لم يتم استلام ملف الطباعة");
-            }
+            // createSinglePrintJob opens the PDF directly via blob fetch with auth
+            await printJobService.createSinglePrintJob(invoiceToPrint.id, type);
+            showSuccess(`تم فتح ${printJobService.getTypeText(type)} للفاتورة ${invoiceToPrint.id}`);
         } catch (err) {
             console.error('Print error:', err);
             showError('فشل في الطباعة');
@@ -229,177 +252,6 @@ const InvoicesPage = () => {
         }
     };
 
-    const clearFilters = () => {
-        setFilters({
-            startDate: '',
-            endDate: '',
-            customerName: '',
-            status: ''
-        });
-        setPagination(prev => ({ ...prev, page: 0 }));
-    };
-
-    const filteredInvoices = invoices.filter(invoice => {
-        if (!searchQuery) return true;
-        const query = searchQuery.toLowerCase();
-        return (
-            invoice.id?.toString().includes(query) ||
-            invoice.customer?.name?.toLowerCase().includes(query) ||
-            invoice.totalPrice?.toString().includes(query)
-        );
-    });
-
-    const formatCurrency = (amount) => `${parseFloat(amount || 0).toFixed(2)} ج.م`;
-
-
-
-    const columns = [
-        {
-            key: 'id',
-            header: t('invoices.fields.invoice_number', 'رقم الفاتورة'),
-            sortable: true,
-            render: (value) => (
-                <div className="font-mono font-semibold text-primary-600 dark:text-primary-400">
-                    #{value}
-                </div>
-            )
-        },
-        {
-            key: 'customer',
-            header: t('invoices.fields.customer', 'العميل'),
-            sortable: true,
-            render: (value) => (
-                <div>
-                    <div className="text-gray-900 dark:text-white font-medium">
-                        {value?.name || '-'}
-                    </div>
-                    {value?.phone && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400 font-mono">
-                            {value.phone}
-                        </div>
-                    )}
-                </div>
-            )
-        },
-        {
-            key: 'totalPrice',
-            header: t('invoices.fields.total_amount', 'المبلغ الإجمالي'),
-            sortable: true,
-            render: (value) => (
-                <div className="font-semibold text-lg text-green-600 dark:text-green-400">
-                    {formatCurrency(value)}
-                </div>
-            )
-        },
-        {
-            key: 'amountPaidNow',
-            header: t('invoices.fields.amount_paid', 'المدفوع'),
-            sortable: true,
-            render: (value, invoice) => (
-                <div className="text-left">
-                    <span className="font-mono text-green-600 dark:text-green-400">
-                        {formatCurrency(value)}
-                    </span>
-                    {invoice.remainingBalance > 0 && (
-                        <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                            {t('invoices.fields.remaining', 'متبقي')}: {invoice.remainingBalance?.toFixed(2)}
-                        </div>
-                    )}
-                </div>
-            )
-        },
-        {
-            key: 'status',
-            header: t('invoices.fields.status', 'الحالة'),
-            sortable: true,
-            render: (value) => (
-                <Badge
-                    variant={value === 'PAID' ? 'success' : value === 'CANCELLED' ? 'danger' : 'warning'}
-                    className="text-xs"
-                >
-                    {value === 'PAID'
-                        ? t('invoices.status.paid', 'مدفوعة')
-                        : value === 'CANCELLED'
-                            ? t('invoices.status.cancelled', 'ملغاة')
-                            : t('invoices.status.pending', 'قيد الانتظار')
-                    }
-                </Badge>
-            )
-        },
-        {
-            key: 'issueDate',
-            header: t('invoices.fields.date', 'التاريخ'),
-            sortable: true,
-            render: (value) => (
-                <div className="text-sm">
-                    <div className="text-gray-900 dark:text-white">
-                        {new Date(value).toLocaleDateString('ar-EG')}
-                    </div>
-                    <div className="text-gray-500 dark:text-gray-400">
-                        {new Date(value).toLocaleTimeString('ar-EG', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })}
-                    </div>
-                </div>
-            )
-        },
-        {
-            key: 'actions',
-            header: t('common.actions.actions', 'الإجراءات'),
-            sortable: false,
-            render: (_, invoice) => (
-                <div className="flex items-center gap-1 justify-end">
-                    {/* View Button Removed - Rows are now clickable */}
-
-
-                    {/* Print Button */}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); handlePrintInvoice(invoice); }}
-                        disabled={isPrinting}
-                        className="text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="طباعة"
-                    >
-                        {isPrinting ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 dark:border-purple-400"></div>
-                        ) : (
-                            <FiPrinter size={16} />
-                        )}
-                    </Button>
-
-                    {/* Send to Factory Button */}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); handleSendToFactory(invoice); }}
-                        disabled={isSendingToFactory}
-                        className="text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="إرسال للمصنع"
-                    >
-                        {isSendingToFactory ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600 dark:border-orange-400"></div>
-                        ) : (
-                            <FiPackage size={16} />
-                        )}
-                    </Button>
-
-                    {/* Delete Button */}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteInvoice(invoice); }}
-                        className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        title="حذف"
-                    >
-                        <FiTrash2 size={16} />
-                    </Button>
-                </div>
-            )
-        }
-    ];
-
     if (authLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -430,155 +282,48 @@ const InvoicesPage = () => {
                     { label: t('invoices.title', 'الفواتير') }
                 ]}
                 action={
-                    <Button
-                        onClick={handleAddInvoice}
-                        className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white"
-                    >
-                        <FiPlus size={20} />
-                        <span>{t('invoices.actions.add_invoice', 'إضافة فاتورة')}</span>
-                    </Button>
+                    <div className="flex items-center gap-3">
+                        {/* WebSocket Connection Status */}
+                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+                            wsConnected
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                        }`}>
+                            {wsConnected ? <FiWifi size={14} /> : <FiWifiOff size={14} />}
+                            <span className="text-xs font-medium">
+                                {wsConnected
+                                    ? (i18n.language === 'ar' ? 'مباشر' : 'Live')
+                                    : (i18n.language === 'ar' ? 'غير متصل' : 'Offline')
+                                }
+                            </span>
+                        </div>
+                        <Button
+                            onClick={handleAddInvoice}
+                            className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white"
+                        >
+                            <FiPlus size={20} />
+                            <span>{t('invoices.actions.add_invoice', 'إضافة فاتورة')}</span>
+                        </Button>
+                    </div>
                 }
             />
 
-            {/* Filters Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 space-y-4">
-                <div className="flex items-center gap-2">
-                    <FiFilter className="text-gray-500 dark:text-gray-400" size={20} />
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {t('invoices.filters.title', 'فلترة الفواتير')}
-                    </h3>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            {t('invoices.filters.start_date', 'من تاريخ')}
-                        </label>
-                        <Input
-                            type="date"
-                            value={filters.startDate}
-                            onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                            className="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            {t('invoices.filters.end_date', 'إلى تاريخ')}
-                        </label>
-                        <Input
-                            type="date"
-                            value={filters.endDate}
-                            onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                            className="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            {t('invoices.filters.customer_name', 'اسم العميل')}
-                        </label>
-                        <Input
-                            type="text"
-                            value={filters.customerName}
-                            onChange={(e) => handleFilterChange('customerName', e.target.value)}
-                            placeholder={t('invoices.filters.customer_placeholder', 'ابحث باسم العميل')}
-                            className="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            {t('invoices.filters.status', 'الحالة')}
-                        </label>
-                        <Select
-                            value={filters.status}
-                            onChange={(e) => handleFilterChange('status', e.target.value)}
-                            className="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-                            options={[
-                                { value: '', label: t('invoices.filters.all_statuses', 'جميع الحالات') },
-                                { value: 'PAID', label: t('invoices.status.paid', 'مدفوعة') },
-                                { value: 'PENDING', label: t('invoices.status.pending', 'قيد الانتظار') },
-                                { value: 'CANCELLED', label: t('invoices.status.cancelled', 'ملغاة') }
-                            ]}
-                        />
-                    </div>
-                </div>
-
-                <div className="flex justify-end">
-                    <Button
-                        variant="outline"
-                        onClick={clearFilters}
-                        className="text-gray-700 dark:text-gray-300"
-                    >
-                        {t('common.actions.reset', 'إعادة تعيين')}
-                    </Button>
-                </div>
-            </div>
-
-            {/* Search Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-                <div className="relative">
-                    <FiSearch
-                        className={`absolute top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 ${isRTL ? 'right-3' : 'left-3'}`}
-                        size={20}
-                    />
-                    <Input
-                        type="text"
-                        placeholder={t('invoices.search_placeholder', 'البحث في الفواتير...')}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className={`w-full ${isRTL ? 'pr-10' : 'pl-10'} bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white`}
-                    />
-                </div>
-            </div>
-
-            {/* Data Table */}
-            <DataTable
-                data={filteredInvoices}
-                columns={columns}
+            {/* Invoice List Component - Replaces previous filters/search/table */}
+            <InvoiceList
+                invoices={invoices}
                 loading={loading}
-                emptyMessage={t('invoices.no_invoices_found', 'لا توجد فواتير')}
-                loadingMessage={t('invoices.messages.loading', 'جاري تحميل الفواتير...')}
                 currentPage={pagination.page}
                 totalPages={pagination.totalPages}
                 onPageChange={handlePageChange}
-                onRowClick={(invoice) => handleViewDetails(invoice)}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            />
-
-
-            {/* Invoice Details Modal */}
-            <InvoiceViewModal
-                key={selectedInvoice?.id || 'modal'}
-                isOpen={showDetailsModal}
-                onClose={() => {
-                    setShowDetailsModal(false);
-                    setSelectedInvoice(null);
-                }}
-                invoice={selectedInvoice}
-                onPrint={(invoice, type) => {
-                    setShowDetailsModal(false);
-                    // If type is passed directly (from modal's internal print options)
-                    if (type && typeof type === 'string') {
-                        // We need to set invoiceToPrint first if we want to use the handlePrintOption logic generically, 
-                        // OR just call printJobService directly here.
-                        // But for consistency with Page's print logic:
-                        setInvoiceToPrint(invoice);
-                        handlePrintOption(type);
-                    } else {
-                        // Open the page's print options
-                        handlePrintInvoice(invoice);
-                    }
-                }}
-                onSendToFactory={(invoice) => {
-                    setShowDetailsModal(false);
-                    handleSendToFactory(invoice);
-                }}
-                onMarkAsPaid={(invoice) => {
-                    setShowDetailsModal(false);
-                    handleMarkAsPaid(invoice);
-                }}
+                onViewInvoice={handleViewDetails}
+                onPrintInvoice={handlePrintInvoice}
+                onSendToFactory={handleSendToFactory}
+                onDeleteInvoice={handleDeleteInvoice}
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                showControls={true}
+                isPrinting={isPrinting}
+                isSendingToFactory={isSendingToFactory}
             />
 
             {/* Confirmation Dialog */}

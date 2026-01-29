@@ -4,88 +4,96 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ea39321d-6bb3-415f-bc92-ee442bcbbe19" name="Changes" comment="feat: Add multi-operation invoice system with enhanced cashier UI&#10;&#10;  Implement comprehensive invoice line operation support with multiple glass cutting types (Farma, Shataf) and enhanced cashier interface components.&#10;&#10;  Backend changes:&#10;  - Update InvoiceLine model to support multiple operations per line&#10;  - Enhance CreateInvoiceLineRequest and PreviewLineRequest DTOs for operations&#10;  - Refactor InvoiceService to handle complex multi-operation calculations&#10;  - Add support for Farma type configurations in GlassType model&#10;&#10;  Frontend changes:&#10;  - Add EnhancedProductEntry component for detailed invoice line creation&#10;  - Implement FarmaTypeSelector and ShatafTypeSelector for type-specific inputs&#10;  - Create PaymentPanel for streamlined payment processing&#10;  - Add InvoiceConfirmationDialog for order review before submission&#10;  - Enhance glassTypeService with Farma type utilities&#10;  - Update cashier workflow components for better UX&#10;  - Add farmaTypes constants and utilities">
-      <change afterPath="$PROJECT_DIR$/CLAUDE.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/COMPATIBILITY_CHECK.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/COMPATIBILITY_FIX.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/MULTI_OPERATION_SOLUTION.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/TESTING_MULTI_OPERATIONS.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/application/dto/CreateInvoiceCommand.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/application/dto/CustomerDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/application/dto/InvoiceDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/application/dto/UpdateCustomerCommand.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/customer/exception/CustomerNotFoundException.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/customer/exception/InvalidCustomerTypeException.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/customer/model/Customer.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/customer/model/CustomerId.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/customer/repository/CustomerRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/customer/service/BalanceReconciliationService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/glass/model/GlassType.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/glass/model/GlassTypeId.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/glass/repository/GlassTypeRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/exception/InvalidPaymentException.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/model/Invoice.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/model/InvoiceId.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/model/InvoiceLine.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/model/InvoiceLineId.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/model/LineCalculation.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/repository/InvoiceRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/service/InvoicePricingService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/payment/model/Payment.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/payment/model/PaymentId.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/payment/repository/PaymentRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shared/exception/DomainException.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shared/valueobject/Area.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shared/valueobject/Dimensions.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shared/valueobject/EntityId.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shared/valueobject/Money.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shataf/model/ShatafRate.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shataf/repository/ShatafRateRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/OperationRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/infrastructure/adapter/InvoiceRepositoryAdapter.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/infrastructure/adapter/ShatafRateRepositoryAdapter.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/infrastructure/mapper/InvoiceMapper.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/InvoiceLineOperation.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/enums/OperationType.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceCreationService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/OperationCalculationService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/constants/farmaTypes.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/EnhancedProductEntry.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/FarmaTypeSelector.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceConfirmationDialog.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/PaymentPanel.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/ShatafTypeSelector.jsx" afterDir="false" />
+    <list default="true" id="ea39321d-6bb3-415f-bc92-ee442bcbbe19" name="Changes" comment=" invoice work status tracking, factory improvements &amp; bug fixes&#10;&#10;  ## Features&#10;  - Add WorkStatus enum for tracking factory progress (PENDING, IN_PROGRESS, COMPLETED)&#10;  - Add LineStatus for individual invoice line tracking&#10;  - Real-time WebSocket notifications for line and invoice status changes&#10;  - Factory page: status change buttons (Start Work, Complete)&#10;  - Factory page: hide completed jobs toggle filter&#10;  - Display work status in InvoiceList and InvoiceDetailsPage&#10;  - Company logo display in sidebar with fallback                                                                                                                                                                                  &#10;  - Invoice details page with full status display                                                                                                                                                                                  &#10;                                                                                                                                                                                                                                   &#10;  ## Bug Fixes                                                                                                                                                                                                                     &#10;  - Fix CASH customer payment validation using tolerance-based float comparison                                                                                                                                                    &#10;  - Fix inconsistent dimensionUnit defaults (standardized to CM)                                                                                                                                                                   &#10;  - Fix dark mode toggle RTL direction                                                                                                                                                                                             &#10;  - Fix PdfGenerationService syntax error                                                                                                                                                                                          &#10;  - Fix Hibernate orphan deletion error in FactoryController                                                                                                                                                                       &#10;  - Add max operations limit (10) per invoice line                                                                                                                                                                                 &#10;                                                                                                                                                                                                                                   &#10;  ## Backend Changes                                                                                                                                                                                                               &#10;  - Add WorkStatus and LineStatus enums                                                                                                                                                                                            &#10;  - Add workStatus field to Invoice model with auto-calculation                                                                                                                                                                    &#10;  - Add /factory/line/{id}/status endpoint for status updates&#10;  - WebSocket notifications for status changes&#10;  - CompanyProfileService returns API URL for logo display&#10;&#10;  ## Frontend Changes&#10;  - FactoryWorkerPage: status buttons, hide completed toggle&#10;  - InvoiceList: workStatus column&#10;  - InvoiceDetailsPage: workStatus badges&#10;  - Sidebar: company logo fetching and display&#10;  - Enhanced translations (AR/EN) for all new features">
+      <change afterPath="$PROJECT_DIR$/assets/logo.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/enums/LineStatus.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/enums/WorkStatus.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceLineProcessingResult.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/ReadableIdGeneratorService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backendkb.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/layout/FactoryLayout.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/ui/Tabs.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/hooks/useWebSocket.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/InvoiceDetailsPage.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontendkb.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CLAUDE.md" beforeDir="false" afterPath="$PROJECT_DIR$/CLAUDE.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/config/StorageConfig.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/CompanyProfileController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/CompanyProfileController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/FactoryController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/FactoryController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/FileController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/InvoiceController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/InvoiceController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PaymentController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PaymentController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PrintJobController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PrintJobController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PrintJobManagementController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/controllers/PrintJobManagementController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/model/InvoiceId.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/model/InvoiceId.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/model/InvoiceLine.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/invoice/model/InvoiceLine.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shared/valueobject/Dimensions.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/domain/shared/valueobject/Dimensions.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/CreateInvoiceLineRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/CreateInvoiceLineRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/invoice/PreviewLineRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/invoice/PreviewLineRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/PaymentDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/PaymentDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/PrintJobDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/PrintJobDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/PrintJobStatusDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/PrintJobStatusDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/RecordPaymentRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/RecordPaymentRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/invoice/InvoiceDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/invoice/InvoiceDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/invoice/InvoiceLineDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/dto/invoice/InvoiceLineDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/invoice/InvoiceNotFoundException.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/exceptions/invoice/InvoiceNotFoundException.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/infrastructure/mapper/InvoiceMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/infrastructure/mapper/InvoiceMapper.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/GlassType.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/GlassType.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/Invoice.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/Invoice.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/InvoiceLine.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/InvoiceLine.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/enums/InvoiceStatus.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/enums/InvoiceStatus.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/PrintJobStatus.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/PrintJobStatus.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/customer/Customer.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/customer/Customer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/enums/PaymentMethod.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/models/enums/PaymentMethod.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/monitoring/PrintJobMonitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/monitoring/PrintJobMonitor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/CustomerRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/CustomerRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/GlassTypeRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/GlassTypeRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/InvoiceLineRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/InvoiceLineRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/InvoiceRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/InvoiceRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/PaymentRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/PaymentRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/PrintJobRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/repositories/PrintJobRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/CompanyProfileService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/CompanyProfileService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceCreationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceCreationService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/InvoiceService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PaymentService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PaymentService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PdfGenerationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PdfGenerationService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PrintJobService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/PrintJobService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/StorageService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/WebSocketNotificationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/WebSocketNotificationService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/storage/MinioStorageProvider.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/storage/S3StorageProviderWithPresignedUrls.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/backend/services/storage/StorageProvider.java" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/compose.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/compose.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/api/axios.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/axios.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/ui/Select.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/ui/Select.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/constants/shatafTypes.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/constants/shatafTypes.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/CustomersPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/CustomersPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/AppRouter.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/AppRouter.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/InvoiceViewModal.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/InvoiceViewModal.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/layout/Layout.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/layout/Layout.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/i18n/locales/ar/common.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/i18n/locales/ar/common.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/i18n/locales/en/common.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/i18n/locales/en/common.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/DashboardPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/DashboardPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/FactoryWorkerPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/FactoryWorkerPage.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/InvoicesPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/InvoicesPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/customers/CustomerDetailsPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/customers/CustomerDetailsPage.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicePage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/CashierInvoicePage.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/CustomerSelection.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/CustomerSelection.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/EnhancedProductEntry.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/EnhancedProductEntry.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceList.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceList.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceViewModal.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/InvoiceViewModal.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/NewCustomerForm.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/NewCustomerForm.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/PricingBreakdown.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/PricingBreakdown.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/services/glassTypeService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/glassTypeService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/PaymentPanel.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/PaymentPanel.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/ProductEntry.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/ProductEntry.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/cashier/components/ShoppingCart.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/cashier/components/ShoppingCart.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/services/invoiceService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/invoiceService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/utils/farmaUtils.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/utils/farmaUtils.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/elguindy-backend.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/elguindy-backend.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-09-29.0.gz" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-09-30.0.gz" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-10-01.0.gz" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-10-02.0.gz" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-10-03.0.gz" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/elguindy-backend.log.2025-10-04.0.gz" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/paymentService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/paymentService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/printJobService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/printJobService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/utils/dimensionUtils.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/utils/dimensionUtils.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/utils/invoiceUtils.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/utils/invoiceUtils.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -147,16 +155,22 @@
     &quot;Spring Boot.BackendApplication.executor&quot;: &quot;Run&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Abdullah Shaddad/Desktop/dev/ElGuindyGlassInvoicingSystem&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/Abdullah Shaddad/Desktop/RockOps&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;npm.dev.executor&quot;: &quot;Run&quot;,
     &quot;ts.external.directory.path&quot;: &quot;C:\\Program Files\\JetBrains\\IntelliJ IDEA 2024.3.4.1\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;postgresql&quot;
+    ]
   }
 }</component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Spring Boot.BackendApplication">
     <configuration name="BackendApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
       <module name="backend" />
       <option name="SPRING_BOOT_MAIN_CLASS" value="com.example.backend.BackendApplication" />
@@ -164,6 +178,21 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="dev" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/frontend/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="dev" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="npm.dev" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -197,7 +226,48 @@
       <workItem from="1763736212587" duration="108000" />
       <workItem from="1763820832204" duration="5704000" />
       <workItem from="1764092195628" duration="35753000" />
-      <workItem from="1764336249922" duration="769000" />
+      <workItem from="1764336249922" duration="3957000" />
+      <workItem from="1764481099392" duration="804000" />
+      <workItem from="1764584865914" duration="3244000" />
+      <workItem from="1764838443862" duration="2173000" />
+      <workItem from="1764950005137" duration="1959000" />
+      <workItem from="1765002532163" duration="11970000" />
+      <workItem from="1765129608897" duration="1223000" />
+      <workItem from="1765155746255" duration="9990000" />
+      <workItem from="1765302302864" duration="3009000" />
+      <workItem from="1765325183498" duration="4018000" />
+      <workItem from="1765381808841" duration="4576000" />
+      <workItem from="1765454042479" duration="6344000" />
+      <workItem from="1765551342103" duration="9718000" />
+      <workItem from="1765691529665" duration="4510000" />
+      <workItem from="1765744280109" duration="1317000" />
+      <workItem from="1765757251901" duration="907000" />
+      <workItem from="1765761751233" duration="1006000" />
+      <workItem from="1765798212866" duration="3447000" />
+      <workItem from="1765872152914" duration="564000" />
+      <workItem from="1766322261132" duration="1726000" />
+      <workItem from="1766490627735" duration="579000" />
+      <workItem from="1766927951377" duration="1175000" />
+      <workItem from="1767086682546" duration="578000" />
+      <workItem from="1767273305317" duration="569000" />
+      <workItem from="1768124604327" duration="8467000" />
+      <workItem from="1768386286215" duration="1547000" />
+      <workItem from="1768491408802" duration="574000" />
+      <workItem from="1768562165546" duration="2931000" />
+      <workItem from="1768653934442" duration="564000" />
+      <workItem from="1768676382775" duration="563000" />
+      <workItem from="1768738806204" duration="12069000" />
+      <workItem from="1768858347130" duration="3404000" />
+      <workItem from="1768903041650" duration="6567000" />
+      <workItem from="1769087836243" duration="5985000" />
+      <workItem from="1769182095854" duration="571000" />
+      <workItem from="1769201510554" duration="566000" />
+      <workItem from="1769218587761" duration="599000" />
+      <workItem from="1769357837607" duration="1079000" />
+      <workItem from="1769446267159" duration="6332000" />
+      <workItem from="1769566848393" duration="16491000" />
+      <workItem from="1769645079832" duration="3916000" />
+      <workItem from="1769696951631" duration="13482000" />
     </task>
     <task id="LOCAL-00001" summary="fixing flow">
       <option name="closed" value="true" />
@@ -343,7 +413,87 @@
       <option name="project" value="LOCAL" />
       <updated>1763829845828</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="feat: Add multi-operation invoice system with enhanced cashier UI&#10;&#10;  Implement comprehensive invoice line operation support with multiple glass cutting types (Farma, Shataf) and enhanced cashier interface components.&#10;&#10;  Backend changes:&#10;  - Update InvoiceLine model to support multiple operations per line&#10;  - Enhance CreateInvoiceLineRequest and PreviewLineRequest DTOs for operations&#10;  - Refactor InvoiceService to handle complex multi-operation calculations&#10;  - Add support for Farma type configurations in GlassType model&#10;&#10;  Frontend changes:&#10;  - Add EnhancedProductEntry component for detailed invoice line creation&#10;  - Implement FarmaTypeSelector and ShatafTypeSelector for type-specific inputs&#10;  - Create PaymentPanel for streamlined payment processing&#10;  - Add InvoiceConfirmationDialog for order review before submission&#10;  - Enhance glassTypeService with Farma type utilities&#10;  - Update cashier workflow components for better UX&#10;  - Add farmaTypes constants and utilities">
+      <option name="closed" value="true" />
+      <created>1764337325834</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1764337325834</updated>
+    </task>
+    <task id="LOCAL-00020" summary="Refactor invoice PDF generation and fix paid invoice modal issues&#10;&#10;- Updated invoice PDF layout to match the new clean design without extra fields&#10;- Added support for sublines under each main invoice item with proper indentation&#10;- Simplified totals section to include only net total and final total&#10;- Improved supplier and customer info layout in a two-column structure&#10;- Fixed issue where paid invoice modal displayed null values due to incorrect state mapping&#10;- Ensured InvoiceViewModal receives correct props and opens properly from InvoicesPage&#10;- Corrected field mapping in CashierInvoicePage so paid invoices load accurate data&#10;- Add multi-output printing workflow: customer invoice, company invoice, and factory sticker&#10;- Implemented separate layouts for each print type and ensured correct data mapping for printing and production operations&#10;- Fix invoice financial logic, partial payments, and customer balance handling&#10;- Resolved issue where partial payments produced negative customer balances&#10;- Corrected calculation flow so remaining invoice amounts are handled properly without deducting from customer credit">
+      <option name="closed" value="true" />
+      <created>1765383528629</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1765383528629</updated>
+    </task>
+    <task id="LOCAL-00021" summary="Refactor invoice PDF generation and fix paid invoice modal issues&#10;&#10;- Updated invoice PDF layout to match the new clean design without extra fields&#10;- Added support for sublines under each main invoice item with proper indentation&#10;- Simplified totals section to include only net total and final total&#10;- Improved supplier and customer info layout in a two-column structure&#10;- Fixed issue where paid invoice modal displayed null values due to incorrect state mapping&#10;- Ensured InvoiceViewModal receives correct props and opens properly from InvoicesPage&#10;- Corrected field mapping in CashierInvoicePage so paid invoices load accurate data&#10;- Add multi-output printing workflow: customer invoice, company invoice, and factory sticker&#10;- Implemented separate layouts for each print type and ensured correct data mapping for printing and production operations&#10;- Fix invoice financial logic, partial payments, and customer balance handling&#10;- Resolved issue where partial payments produced negative customer balances&#10;- Corrected calculation flow so remaining invoice amounts are handled properly without deducting from customer credit">
+      <option name="closed" value="true" />
+      <created>1765384177153</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1765384177153</updated>
+    </task>
+    <task id="LOCAL-00022" summary="Refactor invoice PDF generation and fix paid invoice modal issues&#10;&#10;- Updated invoice PDF layout to match the new clean design without extra fields&#10;- Added support for sublines under each main invoice item with proper indentation&#10;- Simplified totals section to include only net total and final total&#10;- Improved supplier and customer info layout in a two-column structure&#10;- Fixed issue where paid invoice modal displayed null values due to incorrect state mapping&#10;- Ensured InvoiceViewModal receives correct props and opens properly from InvoicesPage&#10;- Corrected field mapping in CashierInvoicePage so paid invoices load accurate data&#10;- Add multi-output printing workflow: customer invoice, company invoice, and factory sticker&#10;- Implemented separate layouts for each print type and ensured correct data mapping for printing and production operations&#10;- Fix invoice financial logic, partial payments, and customer balance handling&#10;- Resolved issue where partial payments produced negative customer balances&#10;- Corrected calculation flow so remaining invoice amounts are handled properly without deducting from customer credit">
+      <option name="closed" value="true" />
+      <created>1765555067311</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1765555067311</updated>
+    </task>
+    <task id="LOCAL-00023" summary="minio and s3 config">
+      <option name="closed" value="true" />
+      <created>1765557669718</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1765557669718</updated>
+    </task>
+    <task id="LOCAL-00024" summary="feat(minio and s3 config): &#10;s3 url fix">
+      <option name="closed" value="true" />
+      <created>1765559322399</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1765559322399</updated>
+    </task>
+    <task id="LOCAL-00025" summary="**feat:** prevent duplicate phone numbers&#10;**feat:** fix S3 path URL handling">
+      <option name="closed" value="true" />
+      <created>1765693153068</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1765693153068</updated>
+    </task>
+    <task id="LOCAL-00026" summary="**feat:** prevent duplicate phone numbers&#10;**feat:** fix S3 path URL handling">
+      <option name="closed" value="true" />
+      <created>1765694911563</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1765694911563</updated>
+    </task>
+    <task id="LOCAL-00027" summary="Optimize invoice PDF generation with URL caching&#10;&#10;- Added 'pdfUrl' field to Invoice entity to cache generated PDF links.&#10;- Updated PrintJobService to check for existing PDF URL before generating CLIENT type invoices.&#10;- Implemented logic to reuse cached URLs, reducing redundant processing and storage operations.&#10;- Ensures generated PDF URLs are persisted to the invoice record for future use.&quot;">
+      <option name="closed" value="true" />
+      <created>1765699522286</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1765699522286</updated>
+    </task>
+    <task id="LOCAL-00028" summary="Optimize invoice PDF generation with URL caching&#10;&#10;- Added 'pdfUrl' field to Invoice entity to cache generated PDF links.&#10;- Updated PrintJobService to check for existing PDF URL before generating CLIENT type invoices.&#10;- Implemented logic to reuse cached URLs, reducing redundant processing and storage operations.&#10;- Ensures generated PDF URLs are persisted to the invoice record for future use.&quot;">
+      <option name="closed" value="true" />
+      <created>1765699531459</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1765699531459</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -364,6 +514,24 @@
     <MESSAGE value="feat: Add professional dashboard with full backend integration and dark mode support&#10;&#10;- Implement comprehensive dashboard with real-time statistics from backend&#10;- Add role-based views (Owner, Cashier, Worker) with different metrics&#10;- Create DashboardController with 7 RESTful endpoints for analytics&#10;- Implement dashboardService for clean API integration&#10;- Add DTOs to resolve Hibernate lazy loading serialization issues&#10;- Display recent invoices with customer information&#10;- Include quick action cards for common tasks&#10;- Add performance metrics with progress bars (Owner only)&#10;- Implement full dark mode support across all dashboard components&#10;- Support RTL/Arabic layout with proper text alignment&#10;- Add loading states with skeleton loaders&#10;- Implement error handling with retry functionality&#10;- Create responsive grid layouts for all screen sizes&#10;- Use Tailwind dark mode variants for seamless theme switching&#10;&#10;Backend:&#10;- DashboardController.java with stats, revenue, and recent invoices endpoints&#10;- Convert entities to DTOs to avoid Jackson serialization errors&#10;- Support filtering by date ranges and periods&#10;&#10;Frontend:&#10;- DashboardPage.jsx with StatsCard, QuickActionCard, and InvoiceRow components&#10;- dashboardService.js for API communication&#10;- Full integration with existing authentication and permissions system" />
     <MESSAGE value="feat: Enhanced Shataf &amp; Customer Payment System&#10;&#10;Major system upgrade implementing comprehensive shataf calculation system with 10 types and 12 farma formulas, plus enhanced customer payment management.&#10;&#10;Backend Changes:&#10;- Add ShatafType enum with 10 types (KHARAZAN, SHAMBORLEH, ONE_CM, TWO_CM, THREE_CM, JULIA, LASER, ROTATION, TABLEAUX, SANDING)&#10;- Add FarmaType enum with 12 formulas and built-in calculation methods&#10;- Add ShatafRate entity for thickness-based pricing management&#10;- Add InvoiceLineEnhanced model supporting new shataf/farma fields&#10;- Add ShatafRateRepository with custom queries and overlap detection&#10;- Add ShatafRateService with business logic and default rate initialization&#10;- Add EnhancedShatafCuttingStrategy supporting formula-based, manual, and area-based calculations&#10;- Add ShatafRateController with 9 REST API endpoints&#10;- Add DTOs: ShatafRateDTO, CreateInvoiceLineRequestEnhanced&#10;&#10;Frontend Changes:&#10;- Add shatafTypes.js constants with metadata and helper functions&#10;- Add farmaUtils.js with all 12 farma formula calculations&#10;- Add shatafRateService.js API client with rate management methods&#10;&#10;Database Changes:&#10;- Add shataf_rates table with unique constraints&#10;- Add columns to invoice_line: shataf_type, farma_type, diameter, shataf_meters, cutting_rate, glass_price, manual_cutting_price&#10;- Add performance indexes for optimized queries&#10;- Include data migration scripts for backward compatibility&#10;&#10;Features:&#10;- Formula-based shataf types (6): pricing depends on glass thickness and farma formula&#10;- Manual input types (3): LASER, ROTATION, TABLEAUX with manual price entry&#10;- Area-based type (1): SANDING calculated per square meter&#10;- 12 farma formulas: NORMAL_SHATAF, ONE_HEAD_FARMA, TWO_HEAD_FARMA, ONE_SIDE_FARMA, TWO_SIDE_FARMA, HEAD_SIDE_FARMA, TWO_HEAD_ONE_SIDE_FARMA, TWO_SIDE_ONE_HEAD_FARMA, FULL_FARMA, WHEEL_CUT, ROTATION, TABLEAUX&#10;- Customer balance management: CASH (must pay full), REGULAR/COMPANY (can have balance)&#10;- Automatic balance tracking and validation&#10;- Rate management API with bulk updates and default initialization&#10;&#10;Documentation:&#10;- Add comprehensive implementation guide with API reference&#10;- Add detailed usage examples with calculations&#10;- Add complete TODO checklist with testing requirements&#10;- Add database migration SQL with validation queries&#10;- Add files summary with integration roadmap&#10;&#10;Breaking Changes:&#10;- None - fully backward compatible with existing CuttingType system&#10;- Legacy SHATF/LASER types continue to work&#10;&#10;Next Steps:&#10;- Frontend UI component integration (InvoiceLineForm, ShatafTypeSelector, FarmaTypeSelector)&#10;- Admin panel for rate management&#10;- Comprehensive testing suite&#10;- Production deployment&#10;&#10;Files: 18 total (10 backend + 3 frontend + 5 docs)&#10;Size: ~133 KB&#10;Status: Backend 90% complete, Frontend 30% complete, Docs 100% complete" />
     <MESSAGE value="feat: Add multi-operation invoice system with enhanced cashier UI&#10;&#10;  Implement comprehensive invoice line operation support with multiple glass cutting types (Farma, Shataf) and enhanced cashier interface components.&#10;&#10;  Backend changes:&#10;  - Update InvoiceLine model to support multiple operations per line&#10;  - Enhance CreateInvoiceLineRequest and PreviewLineRequest DTOs for operations&#10;  - Refactor InvoiceService to handle complex multi-operation calculations&#10;  - Add support for Farma type configurations in GlassType model&#10;&#10;  Frontend changes:&#10;  - Add EnhancedProductEntry component for detailed invoice line creation&#10;  - Implement FarmaTypeSelector and ShatafTypeSelector for type-specific inputs&#10;  - Create PaymentPanel for streamlined payment processing&#10;  - Add InvoiceConfirmationDialog for order review before submission&#10;  - Enhance glassTypeService with Farma type utilities&#10;  - Update cashier workflow components for better UX&#10;  - Add farmaTypes constants and utilities" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: Add multi-operation invoice system with enhanced cashier UI&#10;&#10;  Implement comprehensive invoice line operation support with multiple glass cutting types (Farma, Shataf) and enhanced cashier interface components.&#10;&#10;  Backend changes:&#10;  - Update InvoiceLine model to support multiple operations per line&#10;  - Enhance CreateInvoiceLineRequest and PreviewLineRequest DTOs for operations&#10;  - Refactor InvoiceService to handle complex multi-operation calculations&#10;  - Add support for Farma type configurations in GlassType model&#10;&#10;  Frontend changes:&#10;  - Add EnhancedProductEntry component for detailed invoice line creation&#10;  - Implement FarmaTypeSelector and ShatafTypeSelector for type-specific inputs&#10;  - Create PaymentPanel for streamlined payment processing&#10;  - Add InvoiceConfirmationDialog for order review before submission&#10;  - Enhance glassTypeService with Farma type utilities&#10;  - Update cashier workflow components for better UX&#10;  - Add farmaTypes constants and utilities" />
+    <MESSAGE value="Refactor invoice PDF generation and fix paid invoice modal issues&#10;&#10;- Updated invoice PDF layout to match the new clean design without extra fields&#10;- Added support for sublines under each main invoice item with proper indentation&#10;- Simplified totals section to include only net total and final total&#10;- Improved supplier and customer info layout in a two-column structure&#10;- Fixed issue where paid invoice modal displayed null values due to incorrect state mapping&#10;- Ensured InvoiceViewModal receives correct props and opens properly from InvoicesPage&#10;- Corrected field mapping in CashierInvoicePage so paid invoices load accurate data&#10;- Add multi-output printing workflow: customer invoice, company invoice, and factory sticker&#10;- Implemented separate layouts for each print type and ensured correct data mapping for printing and production operations&#10;- Fix invoice financial logic, partial payments, and customer balance handling&#10;- Resolved issue where partial payments produced negative customer balances&#10;- Corrected calculation flow so remaining invoice amounts are handled properly without deducting from customer credit" />
+    <MESSAGE value="minio and s3 config" />
+    <MESSAGE value="feat(minio and s3 config): &#10;s3 url fix" />
+    <MESSAGE value="**feat:** prevent duplicate phone numbers&#10;**feat:** fix S3 path URL handling" />
+    <MESSAGE value="git commit -am &quot;perf: Optimize invoice PDF generation with URL caching&#10;&#10;- Added 'pdfUrl' field to Invoice entity to cache generated PDF links.&#10;- Updated PrintJobService to check for existing PDF URL before generating CLIENT type invoices.&#10;- Implemented logic to reuse cached URLs, reducing redundant processing and storage operations.&#10;- Ensures generated PDF URLs are persisted to the invoice record for future use.&quot;" />
+    <MESSAGE value="Optimize invoice PDF generation with URL caching&#10;&#10;- Added 'pdfUrl' field to Invoice entity to cache generated PDF links.&#10;- Updated PrintJobService to check for existing PDF URL before generating CLIENT type invoices.&#10;- Implemented logic to reuse cached URLs, reducing redundant processing and storage operations.&#10;- Ensures generated PDF URLs are persisted to the invoice record for future use.&quot;" />
+    <MESSAGE value=" invoice work status tracking, factory improvements &amp; bug fixes&#10;&#10;  ## Features&#10;  - Add WorkStatus enum for tracking factory progress (PENDING, IN_PROGRESS, COMPLETED)&#10;  - Add LineStatus for individual invoice line tracking&#10;  - Real-time WebSocket notifications for line and invoice status changes&#10;  - Factory page: status change buttons (Start Work, Complete)&#10;  - Factory page: hide completed jobs toggle filter&#10;  - Display work status in InvoiceList and InvoiceDetailsPage&#10;  - Company logo display in sidebar with fallback                                                                                                                                                                                  &#10;  - Invoice details page with full status display                                                                                                                                                                                  &#10;                                                                                                                                                                                                                                   &#10;  ## Bug Fixes                                                                                                                                                                                                                     &#10;  - Fix CASH customer payment validation using tolerance-based float comparison                                                                                                                                                    &#10;  - Fix inconsistent dimensionUnit defaults (standardized to CM)                                                                                                                                                                   &#10;  - Fix dark mode toggle RTL direction                                                                                                                                                                                             &#10;  - Fix PdfGenerationService syntax error                                                                                                                                                                                          &#10;  - Fix Hibernate orphan deletion error in FactoryController                                                                                                                                                                       &#10;  - Add max operations limit (10) per invoice line                                                                                                                                                                                 &#10;                                                                                                                                                                                                                                   &#10;  ## Backend Changes                                                                                                                                                                                                               &#10;  - Add WorkStatus and LineStatus enums                                                                                                                                                                                            &#10;  - Add workStatus field to Invoice model with auto-calculation                                                                                                                                                                    &#10;  - Add /factory/line/{id}/status endpoint for status updates&#10;  - WebSocket notifications for status changes&#10;  - CompanyProfileService returns API URL for logo display&#10;&#10;  ## Frontend Changes&#10;  - FactoryWorkerPage: status buttons, hide completed toggle&#10;  - InvoiceList: workStatus column&#10;  - InvoiceDetailsPage: workStatus badges&#10;  - Sidebar: company logo fetching and display&#10;  - Enhanced translations (AR/EN) for all new features" />
+    <option name="LAST_COMMIT_MESSAGE" value=" invoice work status tracking, factory improvements &amp; bug fixes&#10;&#10;  ## Features&#10;  - Add WorkStatus enum for tracking factory progress (PENDING, IN_PROGRESS, COMPLETED)&#10;  - Add LineStatus for individual invoice line tracking&#10;  - Real-time WebSocket notifications for line and invoice status changes&#10;  - Factory page: status change buttons (Start Work, Complete)&#10;  - Factory page: hide completed jobs toggle filter&#10;  - Display work status in InvoiceList and InvoiceDetailsPage&#10;  - Company logo display in sidebar with fallback                                                                                                                                                                                  &#10;  - Invoice details page with full status display                                                                                                                                                                                  &#10;                                                                                                                                                                                                                                   &#10;  ## Bug Fixes                                                                                                                                                                                                                     &#10;  - Fix CASH customer payment validation using tolerance-based float comparison                                                                                                                                                    &#10;  - Fix inconsistent dimensionUnit defaults (standardized to CM)                                                                                                                                                                   &#10;  - Fix dark mode toggle RTL direction                                                                                                                                                                                             &#10;  - Fix PdfGenerationService syntax error                                                                                                                                                                                          &#10;  - Fix Hibernate orphan deletion error in FactoryController                                                                                                                                                                       &#10;  - Add max operations limit (10) per invoice line                                                                                                                                                                                 &#10;                                                                                                                                                                                                                                   &#10;  ## Backend Changes                                                                                                                                                                                                               &#10;  - Add WorkStatus and LineStatus enums                                                                                                                                                                                            &#10;  - Add workStatus field to Invoice model with auto-calculation                                                                                                                                                                    &#10;  - Add /factory/line/{id}/status endpoint for status updates&#10;  - WebSocket notifications for status changes&#10;  - CompanyProfileService returns API URL for logo display&#10;&#10;  ## Frontend Changes&#10;  - FactoryWorkerPage: status buttons, hide completed toggle&#10;  - InvoiceList: workStatus column&#10;  - InvoiceDetailsPage: workStatus badges&#10;  - Sidebar: company logo fetching and display&#10;  - Enhanced translations (AR/EN) for all new features" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/frontend/src/pages/admin/customers/CustomerDetailsPage.jsx</url>
+          <line>152</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

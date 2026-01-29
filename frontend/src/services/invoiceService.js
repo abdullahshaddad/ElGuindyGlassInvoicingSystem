@@ -58,6 +58,7 @@ export const invoiceService = {
             if (params.startDate) queryParams.append('startDate', params.startDate);
             if (params.endDate) queryParams.append('endDate', params.endDate);
             if (params.customerName) queryParams.append('customerName', params.customerName);
+            if (params.customerId) queryParams.append('customerId', params.customerId);
             if (params.status) queryParams.append('status', params.status);
 
             const response = await get(`/invoices?${queryParams.toString()}`);
@@ -443,7 +444,8 @@ export const invoiceService = {
     },
 
     /**
-     * Download invoice as PDF (if endpoint exists)
+     * Download invoice as PDF (on-demand generation)
+     * PDF is generated on the server and returned as a blob
      * @param {string|number} id - Invoice ID
      * @returns {Promise<Blob>}
      */
@@ -457,6 +459,64 @@ export const invoiceService = {
             console.error('Download invoice PDF error:', error);
             throw error;
         }
+    },
+
+    /**
+     * Get the URL for viewing invoice PDF (on-demand generation)
+     * Opens in a new tab for viewing/printing
+     * @param {string|number} id - Invoice ID
+     * @returns {string} PDF URL
+     */
+    getInvoicePdfUrl(id) {
+        const baseUrl = import.meta.env.VITE_API_URL || '';
+        return `${baseUrl}/api/v1/invoices/${id}/pdf`;
+    },
+
+    /**
+     * Open invoice PDF in a new browser tab
+     * PDF is generated on-demand by the server
+     * @param {string|number} id - Invoice ID
+     */
+    viewInvoicePdf(id) {
+        const url = this.getInvoicePdfUrl(id);
+        window.open(url, '_blank');
+    },
+
+    /**
+     * Download sticker PDF (on-demand generation)
+     * Creates one sticker page per invoice line
+     * @param {string|number} id - Invoice ID
+     * @returns {Promise<Blob>}
+     */
+    async downloadStickerPdf(id) {
+        try {
+            const response = await get(`/invoices/${id}/sticker-pdf`, {
+                responseType: 'blob',
+            });
+            return response;
+        } catch (error) {
+            console.error('Download sticker PDF error:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Get the URL for viewing sticker PDF
+     * @param {string|number} id - Invoice ID
+     * @returns {string} Sticker PDF URL
+     */
+    getStickerPdfUrl(id) {
+        const baseUrl = import.meta.env.VITE_API_URL || '';
+        return `${baseUrl}/api/v1/invoices/${id}/sticker-pdf`;
+    },
+
+    /**
+     * Open sticker PDF in a new browser tab
+     * @param {string|number} id - Invoice ID
+     */
+    viewStickerPdf(id) {
+        const url = this.getStickerPdfUrl(id);
+        window.open(url, '_blank');
     },
 
     /**
@@ -558,6 +618,24 @@ export const invoiceService = {
             hour: '2-digit',
             minute: '2-digit'
         }).format(date);
+    },
+
+    // ===== FACTORY LINE STATUS =====
+
+    /**
+     * Update invoice line status (for factory workers)
+     * @param {number} lineId - Line ID
+     * @param {string} status - New status (PENDING, IN_PROGRESS, COMPLETED, CANCELLED)
+     * @returns {Promise<Object>}
+     */
+    async updateLineStatus(lineId, status) {
+        try {
+            const response = await put(`/factory/line/${lineId}/status`, { status });
+            return response;
+        } catch (error) {
+            console.error('Update line status error:', error);
+            throw error;
+        }
     }
 };
 

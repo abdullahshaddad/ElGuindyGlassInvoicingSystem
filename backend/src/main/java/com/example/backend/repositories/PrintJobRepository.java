@@ -14,7 +14,7 @@ import java.util.List;
 public interface PrintJobRepository extends JpaRepository<PrintJob, Long> {
     List<PrintJob> findByStatus(PrintStatus status);
 
-    List<PrintJob> findByInvoiceId(Long invoiceId);
+    List<PrintJob> findByInvoiceId(String invoiceId);
 
     List<PrintJob> findByType(PrintType type);
 

@@ -137,6 +137,7 @@ const paymentService = {
             CARD: 'بطاقة',
             BANK_TRANSFER: 'تحويل بنكي',
             CHECK: 'شيك',
+            VODAFONE_CASH: 'فودافون كاش',
             OTHER: 'أخرى'
         };
         return methods[method] || method;
@@ -152,6 +153,7 @@ const paymentService = {
             { value: 'CARD', label: 'بطاقة' },
             { value: 'BANK_TRANSFER', label: 'تحويل بنكي' },
             { value: 'CHECK', label: 'شيك' },
+            { value: 'VODAFONE_CASH', label: 'فودافون كاش' },
             { value: 'OTHER', label: 'أخرى' }
         ];
     }

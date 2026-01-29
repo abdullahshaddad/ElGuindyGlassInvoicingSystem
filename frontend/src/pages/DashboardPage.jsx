@@ -1,8 +1,10 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {useTranslation} from 'react-i18next';
 import {Link} from 'react-router-dom';
 import {useAuth, usePermissions} from '@/contexts/AuthContext';
 import dashboardService from '@/services/dashboardService';
+import { useWebSocket, WEBSOCKET_TOPICS } from '@/hooks/useWebSocket';
+import { useSnackbar } from '@/contexts/SnackbarContext';
 import {
     FiActivity,
     FiAlertCircle,
@@ -16,7 +18,9 @@ import {
     FiTool,
     FiTrendingDown,
     FiTrendingUp,
-    FiUsers
+    FiUsers,
+    FiWifi,
+    FiWifiOff
 } from 'react-icons/fi';
 
 // Stats Card Component
@@ -139,12 +143,57 @@ const DashboardPage = () => {
     const {t, i18n} = useTranslation();
     const {user} = useAuth();
     const {isOwner, isCashier, isWorker} = usePermissions();
+    const { showSuccess, showInfo } = useSnackbar();
 
     // State management
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState(null);
     const [recentInvoices, setRecentInvoices] = useState([]);
     const [error, setError] = useState(null);
+
+    // WebSocket message handler
+    const handleWebSocketMessage = useCallback((topic, data) => {
+        console.log('Dashboard WebSocket message:', topic, data);
+
+        switch (topic) {
+            case WEBSOCKET_TOPICS.DASHBOARD_INVOICE_CREATED:
+                // New invoice created - refresh data
+                showInfo(i18n.language === 'ar'
+                    ? `فاتورة جديدة #${data.invoiceId} - ${data.customerName}`
+                    : `New invoice #${data.invoiceId} - ${data.customerName}`
+                );
+                fetchDashboardData();
+                break;
+
+            case WEBSOCKET_TOPICS.DASHBOARD_PRINT_UPDATE:
+                // Print job status changed
+                console.log('Print job update:', data);
+                break;
+
+            case WEBSOCKET_TOPICS.DASHBOARD_INVOICE_STATUS:
+                // Invoice status changed - refresh data
+                showInfo(i18n.language === 'ar'
+                    ? `تم تحديث حالة الفاتورة #${data.invoiceId}`
+                    : `Invoice #${data.invoiceId} status updated`
+                );
+                fetchDashboardData();
+                break;
+
+            default:
+                break;
+        }
+    }, [i18n.language]);
+
+    // WebSocket connection for real-time updates
+    const { connected: wsConnected } = useWebSocket({
+        topics: [
+            WEBSOCKET_TOPICS.DASHBOARD_INVOICE_CREATED,
+            WEBSOCKET_TOPICS.DASHBOARD_PRINT_UPDATE,
+            WEBSOCKET_TOPICS.DASHBOARD_INVOICE_STATUS
+        ],
+        onMessage: handleWebSocketMessage,
+        enabled: true
+    });
 
     // Fetch dashboard data
     useEffect(() => {
@@ -315,7 +364,21 @@ const DashboardPage = () => {
                         {isWorker && (i18n.language === 'ar' ? 'مهامك في المصنع' : 'Your factory tasks')}
                     </p>
                 </div>
-                <div className="hidden md:flex items-center gap-2">
+                <div className="hidden md:flex items-center gap-4">
+                    {/* WebSocket Connection Status */}
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${
+                        wsConnected
+                            ? 'bg-white/20 text-white'
+                            : 'bg-red-500/30 text-red-100'
+                    }`}>
+                        {wsConnected ? <FiWifi size={14} /> : <FiWifiOff size={14} />}
+                        <span className="text-xs font-medium">
+                            {wsConnected
+                                ? (i18n.language === 'ar' ? 'مباشر' : 'Live')
+                                : (i18n.language === 'ar' ? 'غير متصل' : 'Offline')
+                            }
+                        </span>
+                    </div>
                     <div className="text-right">
                         <p className="text-sm text-blue-100">
                             {new Date().toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', {

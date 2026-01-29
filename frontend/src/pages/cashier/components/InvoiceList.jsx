@@ -1,6 +1,8 @@
 import React from 'react';
-import { FiSearch, FiClock, FiEye, FiPrinter, FiCreditCard, FiPackage } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
+import { FiSearch, FiClock, FiEye, FiPrinter, FiCreditCard, FiPackage, FiTrash2 } from 'react-icons/fi';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { usePermissions } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import {
     Button,
@@ -27,13 +29,18 @@ const InvoiceList = ({
     onSendToFactory,
     onMarkAsPaid,
     filters,
-    onFilterChange
+    onFilterChange,
+    showControls = true,
+    onDeleteInvoice
 }) => {
+    const { t } = useTranslation();
+    const { canDeleteInvoices } = usePermissions();
+
     // Table columns for invoice list
     const columns = [
         {
             key: 'id',
-            header: 'رقم الفاتورة',
+            header: t('invoices.invoiceNumber'),
             sortable: true,
             render: (value, invoice) => (
                 <div className="flex items-center gap-2">
@@ -43,7 +50,7 @@ const InvoiceList = ({
         },
         {
             key: 'customer',
-            header: 'العميل',
+            header: t('invoices.customer'),
             sortable: true,
             render: (value, invoice) => (
                 <div>
@@ -54,10 +61,10 @@ const InvoiceList = ({
                                 className="font-medium text-primary-600 hover:underline dark:text-primary-400"
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                {invoice.customer?.name || 'غير محدد'}
+                                {invoice.customer?.name || t('common.unspecified')}
                             </Link>
                         ) : (
-                            <span className="font-medium">{invoice.customer?.name || 'غير محدد'}</span>
+                            <span className="font-medium">{invoice.customer?.name || t('common.unspecified')}</span>
                         )}
                         <Badge
                             variant={
@@ -66,8 +73,8 @@ const InvoiceList = ({
                             }
                             className="text-xs"
                         >
-                            {invoice.customer?.customerType === 'CASH' ? 'نقدي' :
-                                invoice.customer?.customerType === 'COMPANY' ? 'شركة' : 'عميل'}
+                            {invoice.customer?.customerType === 'CASH' ? t('customers.types.CASH') :
+                                invoice.customer?.customerType === 'COMPANY' ? t('customers.types.COMPANY') : t('customers.customer')}
                         </Badge>
                     </div>
                     {invoice.customer?.phone && (
@@ -80,26 +87,26 @@ const InvoiceList = ({
         },
         {
             key: 'totalPrice',
-            header: 'الإجمالي',
+            header: t('invoices.total'),
             sortable: true,
             render: (value, invoice) => (
                 <span className="font-bold font-mono text-green-600 dark:text-green-400">
-                    {parseFloat(value || 0).toFixed(2)} جنيه
+                    {parseFloat(value || 0).toFixed(2)} {t('payment.currency')}
                 </span>
             )
         },
         {
             key: 'amountPaidNow',
-            header: 'المدفوع',
+            header: t('invoices.amountPaid'),
             sortable: true,
             render: (value, invoice) => (
                 <div className="text-left">
                     <span className="font-mono text-green-600 dark:text-green-400">
-                        {parseFloat(value || 0).toFixed(2)} جنيه
+                        {parseFloat(value || 0).toFixed(2)} {t('payment.currency')}
                     </span>
                     {invoice.remainingBalance > 0 && (
                         <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                            متبقي: {invoice.remainingBalance?.toFixed(2)}
+                            {t('invoices.remaining')}: {invoice.remainingBalance?.toFixed(2)}
                         </div>
                     )}
                 </div>
@@ -107,7 +114,7 @@ const InvoiceList = ({
         },
         {
             key: 'issueDate',
-            header: 'التاريخ',
+            header: t('invoices.date'),
             sortable: true,
             render: (value, invoice) => (
                 <div className="text-sm">
@@ -125,7 +132,7 @@ const InvoiceList = ({
         },
         {
             key: 'status',
-            header: 'الحالة',
+            header: t('invoices.status'),
             sortable: true,
             render: (value, invoice) => (
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${value === 'PAID'
@@ -134,14 +141,33 @@ const InvoiceList = ({
                         ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
                         : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
                     }`}>
-                    {value === 'PAID' ? 'مدفوعة' :
-                        value === 'CANCELLED' ? 'ملغاة' : 'قيد الانتظار'}
+                    {value === 'PAID' ? t('invoices.paid') :
+                        value === 'CANCELLED' ? t('invoices.cancelled') : t('invoices.pending')}
                 </span>
             )
         },
         {
+            key: 'workStatus',
+            header: t('invoices.workStatus'),
+            sortable: true,
+            render: (value, invoice) => {
+                const workStatus = value || 'PENDING';
+                const styles = {
+                    'COMPLETED': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+                    'IN_PROGRESS': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
+                    'PENDING': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+                    'CANCELLED': 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                };
+                return (
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${styles[workStatus] || styles['PENDING']}`}>
+                        {t(`factory.workStatus.${workStatus}`)}
+                    </span>
+                );
+            }
+        },
+        {
             key: 'actions',
-            header: 'الإجراءات',
+            header: t('invoices.actions'),
             sortable: false,
             render: (value, invoice) => (
                 <div className="flex items-center gap-1 justify-end">
@@ -155,7 +181,7 @@ const InvoiceList = ({
                         }}
                         disabled={isPrinting}
                         className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="طباعة"
+                        title={t('actions.print')}
                     >
                         {isPrinting ? (
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 dark:border-purple-400"></div>
@@ -174,7 +200,7 @@ const InvoiceList = ({
                         }}
                         disabled={isSendingToFactory}
                         className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="إرسال للمصنع"
+                        title={t('invoices.sendToFactory')}
                     >
                         {isSendingToFactory ? (
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600 dark:border-orange-400"></div>
@@ -182,6 +208,22 @@ const InvoiceList = ({
                             <FiPackage size={16} />
                         )}
                     </Button>
+
+                    {/* Delete Button */}
+                    {canDeleteInvoices() && onDeleteInvoice && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteInvoice(invoice);
+                            }}
+                            className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            title={t('actions.delete')}
+                        >
+                            <FiTrash2 size={16} />
+                        </Button>
+                    )}
                 </div>
             )
         }
@@ -190,51 +232,53 @@ const InvoiceList = ({
     return (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             {/* List Controls */}
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                    <div className="flex-1 w-full">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <Input
-                                placeholder="رقم الفاتورة..."
-                                value={filters?.invoiceId || ''}
-                                onChange={(e) => onFilterChange && onFilterChange('invoiceId', e.target.value)}
-                                className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-                            />
-                            <Input
-                                placeholder="اسم العميل..."
-                                value={filters?.customerName || ''}
-                                onChange={(e) => onFilterChange && onFilterChange('customerName', e.target.value)}
-                                icon={<FiSearch />}
-                                className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-                            />
-                            <Input
-                                type="date"
-                                value={filters?.startDate || ''}
-                                onChange={(e) => onFilterChange && onFilterChange('startDate', e.target.value)}
-                                className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-                            />
-                            <Select
-                                value={filters?.status || ''}
-                                onChange={(e) => onFilterChange && onFilterChange('status', e.target.value)}
-                                className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-                                options={[
-                                    { value: '', label: 'جميع الحالات' },
-                                    { value: 'PAID', label: 'مدفوعة' },
-                                    { value: 'PENDING', label: 'قيد الانتظار' },
-                                    { value: 'CANCELLED', label: 'ملغاة' }
-                                ]}
-                            />
+            {showControls && (
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                        <div className="flex-1 w-full">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <Input
+                                    placeholder={t('invoices.invoiceNumber') + '...'}
+                                    value={filters?.invoiceId || ''}
+                                    onChange={(e) => onFilterChange && onFilterChange('invoiceId', e.target.value)}
+                                    className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                                />
+                                <Input
+                                    placeholder={t('invoices.customerName') + '...'}
+                                    value={filters?.customerName || ''}
+                                    onChange={(e) => onFilterChange && onFilterChange('customerName', e.target.value)}
+                                    icon={<FiSearch />}
+                                    className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                                />
+                                <Input
+                                    type="date"
+                                    value={filters?.startDate || ''}
+                                    onChange={(e) => onFilterChange && onFilterChange('startDate', e.target.value)}
+                                    className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                                />
+                                <Select
+                                    value={filters?.status || ''}
+                                    onChange={(e) => onFilterChange && onFilterChange('status', e.target.value)}
+                                    className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                                    options={[
+                                        { value: '', label: t('invoices.allStatuses') },
+                                        { value: 'PAID', label: t('invoices.paid') },
+                                        { value: 'PENDING', label: t('invoices.pending') },
+                                        { value: 'CANCELLED', label: t('invoices.cancelled') }
+                                    ]}
+                                />
+                            </div>
+                        </div>
+                        <div className="hidden sm:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                            <FiClock />
+                            <span>{new Date().toLocaleTimeString('ar-EG', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}</span>
                         </div>
                     </div>
-                    <div className="hidden sm:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                        <FiClock />
-                        <span>{new Date().toLocaleTimeString('ar-EG', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })}</span>
-                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Table */}
             <div className="overflow-hidden">
@@ -246,7 +290,7 @@ const InvoiceList = ({
                     <DataTable
                         data={invoices}
                         columns={columns}
-                        emptyMessage="لا توجد فواتير"
+                        emptyMessage={t('messages.noInvoices')}
                         currentPage={currentPage}
                         totalPages={totalPages}
                         onPageChange={onPageChange}

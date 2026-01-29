@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class PrintJobStatusDTO {
     
-    private Long invoiceId;
+    private String invoiceId;
     private int totalJobs;
     private int successfulJobs;
     private int failedJobs;
@@ -58,7 +58,7 @@ public class PrintJobStatusDTO {
         }
     }
     
-    public static PrintJobStatusDTO fromPrintJobs(Long invoiceId, List<PrintJob> printJobs) {
+    public static PrintJobStatusDTO fromPrintJobs(String invoiceId, List<PrintJob> printJobs) {
         int expectedJobs = 3;
         
         long successful = printJobs.stream()

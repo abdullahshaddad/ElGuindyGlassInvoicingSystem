@@ -3,7 +3,7 @@
 /**
  * Dimension unit conversion utilities
  * Backend always expects dimensions in METERS
- * Frontend displays in MILLIMETERS by default
+ * Frontend displays in CENTIMETERS by default
  */
 
 export const DIMENSION_UNITS = {
@@ -18,7 +18,7 @@ export const DIMENSION_UNITS = {
  * @param {string} fromUnit - Source unit ('mm', 'cm', 'm')
  * @returns {number} Value in meters
  */
-export const convertToMeters = (value, fromUnit = DIMENSION_UNITS.MM) => {
+export const convertToMeters = (value, fromUnit = DIMENSION_UNITS.CM) => {
     if (!value || isNaN(value)) return 0;
 
     const numValue = parseFloat(value);
@@ -31,8 +31,8 @@ export const convertToMeters = (value, fromUnit = DIMENSION_UNITS.MM) => {
         case DIMENSION_UNITS.M:
             return numValue; // already in meters
         default:
-            console.warn(`Unknown unit: ${fromUnit}, assuming mm`);
-            return numValue / 1000;
+            console.warn(`Unknown unit: ${fromUnit}, assuming cm`);
+            return numValue / 100;
     }
 };
 
@@ -42,7 +42,7 @@ export const convertToMeters = (value, fromUnit = DIMENSION_UNITS.MM) => {
  * @param {string} toUnit - Target unit ('mm', 'cm', 'm')
  * @returns {number} Value in target unit
  */
-export const convertFromMeters = (value, toUnit = DIMENSION_UNITS.MM) => {
+export const convertFromMeters = (value, toUnit = DIMENSION_UNITS.CM) => {
     if (!value || isNaN(value)) return 0;
 
     const numValue = parseFloat(value);
@@ -55,8 +55,8 @@ export const convertFromMeters = (value, toUnit = DIMENSION_UNITS.MM) => {
         case DIMENSION_UNITS.M:
             return numValue; // already in meters
         default:
-            console.warn(`Unknown unit: ${toUnit}, assuming mm`);
-            return numValue * 1000;
+            console.warn(`Unknown unit: ${toUnit}, assuming cm`);
+            return numValue * 100;
     }
 };
 
@@ -65,11 +65,11 @@ export const convertFromMeters = (value, toUnit = DIMENSION_UNITS.MM) => {
  * @param {Object} dimensions - Dimensions object
  * @param {number} dimensions.width - Width value
  * @param {number} dimensions.height - Height value
- * @param {string} [dimensions.unit='mm'] - Current unit of dimensions
+ * @param {string} [dimensions.unit='cm'] - Current unit of dimensions
  * @returns {Object} Dimensions in meters
  */
 export const prepareDimensionsForBackend = (dimensions) => {
-    const { width, height, unit = DIMENSION_UNITS.MM } = dimensions;
+    const { width, height, unit = DIMENSION_UNITS.CM } = dimensions;
 
     return {
         width: convertToMeters(width, unit),
@@ -81,17 +81,17 @@ export const prepareDimensionsForBackend = (dimensions) => {
  * Format dimensions for display
  * @param {number} width - Width
  * @param {number} height - Height
- * @param {string} [unit='mm'] - Unit to display
+ * @param {string} [unit='cm'] - Unit to display
  * @returns {string} Formatted dimension string
  */
-export const formatDimensions = (width, height, unit = DIMENSION_UNITS.MM) => {
+export const formatDimensions = (width, height, unit = DIMENSION_UNITS.CM) => {
     if (!width || !height) return '-';
 
     const unitLabel = {
         [DIMENSION_UNITS.MM]: 'مم',
         [DIMENSION_UNITS.CM]: 'سم',
         [DIMENSION_UNITS.M]: 'م'
-    }[unit] || 'مم';
+    }[unit] || 'سم';
 
     return `${parseFloat(width).toFixed(2)} × ${parseFloat(height).toFixed(2)} ${unitLabel}`;
 };
@@ -103,7 +103,7 @@ export const formatDimensions = (width, height, unit = DIMENSION_UNITS.MM) => {
  * @param {string} unit - Current unit
  * @returns {Object} Validation result
  */
-export const validateDimensions = (width, height, unit = DIMENSION_UNITS.MM) => {
+export const validateDimensions = (width, height, unit = DIMENSION_UNITS.CM) => {
     const errors = [];
 
     if (!width || isNaN(width) || parseFloat(width) <= 0) {

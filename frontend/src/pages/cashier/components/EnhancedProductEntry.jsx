@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FiPlus, FiTrash2, FiInfo, FiAlertCircle, FiLayers } from 'react-icons/fi';
 import Input from '@components/ui/Input.jsx';
 import Select from '@components/ui/Select.jsx';
@@ -29,6 +30,9 @@ const LASER_TYPES = {
     POLISH: { key: 'POLISH', arabicName: 'تلميع ليزر' }
 };
 
+// Maximum number of operations allowed per line item
+const MAX_OPERATIONS_PER_LINE = 10;
+
 const EnhancedProductEntry = ({
     glassTypes = [],
     currentLine = {},
@@ -37,6 +41,7 @@ const EnhancedProductEntry = ({
     disabled = false,
     glassTypeRef
 }) => {
+    const { t } = useTranslation();
     // Ensure operations array exists
     const operations = currentLine.operations || [];
 
@@ -64,66 +69,66 @@ const EnhancedProductEntry = ({
 
         // Basic validations
         if (!currentLine.glassTypeId) {
-            errors.push('نوع الزجاج مطلوب');
+            errors.push(t('product.validation.glassTypeRequired'));
         }
 
         const width = Number(currentLine.width || 0);
         const height = Number(currentLine.height || 0);
 
         if (!width || width <= 0) {
-            errors.push('العرض مطلوب ويجب أن يكون أكبر من صفر');
+            errors.push(t('product.validation.widthRequired'));
         }
         if (!height || height <= 0) {
-            errors.push('الارتفاع مطلوب ويجب أن يكون أكبر من صفر');
+            errors.push(t('product.validation.heightRequired'));
         }
 
         // Must have at least one operation
         if (operations.length === 0) {
-            errors.push('يجب إضافة عملية واحدة على الأقل (شطف أو ليزر)');
+            errors.push(t('product.validation.operationRequired'));
         }
 
         // Validate each operation
         operations.forEach((op, idx) => {
-            const prefix = `العملية ${idx + 1}: `;
+            const prefix = `${t('product.validation.operationPrefix')} ${idx + 1}: `;
 
             if (op.type === 'SHATAF') {
                 if (!op.shatafType) {
-                    errors.push(prefix + 'نوع الشطف مطلوب');
+                    errors.push(prefix + t('product.validation.shatafTypeRequired'));
                 } else {
                     const st = SHATAF_TYPES[op.shatafType];
 
                     // Validate Farma / Calculation Method
                     if (st?.requiresFarma) {
                         if (!op.farmaType) {
-                            errors.push(prefix + 'طريقة الحساب (الفارمة) مطلوبة');
+                            errors.push(prefix + t('product.validation.farmaRequired'));
                         } else {
                             const ft = FARMA_TYPES[op.farmaType];
                             if (ft?.requiresDiameter && (!op.diameter || Number(op.diameter) <= 0)) {
-                                errors.push(prefix + 'القطر مطلوب لطريقة الحساب المحددة');
+                                errors.push(prefix + t('product.validation.diameterRequired'));
                             }
                             if (ft?.isManual && (op.manualCuttingPrice === null || op.manualCuttingPrice === undefined || op.manualCuttingPrice === '')) {
-                                errors.push(prefix + 'السعر اليدوي مطلوب لطريقة الحساب اليدوية');
+                                errors.push(prefix + t('product.validation.manualPriceRequired'));
                             }
                         }
                     }
 
                     if (st?.requiresManualPrice && (op.manualCuttingPrice === null || op.manualCuttingPrice === undefined || op.manualCuttingPrice === '')) {
                         // This is likely deprecated for new types but kept for safety
-                        errors.push(prefix + 'سعر القطع اليدوي مطلوب');
+                        errors.push(prefix + t('product.validation.cuttingPriceRequired'));
                     }
                 }
             } else if (op.type === 'LASER') {
                 if (!op.laserType) {
-                    errors.push(prefix + 'نوع الليزر مطلوب');
+                    errors.push(prefix + t('product.validation.laserTypeRequired'));
                 }
                 if (op.manualPrice === null || op.manualPrice === undefined || op.manualPrice === '') {
-                    errors.push(prefix + 'سعر الليزر مطلوب');
+                    errors.push(prefix + t('product.validation.laserPriceRequired'));
                 }
             }
         });
 
         setValidation({ isValid: errors.length === 0, errors });
-    }, [currentLine, operations]);
+    }, [currentLine, operations, t]);
 
     // Update operations array
     const updateOperations = (newOps) => {
@@ -131,8 +136,13 @@ const EnhancedProductEntry = ({
         setTouched(true);
     };
 
-    // Add a new operation
+    // Add a new operation (with max limit)
     const addOperation = (type) => {
+        // Check max operations limit
+        if (operations.length >= MAX_OPERATIONS_PER_LINE) {
+            return; // Silently ignore, button will be disabled
+        }
+
         const base = {
             id: makeId(),
             type
@@ -199,7 +209,7 @@ const EnhancedProductEntry = ({
 
     // ========== Render Card Components ==========
 
-    const ShatafCard = ({ op }) => {
+    const ShatafCard = ({ op, t }) => {
         const st = op.shatafType ? SHATAF_TYPES[op.shatafType] : null;
 
         // Define if we should show calculation method (Farma) selector
@@ -216,7 +226,7 @@ const EnhancedProductEntry = ({
             <div className="bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-lg p-4 space-y-3 shadow-sm">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                        <Badge variant="info" className="text-xs">شطف</Badge>
+                        <Badge variant="info" className="text-xs">{t('product.addShataf')}</Badge>
                         {st && (
                             <span className="text-sm text-gray-600 dark:text-gray-400">
                                 {st.arabicName}
@@ -228,7 +238,7 @@ const EnhancedProductEntry = ({
                         onClick={() => removeOperation(op.id)}
                         disabled={disabled}
                         className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
-                        title="حذف العملية"
+                        title={t('product.removeOperation')}
                     >
                         <FiTrash2 size={16} />
                     </button>
@@ -237,10 +247,6 @@ const EnhancedProductEntry = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {/* Shataf Type Selector */}
                     <div>
-                        {/*<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">*/}
-                        {/*    نوع الشطف*/}
-                        {/*    <span className="text-red-500 mr-1">*</span>*/}
-                        {/*</label>*/}
                         <ShatafTypeSelector
                             value={op.shatafType || ''}
                             onChange={(v) => handleShatafTypeChange(op.id, v)}
@@ -253,7 +259,7 @@ const EnhancedProductEntry = ({
                     {showCalculationMethod && (
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                طريقة الحساب
+                                {t('product.calculationMethod')}
                                 <span className="text-red-500 mr-1">*</span>
                             </label>
                             <FarmaTypeSelector
@@ -272,7 +278,7 @@ const EnhancedProductEntry = ({
                     {requiresDiameter && (
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                القطر (مم)
+                                {t('product.diameter')}
                                 <span className="text-red-500 mr-1">*</span>
                             </label>
                             <Input
@@ -291,7 +297,7 @@ const EnhancedProductEntry = ({
                     {(st?.requiresManualPrice || isManualMethod) && (
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                {isManualMethod ? 'سعر الحساب اليدوي' : 'سعر القطع اليدوي'}
+                                {isManualMethod ? t('product.manualCalcPrice') : t('product.manualCuttingPrice')}
                                 <span className="text-red-500 mr-1">*</span>
                             </label>
                             <Input
@@ -310,17 +316,17 @@ const EnhancedProductEntry = ({
         );
     };
 
-    const LaserCard = ({ op }) => {
+    const LaserCard = ({ op, t }) => {
         const lt = op.laserType ? LASER_TYPES[op.laserType] : null;
 
         return (
             <div className="bg-white dark:bg-gray-800 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-3 shadow-sm">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                        <Badge variant="warning" className="text-xs">ليزر</Badge>
+                        <Badge variant="warning" className="text-xs">{t('product.addLaser')}</Badge>
                         {lt && (
                             <span className="text-sm text-gray-600 dark:text-gray-400">
-                                {lt.arabicName}
+                                {t(`product.laser.${lt.key}`)}
                             </span>
                         )}
                     </div>
@@ -329,7 +335,7 @@ const EnhancedProductEntry = ({
                         onClick={() => removeOperation(op.id)}
                         disabled={disabled}
                         className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
-                        title="حذف العملية"
+                        title={t('product.removeOperation')}
                     >
                         <FiTrash2 size={16} />
                     </button>
@@ -339,7 +345,7 @@ const EnhancedProductEntry = ({
                     {/* Laser Type */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            نوع الليزر
+                            {t('product.laserType')}
                             <span className="text-red-500 mr-1">*</span>
                         </label>
                         <Select
@@ -347,9 +353,9 @@ const EnhancedProductEntry = ({
                             onChange={(e) => patchOperation(op.id, { laserType: e.target.value })}
                             disabled={disabled}
                         >
-                            <option value="">-- اختر نوع الليزر --</option>
+                            <option value="">{t('product.selectLaserType')}</option>
                             {Object.values(LASER_TYPES).map((l) => (
-                                <option key={l.key} value={l.key}>{l.arabicName}</option>
+                                <option key={l.key} value={l.key}>{t(`product.laser.${l.key}`)}</option>
                             ))}
                         </Select>
                     </div>
@@ -357,7 +363,7 @@ const EnhancedProductEntry = ({
                     {/* Manual Price */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            سعر الليزر
+                            {t('product.laserPrice')}
                             <span className="text-red-500 mr-1">*</span>
                         </label>
                         <Input
@@ -374,12 +380,12 @@ const EnhancedProductEntry = ({
                     {/* Notes */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            ملاحظات
+                            {t('product.notes')}
                         </label>
                         <Input
                             value={op.notes || ''}
                             onChange={(e) => patchOperation(op.id, { notes: e.target.value })}
-                            placeholder="ملاحظات (اختياري)"
+                            placeholder={t('product.notesOptional')}
                             disabled={disabled}
                         />
                     </div>
@@ -395,7 +401,7 @@ const EnhancedProductEntry = ({
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <FiLayers className="text-blue-600" />
-                    اضافة صنف جديد
+                    {t('product.addNewItem')}
                 </h3>
                 <Button
                     variant="ghost"
@@ -403,15 +409,15 @@ const EnhancedProductEntry = ({
                     onClick={() => setShowAdvanced(!showAdvanced)}
                     className="text-xs"
                 >
-                    {showAdvanced ? 'اخفاء التفاصيل' : 'عرض التفاصيل'}
+                    {showAdvanced ? t('product.hideDetails') : t('product.showDetails')}
                 </Button>
             </div>
 
-            {/* Glass Type and Dimensions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Glass Type, Dimensions, and Quantity */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        نوع الزجاج
+                        {t('product.glassType')}
                         <span className="text-red-500 mr-1">*</span>
                     </label>
                     <Select
@@ -421,7 +427,7 @@ const EnhancedProductEntry = ({
                         disabled={disabled || glassTypes.length === 0}
                     >
                         <option value="">
-                            {glassTypes.length === 0 ? 'جاري التحميل...' : '-- اختر نوع الزجاج --'}
+                            {glassTypes.length === 0 ? t('app.loading') : t('product.selectGlassType')}
                         </option>
                         {glassOptions}
                     </Select>
@@ -429,7 +435,7 @@ const EnhancedProductEntry = ({
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        العرض (مم)
+                        {t('product.width')}
                         <span className="text-red-500 mr-1">*</span>
                     </label>
                     <Input
@@ -437,15 +443,15 @@ const EnhancedProductEntry = ({
                         value={currentLine.width || ''}
                         onChange={(e) => onLineChange({ ...currentLine, width: e.target.value })}
                         placeholder="0"
-                        step="1"
-                        min="1"
+                        step="0.1"
+                        min="0.1"
                         disabled={disabled}
                     />
                 </div>
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        الارتفاع (مم)
+                        {t('product.height')}
                         <span className="text-red-500 mr-1">*</span>
                     </label>
                     <Input
@@ -453,6 +459,21 @@ const EnhancedProductEntry = ({
                         value={currentLine.height || ''}
                         onChange={(e) => onLineChange({ ...currentLine, height: e.target.value })}
                         placeholder="0"
+                        step="0.1"
+                        min="0.1"
+                        disabled={disabled}
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {t('product.quantity')}
+                    </label>
+                    <Input
+                        type="number"
+                        value={currentLine.quantity || 1}
+                        onChange={(e) => onLineChange({ ...currentLine, quantity: parseInt(e.target.value) || 1 })}
+                        placeholder="1"
                         step="1"
                         min="1"
                         disabled={disabled}
@@ -464,7 +485,7 @@ const EnhancedProductEntry = ({
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
                     <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        العمليات
+                        {t('product.operations')}
                         <span className="text-red-500 mr-1">*</span>
                     </div>
                     <div className="flex gap-2">
@@ -472,21 +493,23 @@ const EnhancedProductEntry = ({
                             variant="outline"
                             size="sm"
                             onClick={() => addOperation('SHATAF')}
-                            disabled={disabled}
+                            disabled={disabled || operations.length >= MAX_OPERATIONS_PER_LINE}
                             className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                            title={operations.length >= MAX_OPERATIONS_PER_LINE ? t('product.maxOperationsReached') : ''}
                         >
                             <FiPlus className="ml-1" size={14} />
-                            شطف
+                            {t('product.addShataf')}
                         </Button>
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={() => addOperation('LASER')}
-                            disabled={disabled}
+                            disabled={disabled || operations.length >= MAX_OPERATIONS_PER_LINE}
                             className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                            title={operations.length >= MAX_OPERATIONS_PER_LINE ? t('product.maxOperationsReached') : ''}
                         >
                             <FiPlus className="ml-1" size={14} />
-                            ليزر
+                            {t('product.addLaser')}
                         </Button>
                     </div>
                 </div>
@@ -496,18 +519,18 @@ const EnhancedProductEntry = ({
                     <div className="bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
                         <FiInfo className="mx-auto text-gray-400 mb-2" size={24} />
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                            لم تقم باضافة اي عملية بعد
+                            {t('product.noOperationsYet')}
                         </p>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                            اضغط على احد الازرار اعلاه لاضافة شطف او ليزر
+                            {t('product.clickToAddOperation')}
                         </p>
                     </div>
                 ) : (
                     <div className="space-y-3">
                         {operations.map((op) => (
                             <div key={op.id}>
-                                {op.type === 'SHATAF' && <ShatafCard op={op} />}
-                                {op.type === 'LASER' && <LaserCard op={op} />}
+                                {op.type === 'SHATAF' && <ShatafCard op={op} t={t} />}
+                                {op.type === 'LASER' && <LaserCard op={op} t={t} />}
                             </div>
                         ))}
                     </div>
@@ -521,7 +544,7 @@ const EnhancedProductEntry = ({
                         <FiAlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
                             <p className="text-sm font-medium text-red-800 dark:text-red-200 mb-1">
-                                يرجى تصحيح الاخطاء التالية:
+                                {t('product.validation.fixErrors')}
                             </p>
                             <ul className="text-xs text-red-700 dark:text-red-300 space-y-1 list-disc list-inside">
                                 {validation.errors.map((err, i) => (
@@ -542,7 +565,7 @@ const EnhancedProductEntry = ({
                     className="w-full bg-blue-600 hover:bg-blue-700"
                     icon={<FiPlus />}
                 >
-                    اضافة الى السلة
+                    {t('product.addToCart')}
                     <kbd className="mr-2 px-2 py-1 bg-white/20 rounded text-xs font-mono">Ctrl+Enter</kbd>
                 </Button>
             </div>

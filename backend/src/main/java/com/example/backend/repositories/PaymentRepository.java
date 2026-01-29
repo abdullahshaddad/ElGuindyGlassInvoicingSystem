@@ -25,7 +25,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
      * Find all payments for a specific invoice
      */
     @Query("SELECT p FROM Payment p WHERE p.invoice.id = :invoiceId ORDER BY p.paymentDate DESC")
-    List<Payment> findByInvoiceId(@Param("invoiceId") Long invoiceId);
+    List<Payment> findByInvoiceId(@Param("invoiceId") String invoiceId);
     
     /**
      * Get total payments made by customer
@@ -37,7 +37,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
      * Get total payments for an invoice
      */
     @Query("SELECT COALESCE(SUM(p.amount), 0.0) FROM Payment p WHERE p.invoice.id = :invoiceId")
-    Double getTotalPaymentsForInvoice(@Param("invoiceId") Long invoiceId);
+    Double getTotalPaymentsForInvoice(@Param("invoiceId") String invoiceId);
     
     /**
      * Find payments within date range
@@ -64,4 +64,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
      */
     @Query("SELECT p FROM Payment p WHERE p.paymentDate >= :since ORDER BY p.paymentDate DESC")
     List<Payment> findRecentPayments(@Param("since") LocalDateTime since);
+
+    @Query("SELECT MAX(p.id) FROM Payment p")
+    Long findMaxNumericId();
 }

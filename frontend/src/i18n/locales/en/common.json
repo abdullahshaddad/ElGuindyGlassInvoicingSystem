@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Arabic System",
+    "name": "ElGuindy Glass",
     "welcome": "Welcome",
     "loading": "Loading...",
     "error": "An error occurred",
@@ -8,12 +8,38 @@
     "retry": "Retry"
   },
   "navigation": {
+    "main": "Main",
     "home": "Home",
     "dashboard": "Dashboard",
     "profile": "Profile",
     "settings": "Settings",
     "logout": "Logout",
-    "menu": "Menu"
+    "menu": "Menu",
+    "sales": "Sales",
+    "invoices": "Invoices",
+    "customers": "Customers",
+    "cashier": "Cashier",
+    "cashierInvoice": "Cashier Invoice",
+    "factory": "Factory",
+    "factoryTasks": "Factory Tasks",
+    "admin": "Administration",
+    "companyProfile": "Company Profile",
+    "glassTypes": "Glass Types",
+    "cuttingPrices": "Cutting Prices",
+    "operationPrices": "Operation Prices"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "username": "Username",
+    "password": "Password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "loginButton": "Login",
+    "loggingIn": "Logging in...",
+    "loginError": "Login failed",
+    "invalidCredentials": "Invalid username or password",
+    "sessionExpired": "Session expired, please login again"
   },
   "actions": {
     "save": "Save",
@@ -31,7 +57,15 @@
     "back": "Back",
     "next": "Next",
     "previous": "Previous",
-    "close": "Close"
+    "close": "Close",
+    "add": "Add",
+    "remove": "Remove",
+    "refresh": "Refresh",
+    "print": "Print",
+    "export": "Export",
+    "import": "Import",
+    "download": "Download",
+    "upload": "Upload"
   },
   "forms": {
     "required": "Required",
@@ -39,7 +73,10 @@
     "placeholder": "Enter {{field}}",
     "select": "Select {{field}}",
     "upload": "Upload file",
-    "drop_files": "Drop files here or click to select"
+    "drop_files": "Drop files here or click to select",
+    "selectOption": "-- Select --",
+    "loading": "Loading...",
+    "noOptions": "No options available"
   },
   "status": {
     "active": "Active",
@@ -48,7 +85,11 @@
     "approved": "Approved",
     "rejected": "Rejected",
     "completed": "Completed",
-    "in_progress": "In Progress"
+    "in_progress": "In Progress",
+    "cancelled": "Cancelled",
+    "paid": "Paid",
+    "unpaid": "Unpaid",
+    "partial": "Partial"
   },
   "time": {
     "now": "Now",
@@ -58,15 +99,19 @@
     "this_week": "This Week",
     "last_week": "Last Week",
     "this_month": "This Month",
-    "last_month": "Last Month"
+    "last_month": "Last Month",
+    "date": "Date",
+    "time": "Time"
   },
   "theme": {
-    "light": "Light",
-    "dark": "Dark",
+    "title": "Theme",
+    "light": "Light Mode",
+    "dark": "Dark Mode",
     "system": "System",
     "toggle": "Toggle Theme"
   },
   "language": {
+    "title": "Language",
     "ar": "العربية",
     "en": "English",
     "toggle": "Toggle Language"
@@ -80,7 +125,7 @@
     "search_placeholder": "Search users...",
     "no_users_found": "No users found",
     "get_started": "Get started by creating a new user",
-
+    "user": "User",
     "fields": {
       "username": "Username",
       "first_name": "First Name",
@@ -89,7 +134,6 @@
       "role": "Role",
       "status": "Status"
     },
-
     "roles": {
       "OWNER": "Owner",
       "ADMIN": "Admin",
@@ -102,13 +146,11 @@
         "WORKER": "Factory and production tasks only"
       }
     },
-
     "actions": {
       "set_inactive": "Set Inactive",
       "set_active": "Set Active",
       "creating": "Creating..."
     },
-
     "messages": {
       "create_success": "User created successfully",
       "create_error": "Failed to create user",
@@ -123,16 +165,46 @@
       "loading": "Loading..."
     }
   },
-
-  "toast": {
-    "success": "Success",
-    "error": "Error",
-    "warning": "Warning",
-    "info": "Info"
+  "customers": {
+    "title": "Customers",
+    "subtitle": "Manage customer data",
+    "addCustomer": "Add Customer",
+    "editCustomer": "Edit Customer",
+    "customerDetails": "Customer Details",
+    "searchPlaceholder": "Search for a customer...",
+    "noCustomers": "No customers found",
+    "customer": "Customer",
+    "fields": {
+      "name": "Name",
+      "phone": "Phone Number",
+      "address": "Address",
+      "email": "Email",
+      "type": "Customer Type",
+      "balance": "Balance",
+      "notes": "Notes"
+    },
+    "types": {
+      "CASH": "Cash Customer",
+      "REGULAR": "Regular Customer",
+      "COMPANY": "Company"
+    },
+    "messages": {
+      "createSuccess": "Customer created successfully",
+      "updateSuccess": "Customer updated successfully",
+      "deleteSuccess": "Customer deleted successfully",
+      "deleteConfirm": "Are you sure you want to delete this customer?"
+    },
+    "hasOutstandingBalance": "Customer has outstanding balance",
+    "cashCustomerInfo": "Cash customer - pays full amount at purchase",
+    "noResults": "No customer found with this name",
+    "addNewCustomer": "Add new customer",
+    "searchOrAddNew": "Search for a customer or add a new one"
   },
   "invoices": {
-    "title": "Cashier Invoices",
-    "subtitle": "Create and manage invoices",
+    "title": "Invoices",
+    "subtitle": "Manage invoices",
+    "cashierTitle": "Cashier Invoices",
+    "cashierSubtitle": "Create and manage invoices",
     "createNew": "Create New Invoice",
     "customer": "Customer",
     "selectCustomer": "Select Customer",
@@ -149,6 +221,7 @@
     "widthCm": "Width (cm)",
     "heightCm": "Height (cm)",
     "area": "Area",
+    "areaM2": "m²",
     "cuttingType": "Cutting Type",
     "shatf": "Shatf",
     "laser": "Laser",
@@ -171,6 +244,9 @@
     "cancelled": "Cancelled",
     "markAsPaid": "Mark as Paid",
     "viewDetails": "View Details",
+    "createInvoice": "Create Invoice",
+    "creatingInvoice": "Creating invoice...",
+    "creatingPrintJobs": "Creating print jobs...",
     "exportCsv": "Export CSV",
     "invoiceDetails": "Invoice Details",
     "customerInfo": "Customer Information",
@@ -188,7 +264,192 @@
     "loading": "Loading...",
     "noData": "No Data",
     "required": "Required",
-    "optional": "Optional"
+    "optional": "Optional",
+    "quantity": "Quantity",
+    "unitPrice": "Unit Price",
+    "pricePerMeter": "EGP/m",
+    "thickness": "Thickness",
+    "thicknessMm": "mm",
+    "amountPaid": "Amount Paid",
+    "remaining": "Remaining",
+    "sendToFactory": "Send to Factory",
+    "allStatuses": "All Statuses",
+    "workStatus": "Work Status",
+    "itemsCount": "Items Count",
+    "invoice": "Invoice"
+  },
+  "factory": {
+    "title": "Cutting Screen",
+    "subtitle": "Cutting jobs sorted by glass thickness",
+    "cuttingJobs": "Cutting Jobs",
+    "waiting": "Waiting",
+    "totalPieces": "Total Pieces",
+    "noCuttingJobs": "No cutting jobs",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "refresh": "Refresh",
+    "viewSticker": "View Sticker",
+    "thickness": "Thickness",
+    "unspecified": "Unspecified",
+    "orders": "orders",
+    "pieces": "pieces",
+    "piece": "piece",
+    "dimensions": "Dimensions (cm)",
+    "operations": "Operations",
+    "chamferType": "Chamfer Type",
+    "chamferMeters": "chamfer meters",
+    "notes": "Notes",
+    "newCuttingJob": "New Cutting Job",
+    "all": "All",
+    "status": {
+      "PENDING": "Pending",
+      "IN_PROGRESS": "In Progress",
+      "COMPLETED": "Completed"
+    },
+    "workStatus": {
+      "PENDING": "Not Started",
+      "IN_PROGRESS": "In Progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    },
+    "invoiceWorkStatusChanged": "Invoice work status changed",
+    "hideCompleted": "Hide Completed",
+    "showCompleted": "Show Completed",
+    "startWork": "Start Work",
+    "markComplete": "Complete",
+    "statusUpdated": "Status updated successfully",
+    "statusUpdateError": "Failed to update status"
+  },
+  "payment": {
+    "title": "Payment Details",
+    "selectCustomerFirst": "Please select a customer first",
+    "invoiceTotal": "Invoice Total",
+    "amountPaidNow": "Amount Paid Now",
+    "paymentMethod": "Payment Method",
+    "remainingBalance": "Remaining Balance on this Invoice:",
+    "customerCurrentBalance": "Customer's Current Balance:",
+    "newBalanceAfter": "New Balance After this Invoice:",
+    "remainingWillBeAdded": "Remaining amount will be added to customer's balance",
+    "paidInFull": "Invoice Paid in Full",
+    "paymentInfoValid": "Payment information is valid",
+    "fixPaymentInfo": "Please fix payment information",
+    "cashCustomer": "Cash Customer",
+    "company": "Company",
+    "cashCustomerWarning": "Cash customer must pay the full amount at invoice issuance. No remaining balance allowed.",
+    "cashMustPayFull": "Cash customer must pay the full amount at invoice issuance.",
+    "invalidAmount": "Please enter a valid amount.",
+    "amountExceedsTotal": "Amount paid cannot exceed the invoice total.",
+    "currency": "EGP",
+    "methods": {
+      "CASH": "Cash",
+      "CARD": "Card",
+      "BANK_TRANSFER": "Bank Transfer",
+      "CHECK": "Check",
+      "VODAFONE_CASH": "Vodafone Cash"
+    }
+  },
+  "product": {
+    "addNewItem": "Add New Item",
+    "showDetails": "Show Details",
+    "hideDetails": "Hide Details",
+    "glassType": "Glass Type",
+    "selectGlassType": "-- Select Glass Type --",
+    "width": "Width (cm)",
+    "height": "Height (cm)",
+    "quantity": "Quantity",
+    "operations": "Operations",
+    "addShataf": "Shataf",
+    "addLaser": "Laser",
+    "noOperationsYet": "No operations added yet",
+    "clickToAddOperation": "Click one of the buttons above to add shataf or laser",
+    "addToCart": "Add to Cart",
+    "removeOperation": "Remove Operation",
+    "calculationMethod": "Calculation Method",
+    "diameter": "Diameter (mm)",
+    "manualCalcPrice": "Manual Calculation Price",
+    "manualCuttingPrice": "Manual Cutting Price",
+    "laserType": "Laser Type",
+    "selectLaserType": "-- Select Laser Type --",
+    "laserPrice": "Laser Price",
+    "notes": "Notes",
+    "notesOptional": "Notes (optional)",
+    "laser": {
+      "NORMAL": "Normal Laser",
+      "DEEP": "Deep Laser",
+      "ENGRAVE": "Engrave Laser",
+      "POLISH": "Polish Laser"
+    },
+    "maxOperationsReached": "Maximum operations limit reached",
+    "validation": {
+      "glassTypeRequired": "Glass type is required",
+      "widthRequired": "Width is required and must be greater than zero",
+      "heightRequired": "Height is required and must be greater than zero",
+      "operationRequired": "At least one operation (shataf or laser) is required",
+      "shatafTypeRequired": "Shataf type is required",
+      "farmaRequired": "Calculation method (farma) is required",
+      "diameterRequired": "Diameter is required for the selected calculation method",
+      "manualPriceRequired": "Manual price is required for manual calculation method",
+      "cuttingPriceRequired": "Manual cutting price is required",
+      "laserTypeRequired": "Laser type is required",
+      "laserPriceRequired": "Laser price is required",
+      "operationPrefix": "Operation",
+      "fixErrors": "Please fix the following errors:"
+    }
+  },
+  "cart": {
+    "title": "Shopping Cart",
+    "empty": "No products in cart",
+    "addItemsHint": "Start by adding products to the invoice",
+    "items": "Items",
+    "total": "Total",
+    "checkout": "Checkout",
+    "clear": "Clear Cart",
+    "removeItem": "Remove Item"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome",
+    "todaysSales": "Today's Sales",
+    "totalInvoices": "Total Invoices",
+    "pendingOrders": "Pending Orders",
+    "totalCustomers": "Total Customers",
+    "recentInvoices": "Recent Invoices",
+    "recentActivity": "Recent Activity",
+    "quickActions": "Quick Actions"
+  },
+  "glassTypes": {
+    "title": "Glass Types",
+    "subtitle": "Manage glass types and prices",
+    "addType": "Add Glass Type",
+    "editType": "Edit Glass Type",
+    "fields": {
+      "name": "Name",
+      "thickness": "Thickness (mm)",
+      "pricePerMeter": "Price per Meter",
+      "calculationMethod": "Calculation Method",
+      "active": "Active"
+    },
+    "calculationMethods": {
+      "AREA": "Area (m²)",
+      "LENGTH": "Length (m)"
+    }
+  },
+  "companyProfile": {
+    "title": "Company Profile",
+    "subtitle": "Manage company information",
+    "fields": {
+      "companyName": "Company Name (English)",
+      "companyNameArabic": "Company Name (Arabic)",
+      "address": "Address",
+      "phone": "Phone Number",
+      "email": "Email",
+      "taxId": "Tax ID",
+      "commercialRegister": "Commercial Register",
+      "footerText": "Footer Text",
+      "logo": "Company Logo"
+    },
+    "uploadLogo": "Upload Logo",
+    "removeLogo": "Remove Logo"
   },
   "messages": {
     "invoiceCreatedSuccess": "Invoice created successfully and sent for printing",
@@ -199,9 +460,70 @@
     "fillGlassItemsError": "Please fill all glass item details",
     "loadingData": "Loading data...",
     "loadingInvoices": "Loading invoices...",
+    "loadingCuttingJobs": "Failed to load cutting jobs",
     "noInvoices": "No invoices found",
     "noGlassItems": "No items found",
     "unauthorized": "Access Denied",
-    "cashierOnly": "This page is for cashiers and management only"
+    "cashierOnly": "This page is for cashiers and management only",
+    "saveSuccess": "Saved successfully",
+    "saveError": "Error occurred while saving",
+    "deleteSuccess": "Deleted successfully",
+    "deleteError": "Error occurred while deleting",
+    "confirmDelete": "Are you sure you want to delete?",
+    "networkError": "Network connection error",
+    "serverError": "Server error"
+  },
+  "errors": {
+    "notFound": "Page not found",
+    "unauthorized": "Access Denied",
+    "forbidden": "Access Forbidden",
+    "serverError": "Server Error",
+    "networkError": "Connection Error",
+    "goBack": "Go Back",
+    "goHome": "Go to Home",
+    "tryAgain": "Try Again"
+  },
+  "toast": {
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info"
+  },
+  "table": {
+    "noData": "No data available",
+    "loading": "Loading...",
+    "rowsPerPage": "Rows per page",
+    "of": "of",
+    "page": "Page",
+    "first": "First",
+    "last": "Last",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "common": {
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "or": "or",
+    "and": "and",
+    "all": "All",
+    "none": "None",
+    "select": "Select",
+    "selected": "Selected",
+    "currency": "EGP",
+    "meter": "meter",
+    "squareMeter": "m²",
+    "centimeter": "cm",
+    "millimeter": "mm",
+    "unspecified": "Unspecified"
+  },
+  "keyboard": {
+    "shortcuts": "Keyboard Shortcuts",
+    "addToCart": "Add to Cart",
+    "cancelOperation": "Cancel Operation"
+  },
+  "printJob": {
+    "retrySuccess": "Print jobs retry successful",
+    "retryFailed": "Failed to retry print jobs"
   }
 }

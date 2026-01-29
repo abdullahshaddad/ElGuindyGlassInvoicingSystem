@@ -7,9 +7,6 @@ import com.example.backend.models.InvoiceLineOperation;
 import com.example.backend.models.enums.PrintType;
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.*;
-import com.itextpdf.text.pdf.draw.LineSeparator;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +16,8 @@ import org.springframework.util.StringUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -32,639 +31,541 @@ public class PdfGenerationService {
     private String assetsPath;
 
     @Autowired
-    private StorageService storageService;
-
-    @Autowired
     private CompanyProfileService companyProfileService;
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+    // --- Modern Professional Palette ---
+    private static final BaseColor COL_HEADER_BG = new BaseColor(44, 62, 80);      // Dark Navy
+    private static final BaseColor COL_HEADER_TXT = BaseColor.WHITE;               // White text on header
+    private static final BaseColor COL_BOX_BG = new BaseColor(241, 243, 245);      // Light Gray (Customer Box)
+    private static final BaseColor COL_ACCENT = new BaseColor(41, 128, 185);       // Professional Blue
+    private static final BaseColor COL_TEXT_MAIN = new BaseColor(33, 37, 41);      // Dark Gray Text
+    private static final BaseColor COL_TEXT_SEC = new BaseColor(108, 117, 125);    // Muted/Light Text
+    private static final BaseColor COL_BORDER = new BaseColor(230, 230, 230);      // Subtle Border
 
-    // Colors - Switched to Black & White / Grayscale
-    private static final BaseColor BRAND_COLOR = BaseColor.BLACK; // Was Blue
-    private static final BaseColor HEADER_BG = BaseColor.WHITE; // Was Light Gray
-    private static final BaseColor BORDER_COLOR = BaseColor.DARK_GRAY; // Was Light Gray
-    private static final BaseColor TEXT_COLOR = BaseColor.BLACK;
-    private static final BaseColor SUB_BG = BaseColor.WHITE; // Was Very Light Gray
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy/MM/dd");
 
-    public String generateInvoicePdf(Invoice invoice, PrintType printType) {
+    // ==========================================
+    //              PUBLIC METHODS
+    // ==========================================
+
+    /**
+     * Entry point: Generate Invoice PDF bytes.
+     * PDFs are generated on-demand and not stored.
+     */
+    public byte[] generateInvoicePdf(Invoice invoice, PrintType printType) {
         try {
-            log.info("Generating PDF for invoice {} with type {}", invoice.getId(), printType);
+            return generateInvoicePdfOnDemand(invoice);
+        } catch (Exception e) {
+            log.error("Error generating invoice PDF", e);
+            throw new RuntimeException("Error generating invoice PDF", e);
+        }
+    }
 
+    /**
+     * Entry point: Generate Sticker PDF bytes.
+     * PDFs are generated on-demand and not stored.
+     */
+    public byte[] generateStickerPdf(Invoice invoice) {
+        try {
+            return generateStickerPdfOnDemand(invoice);
+        } catch (Exception e) {
+            log.error("Error generating sticker PDF", e);
+            throw new RuntimeException("Error generating sticker PDF", e);
+        }
+    }
+
+    /**
+     * Core Logic: Generate Clean RTL Invoice (Byte Array)
+     */
+    public byte[] generateInvoicePdfOnDemand(Invoice invoice) {
+        try {
             CompanyProfile profile = companyProfileService.getProfile();
-
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            Document document = new Document(PageSize.A4, 30, 30, 30, 30);
+
+            // Setup Document (A4 with standard margins)
+            // Margins: Left/Right 30, Top 30, Bottom 50 (space for footer)
+            Document document = new Document(PageSize.A4, 30, 30, 30, 50);
             PdfWriter writer = PdfWriter.getInstance(document, baos);
-            writer.setRunDirection(PdfWriter.RUN_DIRECTION_LTR);
+            writer.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
 
             document.open();
 
+            // Load Font (Vital for Arabic)
+            BaseFont bf = getArabicFont();
+
+            // Page 1: Company Copy
+            buildCleanPage(document, writer, invoice, profile, bf, "نسخة الشركة");
+
+            document.newPage();
+
+            // Page 2: Customer Copy
+            buildCleanPage(document, writer, invoice, profile, bf, "نسخة العميل");
+
+            document.close();
+            return baos.toByteArray();
+
+        } catch (Exception e) {
+            log.error("PDF Generation Failed", e);
+            throw new RuntimeException("PDF Generation Failed", e);
+        }
+    }
+
+    /**
+     * Core Logic: Generate Stickers (Byte Array)
+     */
+    public byte[] generateStickerPdfOnDemand(Invoice invoice) {
+        try {
+            CompanyProfile profile = companyProfileService.getProfile();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+            // A5 Size for stickers
+            Document document = new Document(PageSize.A5, 15, 15, 15, 15);
+            PdfWriter writer = PdfWriter.getInstance(document, baos);
+            writer.setRunDirection(PdfWriter.RUN_DIRECTION_LTR); // LTR often better for technical specs
+
+            document.open();
+            BaseFont bf = getArabicFont();
+
             // Fonts
-            BaseFont arBaseFont = getArabicFont();
-            // Use standard font for branding/static English, or use the Arabic font for
-            // consistency if needed.
-            // Using the Arabic-capable font for everything allows mixed content.
-            Font brandFont = new Font(arBaseFont, 24, Font.BOLD, BRAND_COLOR); // Increased size
-            Font titleFont = new Font(arBaseFont, 16, Font.BOLD, TEXT_COLOR);
-            Font headerFont = new Font(arBaseFont, 10, Font.BOLD, BaseColor.BLACK); // Black Text for headers
-            Font labelFont = new Font(arBaseFont, 9, Font.BOLD, BaseColor.DARK_GRAY);
-            Font normalFont = new Font(arBaseFont, 10, Font.NORMAL, TEXT_COLOR);
-            Font smallFont = new Font(arBaseFont, 8, Font.NORMAL, BaseColor.GRAY);
-            Font boldFont = new Font(arBaseFont, 10, Font.BOLD, TEXT_COLOR);
+            Font fTitle = new Font(bf, 16, Font.BOLD, BaseColor.BLACK);
+            Font fLabel = new Font(bf, 10, Font.NORMAL, BaseColor.GRAY);
+            Font fVal = new Font(bf, 12, Font.BOLD, BaseColor.BLACK);
+            Font fBig = new Font(bf, 16, Font.BOLD, BaseColor.BLACK);
 
-            PrintType[] pages = { PrintType.CLIENT, PrintType.OWNER };
+            // Sort lines by thickness for optimized cutting
+            List<InvoiceLine> sortedLines = new ArrayList<>(invoice.getInvoiceLines());
+            sortedLines.sort((a, b) -> {
+                Double ta = (a.getGlassType() != null) ? a.getGlassType().getThickness() : 0.0;
+                Double tb = (b.getGlassType() != null) ? b.getGlassType().getThickness() : 0.0;
+                return ta.compareTo(tb);
+            });
 
-            for (PrintType pageType : pages) {
-                // 1. Header
-                addHeader(document, invoice, profile, brandFont, labelFont, boldFont);
-                addSpacer(document, 10);
-
-                // 2. Info Section
-                addSupplierCustomerSection(document, invoice, profile, titleFont, labelFont, normalFont, boldFont);
-                addSpacer(document, 15);
-
-                // 3. Items Table
-                addItemsTable(document, invoice, headerFont, normalFont, boldFont, smallFont);
-
-                // 4. Totals (Bank Details Removed)
-                addTotalsSection(document, invoice, labelFont, boldFont, brandFont);
-
-                // 5. Notes
-                if (invoice.getNotes() != null && !invoice.getNotes().trim().isEmpty()) {
-                    addSpacer(document, 10);
-                    document.add(new Paragraph("Notes:", labelFont));
-                    document.add(new Paragraph(invoice.getNotes(), normalFont));
-                }
-
-                // 6. Footer
-                addFooter(document, pageType, profile, smallFont);
-
-                if (pageType == PrintType.CLIENT) {
+            for (InvoiceLine line : sortedLines) {
+                int qty = line.getQuantity() != null ? line.getQuantity() : 1;
+                for (int i = 0; i < qty; i++) {
+                    buildStickerPage(document, invoice, line, profile, fTitle, fLabel, fVal, fBig);
                     document.newPage();
                 }
             }
 
             document.close();
-
-            String fileName = String.format("invoice_%d_%s.pdf", invoice.getId(), printType.name().toLowerCase());
-            String publicUrl = null;
-            if (storageService != null) {
-                publicUrl = storageService.storePdf(baos.toByteArray(), fileName, "invoices");
-            }
-            return publicUrl;
+            return baos.toByteArray();
 
         } catch (Exception e) {
-            log.error("Error generating invoice PDF: {}", e.getMessage(), e);
-            throw new RuntimeException("Error generating invoice PDF: " + e.getMessage(), e);
+            log.error("Sticker Generation Failed", e);
+            throw new RuntimeException("Sticker Generation Failed", e);
         }
     }
 
-    public String generateStickerPdf(Invoice invoice) {
+    // ==========================================
+    //           INVOICE LAYOUT BUILDER
+    // ==========================================
+
+    private void buildCleanPage(Document doc, PdfWriter writer, Invoice inv, CompanyProfile prof, BaseFont bf, String copyLabel) throws DocumentException {
+        // Define Fonts
+        Font fTitle = new Font(bf, 16, Font.BOLD, COL_ACCENT);
+        Font fCompName = new Font(bf, 15, Font.BOLD, COL_TEXT_MAIN);
+        Font fHeader = new Font(bf, 10, Font.BOLD, COL_HEADER_TXT);
+        Font fLabel = new Font(bf, 9, Font.NORMAL, COL_TEXT_SEC);
+        Font fVal = new Font(bf, 10, Font.BOLD, COL_TEXT_MAIN);
+        Font fBody = new Font(bf, 10, Font.NORMAL, COL_TEXT_MAIN);
+
+        // --- 1. Header Section ---
+        // Right Side: Company Logo & Details | Left Side: Invoice Meta Data
+        PdfPTable headerTbl = new PdfPTable(2);
+        headerTbl.setWidthPercentage(100);
+        headerTbl.setWidths(new float[]{1.5f, 1f});
+        headerTbl.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+
+        // >> Right Cell (Company)
+        PdfPCell cComp = new PdfPCell();
+        cComp.setBorder(Rectangle.NO_BORDER);
+
+        // Logo - try to load from company profile or assets path
         try {
-            log.info("Generating sticker PDF for invoice {}", invoice.getId());
+            String logoPath = null;
 
-            CompanyProfile profile = companyProfileService.getProfile();
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            // A5 size
-            Document document = new Document(PageSize.A5, 15, 15, 15, 15);
-            PdfWriter writer = PdfWriter.getInstance(document, baos);
-            writer.setRunDirection(PdfWriter.RUN_DIRECTION_LTR);
-            document.open();
-
-            // Fonts
-            BaseFont arBaseFont = getArabicFont();
-            Font titleFont = new Font(arBaseFont, 18, Font.BOLD, BaseColor.BLACK);
-            Font labelFont = new Font(arBaseFont, 10, Font.NORMAL, BaseColor.GRAY);
-            Font valueFont = new Font(arBaseFont, 12, Font.BOLD, BaseColor.BLACK);
-            Font smallFont = new Font(arBaseFont, 9, Font.NORMAL, BaseColor.DARK_GRAY);
-
-            // Sort lines (Thickness, then Size)
-            List<InvoiceLine> sortedLines = new ArrayList<>(invoice.getInvoiceLines());
-            sortedLines.sort((l1, l2) -> {
-                Double t1 = (l1.getGlassType() != null && l1.getGlassType().getThickness() != null)
-                        ? l1.getGlassType().getThickness()
-                        : 0.0;
-                Double t2 = (l2.getGlassType() != null && l2.getGlassType().getThickness() != null)
-                        ? l2.getGlassType().getThickness()
-                        : 0.0;
-                return t1.compareTo(t2);
-            });
-
-            for (InvoiceLine line : sortedLines) {
-                buildStickerPage(document, invoice, line, profile, titleFont, labelFont, valueFont, smallFont);
-                document.newPage();
+            // First, try the logo URL from profile (saved logo)
+            if (StringUtils.hasText(prof.getLogoUrl())) {
+                logoPath = prof.getLogoUrl();
             }
 
-            document.close();
-
-            String fileName = String.format("sticker_%d.pdf", invoice.getId());
-            String publicUrl = null;
-            if (storageService != null) {
-                publicUrl = storageService.storePdf(baos.toByteArray(), fileName, "stickers");
-            }
-            return publicUrl;
-
-        } catch (Exception e) {
-            log.error("Error generating sticker PDF: {}", e.getMessage(), e);
-            throw new RuntimeException("Error generating sticker PDF", e);
-        }
-    }
-
-    private BaseFont getArabicFont() throws DocumentException, IOException {
-        String[] fontPaths = {
-                Paths.get(assetsPath, "fonts", "NotoSansArabic-Regular.ttf").toString(), // Original path
-                "C:/Windows/Fonts/arial.ttf", // Windows standard
-                "C:/Windows/Fonts/calibri.ttf",
-                "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf" // Linux standard
-        };
-
-        for (String path : fontPaths) {
-            try {
-                // IDENTITY_H is crucial for Arabic support
-                return BaseFont.createFont(path, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-            } catch (Exception e) {
-                // Continue to next font
-            }
-        }
-
-        log.warn("Arabic font not found, using fallback Helvetica (Arabic will not render)");
-        return BaseFont.createFont(BaseFont.HELVETICA, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
-    }
-
-    // ================= HELPER METHODS =================
-
-    private void addHeader(Document document, Invoice invoice, CompanyProfile profile, Font brandFont, Font labelFont,
-            Font valFont) throws DocumentException {
-        PdfPTable table = new PdfPTable(2);
-        table.setWidthPercentage(100);
-        table.setWidths(new float[] { 1.5f, 0.5f }); // Adjusted to give more space/prominence to logo
-        table.setRunDirection(PdfWriter.RUN_DIRECTION_LTR);
-
-        // Logo / Brand
-        PdfPCell left = new PdfPCell();
-        left.setBorder(Rectangle.NO_BORDER);
-        left.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        left.setFixedHeight(80f); // Increased height for larger logo
-
-        boolean logoAdded = false;
-        if (StringUtils.hasText(profile.getLogoUrl())) {
-            try {
-                String objectName = storageService.extractObjectName(profile.getLogoUrl());
-                if (objectName != null) {
-                    try (InputStream is = storageService.getFile(objectName)) {
-                        byte[] bytes = is.readAllBytes();
-                        Image img = Image.getInstance(bytes);
-                        img.scaleToFit(200, 75); // Increased max size (was 150, 50)
-                        left.addElement(img);
-                        logoAdded = true;
+            // If not found, try default logo in assets
+            if (logoPath == null || !Files.exists(Paths.get(logoPath))) {
+                // Try common extensions
+                String[] extensions = {"png", "jpg", "jpeg", "gif"};
+                for (String ext : extensions) {
+                    Path defaultLogo = Paths.get(assetsPath, "logo." + ext);
+                    if (Files.exists(defaultLogo)) {
+                        logoPath = defaultLogo.toString();
+                        break;
                     }
                 }
-            } catch (Exception e) {
-                log.warn("Failed to load logo from URL: {}", profile.getLogoUrl(), e);
             }
+
+            if (logoPath != null && Files.exists(Paths.get(logoPath))) {
+                Image img = Image.getInstance(logoPath);
+                img.scaleToFit(130, 65);
+                // In RTL, ALIGN_LEFT aligns to the visual Right (Start of line)
+                img.setAlignment(Element.ALIGN_LEFT);
+                cComp.addElement(img);
+                log.debug("Logo loaded from: {}", logoPath);
+            }
+        } catch (Exception e) {
+            log.debug("Could not load logo: {}", e.getMessage());
         }
 
-        if (!logoAdded) {
-            left.addElement(new Paragraph(
-                    profile.getCompanyName() != null ? profile.getCompanyName() : "ELGUINDY GLASS", brandFont));
+        // Company Name
+        Paragraph pName = new Paragraph(prof.getCompanyName(), fCompName);
+        pName.setAlignment(Element.ALIGN_LEFT); // Visual Right
+        cComp.addElement(pName);
+
+        // Address / Phone
+        if (prof.getPhone() != null) {
+            Paragraph pPh = new Paragraph(prof.getPhone(), fLabel);
+            pPh.setAlignment(Element.ALIGN_LEFT); // Visual Right
+            cComp.addElement(pPh);
+        }
+        headerTbl.addCell(cComp);
+
+        // >> Left Cell (Invoice Meta)
+        PdfPCell cMeta = new PdfPCell();
+        cMeta.setBorder(Rectangle.NO_BORDER);
+
+        Paragraph pInvTitle = new Paragraph("فاتورة مبيعات", fTitle);
+        pInvTitle.setAlignment(Element.ALIGN_RIGHT); // Visual Left (End of line)
+        cMeta.addElement(pInvTitle);
+
+        PdfPTable metaInner = new PdfPTable(2);
+        metaInner.setWidthPercentage(100);
+        metaInner.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+
+        // Meta Rows (Label on visual right, Value on visual left)
+        addMetaRow(metaInner, "رقم الفاتورة", "#" + inv.getId(), fLabel, fVal);
+        addMetaRow(metaInner, "التاريخ", inv.getIssueDate().format(DATE_FMT), fLabel, fVal);
+        addMetaRow(metaInner, "نسخة", copyLabel, fLabel, fBody);
+
+        cMeta.addElement(metaInner);
+        headerTbl.addCell(cMeta);
+
+        doc.add(headerTbl);
+        addSpacer(doc, 20);
+
+        // --- 2. Customer Section (Gray Box) ---
+        PdfPTable boxTbl = new PdfPTable(1);
+        boxTbl.setWidthPercentage(100);
+        boxTbl.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+
+        PdfPCell boxCell = new PdfPCell();
+        boxCell.setBackgroundColor(COL_BOX_BG);
+        boxCell.setBorderColor(COL_BORDER);
+        boxCell.setPadding(12);
+
+        // Inner table to align Label and Value strictly next to each other
+        PdfPTable clientInner = new PdfPTable(2);
+        clientInner.setWidthPercentage(100);
+        clientInner.setWidths(new float[]{1f, 3f}); // Label col small, Value col wide
+        clientInner.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+
+        // Name
+        addClientRow(clientInner, "العميل:", inv.getCustomer().getName(), fLabel, new Font(bf, 12, Font.BOLD, COL_TEXT_MAIN));
+        // Phone
+        if (inv.getCustomer().getPhone() != null) {
+            addClientRow(clientInner, "الهاتف:", inv.getCustomer().getPhone(), fLabel, fBody);
         }
 
-        table.addCell(left);
+        boxCell.addElement(clientInner);
+        boxTbl.addCell(boxCell);
+        doc.add(boxTbl);
 
-        // Invoice Info
-        PdfPCell right = new PdfPCell();
-        right.setBorder(Rectangle.NO_BORDER);
-        right.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        right.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        addSpacer(doc, 20);
 
-        PdfPTable info = new PdfPTable(2);
-        info.setWidthPercentage(100);
-        info.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        info.setRunDirection(PdfWriter.RUN_DIRECTION_LTR);
-
-        addCompactRow(info, "INVOICE #", String.valueOf(invoice.getId()), labelFont, valFont);
-        addCompactRow(info, "DATE", invoice.getIssueDate().format(DATE_FORMATTER), labelFont, valFont);
-
-        right.addElement(info);
-        table.addCell(right);
-
-        document.add(table);
-
-        // Separator
-        LineSeparator ls = new LineSeparator();
-        ls.setLineColor(BORDER_COLOR);
-        document.add(new Paragraph(" "));
-        document.add(ls);
-    }
-
-    private void addSupplierCustomerSection(Document document, Invoice invoice, CompanyProfile profile, Font title,
-            Font label, Font normal, Font bold) throws DocumentException {
-        PdfPTable table = new PdfPTable(2);
-        table.setWidthPercentage(100);
-        table.setSpacingBefore(10);
-        table.setWidths(new float[] { 1, 1 });
-        table.setRunDirection(PdfWriter.RUN_DIRECTION_LTR);
-
-        // From
-        PdfPCell from = new PdfPCell();
-        from.setBorder(Rectangle.NO_BORDER);
-        from.addElement(new Paragraph("FROM", label));
-        from.addElement(new Paragraph(
-                profile.getCompanyName() != null ? profile.getCompanyName() : "ElGuindy Glass Co.", bold));
-        if (profile.getAddress() != null) {
-            from.addElement(new Paragraph(profile.getAddress(), normal));
-        }
-        if (profile.getPhone() != null) {
-            from.addElement(new Paragraph(profile.getPhone(), normal));
-        }
-        if (profile.getEmail() != null) {
-            from.addElement(new Paragraph(profile.getEmail(), normal));
-        }
-        table.addCell(from);
-
-        // To
-        PdfPCell to = new PdfPCell();
-        to.setBorder(Rectangle.NO_BORDER);
-        to.setPaddingLeft(20);
-        to.addElement(new Paragraph("BILL TO", label));
-        to.addElement(new Paragraph(invoice.getCustomer().getName(), bold));
-        if (invoice.getCustomer().getPhone() != null) {
-            to.addElement(new Paragraph(invoice.getCustomer().getPhone(), normal));
-        }
-        if (invoice.getCustomer().getAddress() != null) {
-            to.addElement(new Paragraph(invoice.getCustomer().getAddress(), normal));
-        }
-        table.addCell(to);
-
-        document.add(table);
-    }
-
-    private void addItemsTable(Document document, Invoice invoice, Font headerFont, Font normalFont, Font boldFont,
-            Font smallFont) throws DocumentException {
-        PdfPTable table = new PdfPTable(4);
-        table.setWidthPercentage(100);
-        table.setSpacingBefore(20);
-        table.setWidths(new float[] { 4f, 1.2f, 1f, 1.5f }); // Adjusted widths
-        table.setRunDirection(PdfWriter.RUN_DIRECTION_LTR);
+        // --- 3. Items Table ---
+        PdfPTable tbl = new PdfPTable(5);
+        tbl.setWidthPercentage(100);
+        tbl.setWidths(new float[]{3.5f, 1.2f, 0.8f, 1.2f, 1.2f}); // Wide Description column
+        tbl.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
 
         // Headers
-        String[] headers = { "Description", "Unit Price", "Qty", "Total" };
-        for (String h : headers) {
-            PdfPCell c = new PdfPCell(new Phrase(h, headerFont));
-            c.setBackgroundColor(HEADER_BG); // White (no color) but maybe light gray border? No, keeping clean.
-            c.setPadding(8);
-            c.setHorizontalAlignment(Element.ALIGN_CENTER);
-            c.setBorderColor(BORDER_COLOR);
-            c.setBorderWidthBottom(1.5f); // Thicker bottom border for header
-            table.addCell(c);
-        }
+        addHeaderCell(tbl, "الوصف", fHeader, Element.ALIGN_LEFT); // Align Visual Right
+        addHeaderCell(tbl, "المقاس", fHeader, Element.ALIGN_CENTER);
+        addHeaderCell(tbl, "العدد", fHeader, Element.ALIGN_CENTER);
+        addHeaderCell(tbl, "السعر", fHeader, Element.ALIGN_CENTER);
+        addHeaderCell(tbl, "الإجمالي", fHeader, Element.ALIGN_CENTER);
 
         // Rows
-        for (InvoiceLine line : invoice.getInvoiceLines()) {
-            addInvoiceLineRows(table, line, normalFont, boldFont, smallFont);
-        }
+        for (InvoiceLine line : inv.getInvoiceLines()) {
+            // Desc (Align Visual Right)
+            PdfPCell cDesc = new PdfPCell();
+            cDesc.setPaddingTop(8); cDesc.setPaddingBottom(8);
+            cDesc.setBorder(Rectangle.BOTTOM);
+            cDesc.setBorderColor(COL_BORDER);
+            cDesc.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
 
-        document.add(table);
-    }
-
-    private void addInvoiceLineRows(PdfPTable table, InvoiceLine line, Font normal, Font bold, Font small) {
-        // 1. Main Item
-        String glassName = line.getGlassType() != null ? line.getGlassType().getName() : "Glass";
-        String thickness = (line.getGlassType() != null && line.getGlassType().getThickness() != null)
-                ? line.getGlassType().getThickness() + "mm"
-                : "";
-        String desc = glassName + " " + thickness;
-
-        double unitPrice = line.getGlassPrice() / (line.getQuantityForPricing() > 0 ? line.getQuantityForPricing() : 1);
-
-        addRow(table, desc,
-                formatCurrency(unitPrice),
-                String.format("%.2f", line.getQuantityForPricing()),
-                formatCurrency(line.getGlassPrice()),
-                bold, normal, false);
-
-        // 2. Operations (Legacy & New Mixed)
-        List<OpDisplay> operations = getDisplayOperations(line);
-        if (!operations.isEmpty()) {
-            for (OpDisplay op : operations) {
-                // If price is 0, don't show 0.00, just show blank or included
-                String priceStr = (op.price != null && op.price > 0) ? formatCurrency(op.price) : "";
-                String totalStr = (op.price != null && op.price > 0) ? formatCurrency(op.price) : "";
-
-                addRow(table, "  - " + op.name,
-                        "-", // No unit price for op usually
-                        "-", // No qty
-                        totalStr,
-                        small, small, true);
+            String mainTxt = (line.getGlassType() != null ? line.getGlassType().getName() : "زجاج");
+            if(line.getGlassType() != null && line.getGlassType().getThickness() != null) {
+                mainTxt += " " + line.getGlassType().getThickness() + "مم";
             }
+
+            Paragraph pMain = new Paragraph(mainTxt, fVal);
+            pMain.setAlignment(Element.ALIGN_LEFT); // Visual Right
+            cDesc.addElement(pMain);
+
+            // Operations Sub-text
+            if(line.getOperations() != null && !line.getOperations().isEmpty()) {
+                List<String> ops = new ArrayList<>();
+                line.getOperations().forEach(o -> ops.add(o.getDescription()));
+                Paragraph pOps = new Paragraph(String.join(" + ", ops), new Font(bf, 8, Font.NORMAL, COL_TEXT_SEC));
+                pOps.setAlignment(Element.ALIGN_LEFT); // Visual Right
+                cDesc.addElement(pOps);
+            }
+            tbl.addCell(cDesc);
+
+            // Dims
+            String dims = String.format("%.0f × %.0f cm", line.getWidth(), line.getHeight());
+            addBodyCell(tbl, dims, fBody);
+
+            // Qty
+            addBodyCell(tbl, String.valueOf(line.getQuantity()), fBody);
+
+            // Unit Price
+            double unit = line.getLineTotal() / (line.getQuantity() > 0 ? line.getQuantity() : 1);
+            addBodyCell(tbl, fmtMoney(unit), fBody);
+
+            // Line Total
+            addBodyCell(tbl, fmtMoney(line.getLineTotal()), fVal);
         }
-    }
+        doc.add(tbl);
+        addSpacer(doc, 10);
 
-    private void addRow(PdfPTable table, String desc, String price, String qty, String total, Font dFont, Font vFont,
-            boolean isSub) {
-        PdfPCell d = new PdfPCell(new Phrase(desc, dFont));
-        d.setPadding(6);
-        d.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        d.setBorderColor(BORDER_COLOR);
-        d.setRunDirection(PdfWriter.RUN_DIRECTION_LTR); // Ensure LTR for cells
+        // --- 4. Footer Section (Totals & Notes) ---
+        PdfPTable footerTbl = new PdfPTable(2);
+        footerTbl.setWidthPercentage(100);
+        footerTbl.setWidths(new float[]{1.5f, 1f}); // Left (Totals) narrower
+        footerTbl.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
 
-        PdfPCell p = new PdfPCell(new Phrase(price, vFont));
-        p.setPadding(6);
-        p.setHorizontalAlignment(Element.ALIGN_CENTER);
-        p.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        p.setBorderColor(BORDER_COLOR);
+        // Right Side: Notes
+        PdfPCell cNotes = new PdfPCell();
+        cNotes.setBorder(Rectangle.NO_BORDER);
+        if(StringUtils.hasText(inv.getNotes())) {
+            Paragraph pNoteLbl = new Paragraph("ملاحظات:", fLabel);
+            pNoteLbl.setAlignment(Element.ALIGN_LEFT);
+            cNotes.addElement(pNoteLbl);
 
-        PdfPCell q = new PdfPCell(new Phrase(qty, vFont));
-        q.setPadding(6);
-        q.setHorizontalAlignment(Element.ALIGN_CENTER);
-        q.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        q.setBorderColor(BORDER_COLOR);
+            Paragraph pNoteVal = new Paragraph(inv.getNotes(), fBody);
+            pNoteVal.setAlignment(Element.ALIGN_LEFT);
+            cNotes.addElement(pNoteVal);
+        }
+        footerTbl.addCell(cNotes);
 
-        PdfPCell t = new PdfPCell(new Phrase(total, vFont));
-        t.setPadding(6);
-        t.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        t.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        t.setBorderColor(BORDER_COLOR);
+        // Left Side: Totals
+        PdfPCell cTot = new PdfPCell();
+        cTot.setBorder(Rectangle.NO_BORDER);
 
-        if (isSub) {
-            // Keep background white for sub-items too in colorless mode
-            d.setBackgroundColor(BaseColor.WHITE);
-            p.setBackgroundColor(BaseColor.WHITE);
-            q.setBackgroundColor(BaseColor.WHITE);
-            t.setBackgroundColor(BaseColor.WHITE);
-            // Remove top border to merge visually with parent
-            d.setBorderWidthTop(0);
-            p.setBorderWidthTop(0);
-            q.setBorderWidthTop(0);
-            t.setBorderWidthTop(0);
+        PdfPTable totInner = new PdfPTable(2);
+        totInner.setWidthPercentage(100);
+        totInner.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+
+        addTotalRow(totInner, "الإجمالي", inv.getTotalPrice(), fLabel, fVal, false);
+        if(inv.getAmountPaidNow() != null && inv.getAmountPaidNow() > 0) {
+            addTotalRow(totInner, "المدفوع", inv.getAmountPaidNow(), fLabel, fVal, false);
         }
 
-        table.addCell(d);
-        table.addCell(p);
-        table.addCell(q);
-        table.addCell(t);
+        // Grand Total (Big Blue)
+        double rem = inv.getRemainingBalance() != null ? inv.getRemainingBalance() : 0;
+        addTotalRow(totInner, "المتبقي", rem, fLabel, new Font(bf, 14, Font.BOLD, COL_ACCENT), true);
+
+        cTot.addElement(totInner);
+        footerTbl.addCell(cTot);
+
+        doc.add(footerTbl);
+
+        // --- 5. Page Footer (Fixed at Bottom) ---
+        addPageFooter(doc, writer, bf, prof);
     }
 
-    private void addTotalsSection(Document document, Invoice invoice, Font labelFont, Font boldFont, Font bigFont)
-            throws DocumentException {
-        PdfPTable table = new PdfPTable(2);
-        table.setWidthPercentage(100);
-        table.setSpacingBefore(20);
-        table.setWidths(new float[] { 1f, 1f });
-        table.setRunDirection(PdfWriter.RUN_DIRECTION_LTR);
-
-        // Left side empty (Removed Bank Details)
-        PdfPCell left = new PdfPCell(new Phrase(""));
-        left.setBorder(Rectangle.NO_BORDER);
-        table.addCell(left);
-
-        // Right side Totals
-        PdfPTable totals = new PdfPTable(2);
-        totals.setWidthPercentage(100);
-        totals.setWidths(new float[] { 1f, 1.5f });
-        totals.setRunDirection(PdfWriter.RUN_DIRECTION_LTR);
-
-        // Net Total
-        addCompactRow(totals, "Net Total:", formatCurrency(invoice.getTotalPrice()), labelFont, boldFont);
-
-        // Grand Total
-        PdfPCell l = new PdfPCell(new Phrase("TOTAL", labelFont));
-        l.setBorder(Rectangle.TOP);
-        l.setBorderColor(BORDER_COLOR);
-        l.setPadding(10);
-        totals.addCell(l);
-
-        PdfPCell v = new PdfPCell(new Phrase(formatCurrency(invoice.getTotalPrice()) + " EGP", bigFont));
-        v.setBorder(Rectangle.TOP);
-        v.setBorderColor(BORDER_COLOR);
-        v.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        v.setPadding(10);
-        totals.addCell(v);
-
-        PdfPCell wrapper = new PdfPCell(totals);
-        wrapper.setBorder(Rectangle.NO_BORDER);
-        table.addCell(wrapper);
-
-        document.add(table);
-    }
-
-    private void addFooter(Document document, PrintType type, CompanyProfile profile, Font font)
-            throws DocumentException {
-        document.add(new Paragraph(" "));
-        LineSeparator ls = new LineSeparator();
-        ls.setLineColor(BORDER_COLOR);
-        document.add(ls);
-
-        String footerText = profile.getFooterText() != null
-                ? profile.getFooterText()
-                : "ElGuindy Glass Co. | New Cairo | +20 123 456 789";
-
-        Paragraph p = new Paragraph(footerText, font);
-        p.setAlignment(Element.ALIGN_CENTER);
-        p.setSpacingBefore(5);
-        document.add(p);
-
-        if (type == PrintType.OWNER) {
-            // Keeping RED for internal copy notion is standard, but if "colorless" implies
-            // EVERYTHING:
-            // I'll keep it RED as it is an internal marker, usually acceptable even in B&W
-            // printing.
-            // Or make it BLACK BOLD. Let's make it BLACK BOLD to strictly follow
-            // instructions.
-            Paragraph internal = new Paragraph("INTERNAL COPY",
-                    new Font(font.getBaseFont(), 8, Font.BOLD, BaseColor.BLACK));
-            internal.setAlignment(Element.ALIGN_CENTER);
-            document.add(internal);
-        }
-    }
-
-    // ============= STICKER HELPERS =============
+    // ==========================================
+    //           STICKER BUILDER
+    // ==========================================
 
     private void buildStickerPage(Document document, Invoice invoice, InvoiceLine line, CompanyProfile profile,
-            Font titleF, Font labelF, Font valF, Font smallF) throws DocumentException {
-        // Container
+                                  Font fTitle, Font fLabel, Font fValue, Font fBigVal) throws DocumentException {
+
         PdfPTable main = new PdfPTable(1);
         main.setWidthPercentage(100);
+        main.getDefaultCell().setBorder(Rectangle.NO_BORDER);
 
-        // Header (Logo + Company)
-        PdfPCell headerCell = new PdfPCell();
-        headerCell.setBorder(Rectangle.NO_BORDER);
-        // Removed Colored Background
-        headerCell.setPadding(10);
-        headerCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        // Header
+        PdfPCell header = new PdfPCell();
+        header.setBorder(Rectangle.NO_BORDER);
+        header.setHorizontalAlignment(Element.ALIGN_CENTER);
+        header.setPaddingBottom(5);
+        Paragraph comp = new Paragraph(profile.getCompanyName() != null ? profile.getCompanyName() : "GLASS CO", fTitle);
+        comp.setAlignment(Element.ALIGN_CENTER);
+        header.addElement(comp);
+        main.addCell(header);
 
-        // Add Logo if available
-        boolean logoAdded = false;
-        if (StringUtils.hasText(profile.getLogoUrl())) {
-            try {
-                String objectName = storageService.extractObjectName(profile.getLogoUrl());
-                if (objectName != null) {
-                    try (InputStream is = storageService.getFile(objectName)) {
-                        byte[] bytes = is.readAllBytes();
-                        Image img = Image.getInstance(bytes);
-                        // Make sticker logo reasonably big but fitting header
-                        img.scaleToFit(120, 60);
-                        img.setAlignment(Element.ALIGN_CENTER);
-                        headerCell.addElement(img);
-                        logoAdded = true;
-                    }
-                }
-            } catch (Exception e) {
-                // Ignore
-            }
-        }
+        // Box
+        PdfPTable box = new PdfPTable(2);
+        box.setWidthPercentage(100);
+        box.setWidths(new float[]{1f, 1.5f});
 
-        if (!logoAdded) {
-            Paragraph h = new Paragraph(profile.getCompanyName() != null ? profile.getCompanyName() : "ELGUINDY GLASS",
-                    new Font(titleF.getBaseFont(), 14, Font.BOLD, BaseColor.BLACK));
-            h.setAlignment(Element.ALIGN_CENTER);
-            headerCell.addElement(h);
-        }
+        addStickerRow(box, "Customer", invoice.getCustomer().getName(), fLabel, fValue);
 
-        main.addCell(headerCell);
+        String glass = (line.getGlassType() != null ? line.getGlassType().getName() : "-");
+        addStickerRow(box, "Type", glass, fLabel, fValue);
 
-        // Content Table
-        PdfPTable content = new PdfPTable(2);
-        content.setWidthPercentage(100);
-        content.setWidths(new float[] { 1f, 1.5f });
-        content.setRunDirection(PdfWriter.RUN_DIRECTION_LTR);
-
-        // Customer
-        addStickerRow(content, "Customer", invoice.getCustomer().getName(), labelF, valF);
-
-        // Product
-        String product = (line.getGlassType() != null ? line.getGlassType().getName() : "-");
-        addStickerRow(content, "Product", product, labelF, valF);
-
-        // Thickness
         String thk = (line.getGlassType() != null && line.getGlassType().getThickness() != null)
-                ? line.getGlassType().getThickness() + " MM"
-                : "-";
-        addStickerRow(content, "Thickness", thk, labelF, valF);
+                ? line.getGlassType().getThickness() + " mm" : "-";
+        addStickerRow(box, "Thk", thk, fLabel, fValue);
 
-        // Size
-        String size = String.format("%.0f x %.0f mm", line.getWidth(), line.getHeight());
-        // Highlight Size
-        PdfPCell l = new PdfPCell(new Phrase("Size", labelF));
-        l.setPadding(5);
-        l.setBorderColor(BORDER_COLOR);
-        content.addCell(l);
+        String size = String.format("%.0f x %.0f", line.getWidth(), line.getHeight());
+        addStickerRow(box, "Size", size, fLabel, fBigVal);
 
-        PdfPCell v = new PdfPCell(new Phrase(size, new Font(valF.getBaseFont(), 16, Font.BOLD, BaseColor.BLACK)));
-        v.setPadding(5);
-        v.setBorderColor(BORDER_COLOR);
-        content.addCell(v);
-
-        // Operations
-        List<OpDisplay> ops = getDisplayOperations(line);
-        if (!ops.isEmpty()) {
-            PdfPCell opLabel = new PdfPCell(new Phrase("Processing", labelF));
-            opLabel.setPadding(5);
-            opLabel.setBorderColor(BORDER_COLOR);
-            content.addCell(opLabel);
-
-            PdfPCell opVal = new PdfPCell();
-            opVal.setPadding(5);
-            opVal.setBorderColor(BORDER_COLOR);
-            com.itextpdf.text.List list = new com.itextpdf.text.List(com.itextpdf.text.List.UNORDERED);
-            list.setListSymbol("\u2022 "); // Bullet
-            for (OpDisplay op : ops) {
-                list.add(new ListItem(op.name, smallF));
-            }
-            opVal.addElement(list);
-            content.addCell(opVal);
+        if (line.getOperations() != null && !line.getOperations().isEmpty()) {
+            StringBuilder ops = new StringBuilder();
+            line.getOperations().forEach(o -> ops.append(o.getDescription()).append(" "));
+            addStickerRow(box, "Ops", ops.toString(), fLabel, new Font(fValue.getBaseFont(), 9, Font.NORMAL));
         }
 
-        // Invoice Ref
-        PdfPCell refCell = new PdfPCell(new Phrase("Inv #" + invoice.getId(), smallF));
-        refCell.setColspan(2);
-        refCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-        refCell.setBorder(Rectangle.TOP);
-        refCell.setBorderColor(BORDER_COLOR);
-        refCell.setPadding(5);
-        content.addCell(refCell);
+        // Footer Ref
+        PdfPCell ref = new PdfPCell(new Phrase("Inv #" + invoice.getId(), fLabel));
+        ref.setColspan(2);
+        ref.setHorizontalAlignment(Element.ALIGN_CENTER);
+        ref.setBorder(Rectangle.TOP);
+        ref.setBorderColor(BaseColor.LIGHT_GRAY);
+        ref.setPaddingTop(5);
+        box.addCell(ref);
 
-        PdfPCell contentWrapper = new PdfPCell(content);
-        contentWrapper.setBorder(Rectangle.BOX);
-        contentWrapper.setBorderColor(BaseColor.BLACK);
-        contentWrapper.setBorderWidth(1.5f); // Thicker border for sticker
-        main.addCell(contentWrapper);
+        PdfPCell boxWrapper = new PdfPCell(box);
+        boxWrapper.setBorder(Rectangle.BOX);
+        boxWrapper.setBorderWidth(1.5f);
+        boxWrapper.setPadding(5);
+        main.addCell(boxWrapper);
 
         document.add(main);
     }
 
-    private void addStickerRow(PdfPTable table, String label, String value, Font lFont, Font vFont) {
-        PdfPCell l = new PdfPCell(new Phrase(label, lFont));
-        l.setPadding(5);
-        l.setBorderColor(BORDER_COLOR);
-        table.addCell(l);
+    // ==========================================
+    //           HELPER METHODS
+    // ==========================================
 
-        PdfPCell v = new PdfPCell(new Phrase(value, vFont));
-        v.setPadding(5);
-        v.setBorderColor(BORDER_COLOR);
-        table.addCell(v);
+    private void addClientRow(PdfPTable t, String lbl, String val, Font fLbl, Font fVal) {
+        PdfPCell c1 = new PdfPCell(new Phrase(lbl, fLbl));
+        c1.setBorder(Rectangle.NO_BORDER);
+        c1.setHorizontalAlignment(Element.ALIGN_LEFT); // Visual Right
+        t.addCell(c1);
+
+        PdfPCell c2 = new PdfPCell(new Phrase(val, fVal));
+        c2.setBorder(Rectangle.NO_BORDER);
+        c2.setHorizontalAlignment(Element.ALIGN_LEFT); // Visual Right (Immediately follows label)
+        t.addCell(c2);
     }
 
-    private void addCompactRow(PdfPTable table, String label, String value, Font lFont, Font vFont) {
-        PdfPCell l = new PdfPCell(new Phrase(label, lFont));
+    private void addMetaRow(PdfPTable t, String lbl, String val, Font fLbl, Font fVal) {
+        PdfPCell c1 = new PdfPCell(new Phrase(lbl, fLbl));
+        c1.setBorder(Rectangle.NO_BORDER);
+        c1.setHorizontalAlignment(Element.ALIGN_LEFT); // Visual Right
+        t.addCell(c1);
+
+        PdfPCell c2 = new PdfPCell(new Phrase(val, fVal));
+        c2.setBorder(Rectangle.NO_BORDER);
+        c2.setHorizontalAlignment(Element.ALIGN_RIGHT); // Visual Left (End of line)
+        t.addCell(c2);
+    }
+
+    private void addHeaderCell(PdfPTable t, String txt, Font f, int align) {
+        PdfPCell c = new PdfPCell(new Phrase(txt, f));
+        c.setBackgroundColor(COL_HEADER_BG);
+        c.setPadding(8);
+        c.setHorizontalAlignment(align);
+        c.setBorder(Rectangle.NO_BORDER);
+        c.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+        t.addCell(c);
+    }
+
+    private void addBodyCell(PdfPTable t, String txt, Font f) {
+        PdfPCell c = new PdfPCell(new Phrase(txt, f));
+        c.setPaddingTop(8); c.setPaddingBottom(8);
+        c.setHorizontalAlignment(Element.ALIGN_CENTER);
+        c.setBorder(Rectangle.BOTTOM);
+        c.setBorderColor(COL_BORDER);
+        c.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+        t.addCell(c);
+    }
+
+    private void addTotalRow(PdfPTable t, String lbl, Double val, Font fLbl, Font fVal, boolean lineTop) {
+        PdfPCell c1 = new PdfPCell(new Phrase(lbl, fLbl));
+        c1.setBorder(lineTop ? Rectangle.TOP : Rectangle.NO_BORDER);
+        c1.setBorderColor(COL_BORDER);
+        c1.setPadding(6);
+        c1.setHorizontalAlignment(Element.ALIGN_LEFT); // Visual Right
+        t.addCell(c1);
+
+        PdfPCell c2 = new PdfPCell(new Phrase(fmtMoney(val), fVal));
+        c2.setBorder(lineTop ? Rectangle.TOP : Rectangle.NO_BORDER);
+        c2.setBorderColor(COL_BORDER);
+        c2.setPadding(6);
+        c2.setHorizontalAlignment(Element.ALIGN_RIGHT); // Visual Left
+        t.addCell(c2);
+    }
+
+    private void addStickerRow(PdfPTable table, String label, String value, Font fLabel, Font fValue) {
+        PdfPCell l = new PdfPCell(new Phrase(label, fLabel));
         l.setBorder(Rectangle.NO_BORDER);
         table.addCell(l);
 
-        PdfPCell v = new PdfPCell(new Phrase(value, vFont));
+        PdfPCell v = new PdfPCell(new Phrase(value, fValue));
         v.setBorder(Rectangle.NO_BORDER);
-        v.setHorizontalAlignment(Element.ALIGN_RIGHT);
         table.addCell(v);
     }
 
-    private void addSpacer(Document doc, float size) throws DocumentException {
+    private void addPageFooter(Document doc, PdfWriter writer, BaseFont bf, CompanyProfile p) throws DocumentException {
+        PdfPTable ft = new PdfPTable(1);
+        ft.setTotalWidth(530);
+        ft.setLockedWidth(true);
+        ft.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+
+        String txt = p.getFooterText() != null ? p.getFooterText() : "شكراً لتعاملكم معنا";
+        PdfPCell c = new PdfPCell(new Phrase(txt, new Font(bf, 8, Font.NORMAL, COL_TEXT_SEC)));
+        c.setBorder(Rectangle.TOP);
+        c.setBorderColor(COL_BORDER);
+        c.setHorizontalAlignment(Element.ALIGN_CENTER);
+        c.setPaddingTop(10);
+        ft.addCell(c);
+
+        // Write at absolute position: x=30, y=40 (from bottom)
+        ft.writeSelectedRows(0, -1, 30, 40, writer.getDirectContent());
+    }
+
+    private void addSpacer(Document d, float s) throws DocumentException {
         Paragraph p = new Paragraph("");
-        p.setSpacingAfter(size);
-        doc.add(p);
+        p.setSpacingAfter(s);
+        d.add(p);
     }
 
-    private String formatCurrency(Double val) {
-        return val != null ? String.format("%.2f", val) : "0.00";
+    private String fmtMoney(Double v) {
+        return v == null ? "0.00" : String.format("%.2f", v);
     }
 
-    // Helper class for operations
-    @Data
-    @AllArgsConstructor
-    private static class OpDisplay {
-        String name;
-        Double price;
-    }
+    private BaseFont getArabicFont() throws IOException, DocumentException {
+        // 1. Try Assets
+        try {
+            String path = Paths.get(assetsPath, "fonts", "NotoSansArabic-Regular.ttf").toString();
+            if (Files.exists(Paths.get(path))) return BaseFont.createFont(path, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+        } catch(Exception ignored) {}
 
-    private List<OpDisplay> getDisplayOperations(InvoiceLine line) {
-        List<OpDisplay> ops = new ArrayList<>();
-
-        // 1. New Operations List
-        if (line.getOperations() != null && !line.getOperations().isEmpty()) {
-            for (InvoiceLineOperation op : line.getOperations()) {
-                ops.add(new OpDisplay(op.getDescription(), op.getOperationPrice()));
-            }
+        // 2. Try System
+        String[] sysFonts = {
+                "C:/Windows/Fonts/arial.ttf",
+                "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+        };
+        for(String s : sysFonts) {
+            try { return BaseFont.createFont(s, BaseFont.IDENTITY_H, BaseFont.EMBEDDED); } catch(Exception ignored){}
         }
-        // 2. Legacy Fallback
-        else {
-            if (line.getShatafType() != null) {
-                ops.add(new OpDisplay("Shataf: " + line.getShatafType().name(), null));
-            }
-            if (line.getFarmaType() != null) {
-                ops.add(new OpDisplay("Farma: " + line.getFarmaType().name(), null));
-            }
-            // Check legacy manual cutting price if no specific type but price exists?
-            if (line.getCuttingType() != null) {
-                // Avoid duplicates if cutting type is same as shataf
-                boolean alreadyAdded = false;
-                if (line.getShatafType() != null
-                        && line.getShatafType().name().contains(line.getCuttingType().name())) {
-                    alreadyAdded = true;
-                }
-                if (!alreadyAdded) {
-                    ops.add(new OpDisplay("Cut: " + line.getCuttingType().name(), line.getCuttingPrice()));
-                }
-            }
-        }
-        return ops;
+
+        // 3. Fallback (Arabic will not render, but avoids crash)
+        return BaseFont.createFont(BaseFont.HELVETICA, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
     }
 }

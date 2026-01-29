@@ -102,7 +102,7 @@ public class PaymentController {
      */
     @GetMapping("/invoice/{invoiceId}")
     @PreAuthorize("hasRole('CASHIER') or hasRole('OWNER')")
-    public ResponseEntity<?> getInvoicePayments(@PathVariable Long invoiceId) {
+    public ResponseEntity<?> getInvoicePayments(@PathVariable String invoiceId) {
         try {
             List<PaymentDTO> payments = paymentService.getInvoicePayments(invoiceId);
             return ResponseEntity.ok(payments);

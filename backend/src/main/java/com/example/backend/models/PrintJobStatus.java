@@ -10,7 +10,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PrintJobStatus {
-    private Long invoiceId;
+    private String invoiceId;
     private int totalJobs;
     private int expectedJobs;
     private boolean allJobsComplete;

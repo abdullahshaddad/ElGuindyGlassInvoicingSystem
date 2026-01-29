@@ -13,4 +13,7 @@ public interface GlassTypeRepository extends JpaRepository<GlassType, Long> {
     List<GlassType> findByColor(String color);
 
     List<GlassType> findByNameContainingIgnoreCase(String name);
+
+    @org.springframework.data.jpa.repository.Query("SELECT MAX(g.id) FROM GlassType g")
+    Long findMaxNumericId();
 }

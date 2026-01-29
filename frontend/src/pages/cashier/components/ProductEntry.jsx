@@ -53,7 +53,7 @@ const ProductEntry = ({
                 <Input
                     ref={widthRef}
                     type="number"
-                    placeholder={`العرض (${currentLine.dimensionUnit || 'MM'})`}
+                    placeholder={`العرض (${currentLine.dimensionUnit || 'CM'})`}
                     value={currentLine.width}
                     onChange={(e) => onCurrentLineChange({
                         ...currentLine,
@@ -69,7 +69,7 @@ const ProductEntry = ({
                 <Input
                     ref={heightRef}
                     type="number"
-                    placeholder={`الارتفاع (${currentLine.dimensionUnit || 'MM'})`}
+                    placeholder={`الارتفاع (${currentLine.dimensionUnit || 'CM'})`}
                     value={currentLine.height}
                     onChange={(e) => onCurrentLineChange({
                         ...currentLine,
@@ -83,7 +83,7 @@ const ProductEntry = ({
 
                 {/* Unit Selection */}
                 <Select
-                    value={currentLine.dimensionUnit || 'MM'}
+                    value={currentLine.dimensionUnit || 'CM'}
                     onChange={(e) => onCurrentLineChange({
                         ...currentLine,
                         dimensionUnit: e.target.value
