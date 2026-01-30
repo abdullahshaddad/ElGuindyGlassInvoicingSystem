@@ -20,8 +20,25 @@ import {
     FiTrendingUp,
     FiUsers,
     FiWifi,
-    FiWifiOff
+    FiWifiOff,
+    FiCalendar,
+    FiPieChart
 } from 'react-icons/fi';
+import {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell,
+    BarChart,
+    Bar,
+    Legend
+} from 'recharts';
 
 // Stats Card Component
 const StatsCard = ({title, value, change, icon: Icon, loading, trend, subtitle}) => {
@@ -139,6 +156,475 @@ const InvoiceRow = ({invoice}) => {
     </div>);
 };
 
+// Top Customer Row Component
+const TopCustomerRow = ({customer, rank, isArabic}) => {
+    const getRankBadge = (rank) => {
+        const colors = {
+            1: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
+            2: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300',
+            3: 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300'
+        };
+        return colors[rank] || 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300';
+    };
+
+    return (
+        <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
+            <div className="flex items-center gap-3">
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${getRankBadge(rank)}`}>
+                    {rank}
+                </span>
+                <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {customer.customerName}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {customer.invoiceCount} {isArabic ? 'فاتورة' : 'invoices'}
+                    </p>
+                </div>
+            </div>
+            <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                {isArabic
+                    ? `${customer.totalRevenue?.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ج.م`
+                    : `EGP ${customer.totalRevenue?.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+                }
+            </span>
+        </div>
+    );
+};
+
+// Today's Summary Card Component
+const TodaySummaryCard = ({todayStats, salesOverview, loading, isArabic}) => {
+    if (loading) {
+        return (
+            <div className="rounded-xl p-6 text-white" style={{ background: `linear-gradient(135deg, ${COMPANY_COLORS.primary}, ${COMPANY_COLORS.secondary})` }}>
+                <div className="animate-pulse space-y-4">
+                    <div className="h-4 bg-white/20 rounded w-1/3"></div>
+                    <div className="h-8 bg-white/20 rounded w-1/2"></div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="rounded-xl p-6 text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${COMPANY_COLORS.primary}, ${COMPANY_COLORS.secondary})` }}>
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold opacity-90">
+                    {isArabic ? 'ملخص اليوم' : "Today's Summary"}
+                </h3>
+                <FiActivity className="w-6 h-6 opacity-80" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <p className="text-sm opacity-80 mb-1">
+                        {isArabic ? 'إيرادات اليوم' : "Today's Revenue"}
+                    </p>
+                    <p className="text-2xl font-bold">
+                        {(todayStats?.totalRevenue || 0).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+                        <span className="text-sm mr-1">{isArabic ? 'ج.م' : 'EGP'}</span>
+                    </p>
+                </div>
+                <div>
+                    <p className="text-sm opacity-80 mb-1">
+                        {isArabic ? 'فواتير اليوم' : "Today's Invoices"}
+                    </p>
+                    <p className="text-2xl font-bold">
+                        {todayStats?.invoiceCount || 0}
+                    </p>
+                </div>
+            </div>
+            {salesOverview && (
+                <div className="mt-4 pt-4 border-t border-white/20">
+                    <div className="flex justify-between text-sm">
+                        <span className="opacity-80">{isArabic ? 'عملاء هذا الشهر' : 'Monthly Customers'}</span>
+                        <span className="font-semibold">{salesOverview.uniqueCustomers || 0}</span>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// Outstanding Balance Card
+const OutstandingBalanceCard = ({stats, loading, isArabic}) => {
+    if (loading || !stats) {
+        return (
+            <div className="rounded-xl p-6 text-white" style={{ background: `linear-gradient(135deg, ${COMPANY_COLORS.accent}, #48CAE4)` }}>
+                <div className="animate-pulse space-y-4">
+                    <div className="h-4 bg-white/20 rounded w-1/3"></div>
+                    <div className="h-8 bg-white/20 rounded w-1/2"></div>
+                </div>
+            </div>
+        );
+    }
+
+    const pendingAmount = stats.totalRevenue - (stats.paidInvoices > 0 && stats.totalInvoices > 0
+        ? (stats.totalRevenue / stats.totalInvoices) * stats.paidInvoices
+        : 0);
+
+    return (
+        <div className="rounded-xl p-6 text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${COMPANY_COLORS.accent}, #48CAE4)` }}>
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold opacity-90">
+                    {isArabic ? 'المبالغ المعلقة' : 'Outstanding Balance'}
+                </h3>
+                <FiAlertCircle className="w-6 h-6 opacity-80" />
+            </div>
+            <div className="space-y-3">
+                <div>
+                    <p className="text-sm opacity-80 mb-1">
+                        {isArabic ? 'إجمالي المعلق' : 'Total Pending'}
+                    </p>
+                    <p className="text-2xl font-bold">
+                        {pendingAmount.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+                        <span className="text-sm mr-1">{isArabic ? 'ج.م' : 'EGP'}</span>
+                    </p>
+                </div>
+                <div className="flex justify-between text-sm pt-2 border-t border-white/20">
+                    <span className="opacity-80">{isArabic ? 'فواتير معلقة' : 'Pending Invoices'}</span>
+                    <span className="font-semibold">{stats.pendingInvoices || 0}</span>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Month name translations
+const MONTH_NAMES = {
+    ar: {
+        JANUARY: 'يناير', FEBRUARY: 'فبراير', MARCH: 'مارس', APRIL: 'أبريل',
+        MAY: 'مايو', JUNE: 'يونيو', JULY: 'يوليو', AUGUST: 'أغسطس',
+        SEPTEMBER: 'سبتمبر', OCTOBER: 'أكتوبر', NOVEMBER: 'نوفمبر', DECEMBER: 'ديسمبر'
+    },
+    en: {
+        JANUARY: 'Jan', FEBRUARY: 'Feb', MARCH: 'Mar', APRIL: 'Apr',
+        MAY: 'May', JUNE: 'Jun', JULY: 'Jul', AUGUST: 'Aug',
+        SEPTEMBER: 'Sep', OCTOBER: 'Oct', NOVEMBER: 'Nov', DECEMBER: 'Dec'
+    }
+};
+
+// Company Colors - Bright Blue Theme
+const COMPANY_COLORS = {
+    primary: '#0077B6',    // Blue
+    secondary: '#3FA796',  // Teal/Green
+    accent: '#00B4D8',     // Bright Cyan Blue
+    warning: '#F59E0B',    // Amber for warnings
+    dark: '#1C1C1C',       // Dark
+    light: '#F5F5F5'       // Light gray
+};
+
+// Revenue Chart Component
+const RevenueChart = ({ data, loading, isArabic }) => {
+    if (loading) {
+        return (
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                <div className="animate-pulse">
+                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
+                    <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded"></div>
+                </div>
+            </div>
+        );
+    }
+
+    // Transform data for chart
+    const chartData = data.map(item => ({
+        month: MONTH_NAMES[isArabic ? 'ar' : 'en'][item.month] || item.month,
+        revenue: item.revenue || 0,
+        invoices: item.invoiceCount || 0
+    }));
+
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <p className="font-semibold text-gray-900 dark:text-white mb-1">{label}</p>
+                    <p className="text-sm" style={{ color: COMPANY_COLORS.primary }}>
+                        {isArabic ? 'الإيرادات: ' : 'Revenue: '}
+                        {payload[0]?.value?.toLocaleString('en-US', {minimumFractionDigits: 0})} {isArabic ? 'ج.م' : 'EGP'}
+                    </p>
+                    {payload[1] && (
+                        <p className="text-sm" style={{ color: COMPANY_COLORS.secondary }}>
+                            {isArabic ? 'الفواتير: ' : 'Invoices: '}{payload[1]?.value}
+                        </p>
+                    )}
+                </div>
+            );
+        }
+        return null;
+    };
+
+    return (
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-6">
+                <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {isArabic ? 'الإيرادات الشهرية' : 'Monthly Revenue'}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {isArabic ? 'آخر 6 أشهر' : 'Last 6 months'}
+                    </p>
+                </div>
+                <FiBarChart2 className="w-6 h-6" style={{ color: COMPANY_COLORS.primary }} />
+            </div>
+            <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={COMPANY_COLORS.primary} stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor={COMPANY_COLORS.primary} stopOpacity={0}/>
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
+                        <XAxis
+                            dataKey="month"
+                            tick={{ fontSize: 12, fill: '#6b7280' }}
+                            tickLine={false}
+                            axisLine={false}
+                        />
+                        <YAxis
+                            tick={{ fontSize: 12, fill: '#6b7280' }}
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Area
+                            type="monotone"
+                            dataKey="revenue"
+                            stroke={COMPANY_COLORS.primary}
+                            strokeWidth={2}
+                            fillOpacity={1}
+                            fill="url(#colorRevenue)"
+                        />
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+};
+
+// Invoice Status Pie Chart Component
+const InvoiceStatusChart = ({ stats, loading, isArabic }) => {
+    if (loading || !stats) {
+        return (
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                <div className="animate-pulse">
+                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
+                    <div className="h-48 bg-gray-100 dark:bg-gray-700 rounded-full w-48 mx-auto"></div>
+                </div>
+            </div>
+        );
+    }
+
+    // Use company colors for pie chart - bright blues
+    const PIE_COLORS = [COMPANY_COLORS.secondary, COMPANY_COLORS.warning, '#ef4444'];
+
+    const data = [
+        { name: isArabic ? 'مدفوعة' : 'Paid', value: stats.paidInvoices || 0, color: PIE_COLORS[0] },
+        { name: isArabic ? 'معلقة' : 'Pending', value: stats.pendingInvoices || 0, color: PIE_COLORS[1] },
+        { name: isArabic ? 'ملغاة' : 'Cancelled', value: (stats.totalInvoices - stats.paidInvoices - stats.pendingInvoices) || 0, color: PIE_COLORS[2] }
+    ].filter(item => item.value > 0);
+
+    const total = data.reduce((sum, item) => sum + item.value, 0);
+
+    return (
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+                <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {isArabic ? 'حالة الفواتير' : 'Invoice Status'}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {isArabic ? 'هذا الشهر' : 'This month'}
+                    </p>
+                </div>
+                <FiPieChart className="w-6 h-6 text-gray-400" />
+            </div>
+            <div className="flex items-center justify-center">
+                <div className="w-48 h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <Pie
+                                data={data}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={50}
+                                outerRadius={70}
+                                paddingAngle={2}
+                                dataKey="value"
+                            >
+                                {data.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                            </Pie>
+                            <Tooltip
+                                formatter={(value, name) => [
+                                    `${value} (${((value / total) * 100).toFixed(0)}%)`,
+                                    name
+                                ]}
+                            />
+                        </PieChart>
+                    </ResponsiveContainer>
+                </div>
+                <div className="mr-6 space-y-3">
+                    {data.map((item, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">{item.name}</span>
+                            <span className="text-sm font-semibold text-gray-900 dark:text-white">{item.value}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Growth Comparison Card
+const GrowthComparisonCard = ({ currentMonth, previousMonth, loading, isArabic }) => {
+    if (loading) {
+        return (
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                <div className="animate-pulse space-y-4">
+                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                    <div className="h-12 bg-gray-100 dark:bg-gray-700 rounded"></div>
+                </div>
+            </div>
+        );
+    }
+
+    const currentRevenue = currentMonth?.totalRevenue || 0;
+    const previousRevenue = previousMonth?.revenue || 0;
+    const growthPercent = previousRevenue > 0
+        ? ((currentRevenue - previousRevenue) / previousRevenue) * 100
+        : currentRevenue > 0 ? 100 : 0;
+
+    const isPositive = growthPercent >= 0;
+
+    return (
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {isArabic ? 'مقارنة النمو' : 'Growth Comparison'}
+                </h3>
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium ${
+                    isPositive
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                        : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                }`}>
+                    {isPositive ? <FiTrendingUp className="w-4 h-4" /> : <FiTrendingDown className="w-4 h-4" />}
+                    {Math.abs(growthPercent).toFixed(1)}%
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        {isArabic ? 'الشهر الحالي' : 'This Month'}
+                    </p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                        {currentRevenue.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+                        <span className="text-xs mr-1 font-normal">{isArabic ? 'ج.م' : 'EGP'}</span>
+                    </p>
+                </div>
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        {isArabic ? 'الشهر السابق' : 'Last Month'}
+                    </p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                        {previousRevenue.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+                        <span className="text-xs mr-1 font-normal">{isArabic ? 'ج.م' : 'EGP'}</span>
+                    </p>
+                </div>
+            </div>
+            <div className="mt-4">
+                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    <span>{isArabic ? 'التقدم نحو الهدف' : 'Progress to Goal'}</span>
+                    <span>{Math.min(100, (currentRevenue / (previousRevenue || 1)) * 100).toFixed(0)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                        className={`h-2 rounded-full transition-all ${isPositive ? 'bg-green-500' : 'bg-amber-500'}`}
+                        style={{ width: `${Math.min(100, (currentRevenue / (previousRevenue || 1)) * 100)}%` }}
+                    ></div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Daily Activity Mini Chart
+const DailyActivityCard = ({ todayStats, salesOverview, loading, isArabic }) => {
+    if (loading) {
+        return (
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                <div className="animate-pulse space-y-4">
+                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                    <div className="h-20 bg-gray-100 dark:bg-gray-700 rounded"></div>
+                </div>
+            </div>
+        );
+    }
+
+    const avgDailyInvoices = salesOverview?.completedOrders
+        ? Math.round(salesOverview.completedOrders / 30)
+        : 0;
+
+    const todayInvoices = todayStats?.invoiceCount || 0;
+    const performance = avgDailyInvoices > 0
+        ? ((todayInvoices / avgDailyInvoices) * 100).toFixed(0)
+        : todayInvoices > 0 ? 100 : 0;
+
+    return (
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {isArabic ? 'نشاط اليوم' : "Today's Activity"}
+                </h3>
+                <FiActivity className="w-6 h-6 text-gray-400" />
+            </div>
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white">{todayInvoices}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {isArabic ? 'فواتير اليوم' : 'invoices today'}
+                        </p>
+                    </div>
+                    <div className={`text-right px-3 py-2 rounded-lg ${
+                        Number(performance) >= 100
+                            ? 'bg-green-100 dark:bg-green-900/30'
+                            : Number(performance) >= 50
+                                ? 'bg-amber-100 dark:bg-amber-900/30'
+                                : 'bg-red-100 dark:bg-red-900/30'
+                    }`}>
+                        <p className={`text-2xl font-bold ${
+                            Number(performance) >= 100
+                                ? 'text-green-600 dark:text-green-400'
+                                : Number(performance) >= 50
+                                    ? 'text-amber-600 dark:text-amber-400'
+                                    : 'text-red-600 dark:text-red-400'
+                        }`}>{performance}%</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {isArabic ? 'من المتوسط' : 'of average'}
+                        </p>
+                    </div>
+                </div>
+                <div>
+                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        <span>{isArabic ? 'المتوسط اليومي' : 'Daily average'}: {avgDailyInvoices}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div
+                            className="bg-blue-500 h-2 rounded-full transition-all"
+                            style={{ width: `${Math.min(100, Number(performance))}%` }}
+                        ></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const DashboardPage = () => {
     const {t, i18n} = useTranslation();
     const {user} = useAuth();
@@ -149,6 +635,10 @@ const DashboardPage = () => {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState(null);
     const [recentInvoices, setRecentInvoices] = useState([]);
+    const [topCustomers, setTopCustomers] = useState([]);
+    const [todayStats, setTodayStats] = useState(null);
+    const [salesOverview, setSalesOverview] = useState(null);
+    const [monthlyRevenue, setMonthlyRevenue] = useState([]);
     const [error, setError] = useState(null);
 
     // WebSocket message handler
@@ -205,14 +695,22 @@ const DashboardPage = () => {
             setLoading(true);
             setError(null);
 
-            // Fetch dashboard stats from backend
-            const dashboardStats = await dashboardService.getDashboardStats();
-
-            // Fetch recent invoices
-            const invoices = await dashboardService.getRecentInvoices(5);
+            // Fetch all data in parallel
+            const [dashboardStats, invoices, customers, todayData, overview, monthly] = await Promise.all([
+                dashboardService.getDashboardStats(),
+                dashboardService.getRecentInvoices(5),
+                dashboardService.getTopCustomers(5, 'month').catch(() => []),
+                dashboardService.getRevenueStats({ period: 'today' }).catch(() => null),
+                dashboardService.getSalesOverview('month').catch(() => null),
+                dashboardService.getMonthlyRevenue(6).catch(() => [])
+            ]);
 
             setStats(dashboardStats);
             setRecentInvoices(invoices || []);
+            setTopCustomers(customers || []);
+            setTodayStats(todayData);
+            setSalesOverview(overview);
+            setMonthlyRevenue(monthly || []);
         } catch (err) {
             console.error('Failed to fetch dashboard data:', err);
             setError(i18n.language === 'ar' ? 'فشل في تحميل بيانات لوحة التحكم' : 'Failed to load dashboard data');
@@ -293,10 +791,14 @@ const DashboardPage = () => {
     const getDashboardStats = () => {
         if (!stats) return [];
 
+        // Calculate outstanding balance
+        const outstandingBalance = (stats.totalRevenue || 0) -
+            (stats.paidInvoices > 0 ? (stats.totalRevenue / stats.totalInvoices) * stats.paidInvoices : 0);
+
         if (isOwner || isCashier) {
             return [{
                 title: i18n.language === 'ar' ? 'إجمالي الإيرادات' : 'Total Revenue',
-                value: `${(stats.totalRevenue || 0).toFixed(2)} ${i18n.language === 'ar' ? 'ج.م' : 'EGP'}`,
+                value: `${(stats.totalRevenue || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${i18n.language === 'ar' ? 'ج.م' : 'EGP'}`,
                 icon: FiDollarSign,
                 loading: loading,
                 subtitle: i18n.language === 'ar' ? 'هذا الشهر' : 'This month'
@@ -314,17 +816,15 @@ const DashboardPage = () => {
                 subtitle: `${stats.totalInvoices > 0 ? ((stats.paidInvoices / stats.totalInvoices) * 100).toFixed(0) : 0}% ${i18n.language === 'ar' ? 'من الإجمالي' : 'of total'}`
             }, {
                 title: i18n.language === 'ar' ? 'معدل الفاتورة' : 'Average Invoice',
-                value: `${(stats.averageOrderValue || 0).toFixed(2)} ${i18n.language === 'ar' ? 'ج.م' : 'EGP'}`,
+                value: `${(stats.averageOrderValue || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${i18n.language === 'ar' ? 'ج.م' : 'EGP'}`,
                 icon: FiShoppingCart,
                 loading: loading,
                 subtitle: i18n.language === 'ar' ? 'متوسط القيمة' : 'Average value'
-            }
-
-            ];
+            }];
         } else if (isWorker) {
             return [{
                 title: i18n.language === 'ar' ? 'طلبات اليوم' : "Today's Orders",
-                value: '0',
+                value: todayStats?.invoiceCount || '0',
                 icon: FiPackage,
                 loading: loading
             }, {
@@ -352,13 +852,13 @@ const DashboardPage = () => {
 
     return (<div className="space-y-6" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
         {/* Welcome Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-400 rounded-xl p-6 text-white shadow-lg">
+        <div className="rounded-xl p-6 text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${COMPANY_COLORS.primary}, ${COMPANY_COLORS.secondary})` }}>
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold mb-2">
-                        {getWelcomeMessage()}، {user?.firstName}
+                        {getWelcomeMessage()}{i18n.language === 'ar' ? '، ' : ', '}{user?.firstName}
                     </h1>
-                    <p className="text-blue-100">
+                    <p className="opacity-90">
                         {isOwner && (i18n.language === 'ar' ? 'نظرة عامة على أداء الأعمال' : 'Business performance overview')}
                         {isCashier && (i18n.language === 'ar' ? 'جاهز لخدمة العملاء اليوم' : 'Ready to serve customers today')}
                         {isWorker && (i18n.language === 'ar' ? 'مهامك في المصنع' : 'Your factory tasks')}
@@ -379,8 +879,8 @@ const DashboardPage = () => {
                             }
                         </span>
                     </div>
-                    <div className="text-right">
-                        <p className="text-sm text-blue-100">
+                    <div className={i18n.language === 'ar' ? 'text-right' : 'text-left'}>
+                        <p className="text-sm opacity-90">
                             {new Date().toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', {
                                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
                             })}
@@ -409,6 +909,63 @@ const DashboardPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {dashboardStats.map((stat, index) => (<StatsCard key={index} {...stat} />))}
         </div>
+
+        {/* Today's Summary & Outstanding Balance - Owner/Cashier only */}
+        {(isOwner || isCashier) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <TodaySummaryCard
+                    todayStats={todayStats}
+                    salesOverview={salesOverview}
+                    loading={loading}
+                    isArabic={i18n.language === 'ar'}
+                />
+                <OutstandingBalanceCard
+                    stats={stats}
+                    loading={loading}
+                    isArabic={i18n.language === 'ar'}
+                />
+            </div>
+        )}
+
+        {/* Charts Section - Owner only */}
+        {isOwner && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Revenue Chart - Takes 2 columns */}
+                <div className="lg:col-span-2">
+                    <RevenueChart
+                        data={monthlyRevenue}
+                        loading={loading}
+                        isArabic={i18n.language === 'ar'}
+                    />
+                </div>
+                {/* Invoice Status Pie Chart */}
+                <div className="lg:col-span-1">
+                    <InvoiceStatusChart
+                        stats={stats}
+                        loading={loading}
+                        isArabic={i18n.language === 'ar'}
+                    />
+                </div>
+            </div>
+        )}
+
+        {/* Growth & Activity Cards - Owner only */}
+        {isOwner && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <GrowthComparisonCard
+                    currentMonth={stats}
+                    previousMonth={monthlyRevenue.length > 1 ? monthlyRevenue[monthlyRevenue.length - 2] : null}
+                    loading={loading}
+                    isArabic={i18n.language === 'ar'}
+                />
+                <DailyActivityCard
+                    todayStats={todayStats}
+                    salesOverview={salesOverview}
+                    loading={loading}
+                    isArabic={i18n.language === 'ar'}
+                />
+            </div>
+        )}
 
         {/* Quick Actions & Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -456,6 +1013,48 @@ const DashboardPage = () => {
                 </div>
             </div>
         </div>
+
+        {/* Top Customers (Owner Only) */}
+        {isOwner && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {i18n.language === 'ar' ? 'أفضل العملاء' : 'Top Customers'}
+                    </h3>
+                    <Link
+                        to="/customers"
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                    >
+                        {i18n.language === 'ar' ? 'عرض الكل' : 'View All'}
+                    </Link>
+                </div>
+                <div className="space-y-1">
+                    {loading ? (
+                        <div className="space-y-3">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                                <div key={i} className="h-12 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>
+                            ))}
+                        </div>
+                    ) : topCustomers.length > 0 ? (
+                        topCustomers.map((customer, index) => (
+                            <TopCustomerRow
+                                key={customer.customerId}
+                                customer={customer}
+                                rank={index + 1}
+                                isArabic={i18n.language === 'ar'}
+                            />
+                        ))
+                    ) : (
+                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <FiUsers className="w-12 h-12 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                            <p className="text-sm">
+                                {i18n.language === 'ar' ? 'لا توجد بيانات عملاء' : 'No customer data'}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        )}
 
         {/* Performance Overview (Owner Only) */}
         {isOwner && stats && (<div

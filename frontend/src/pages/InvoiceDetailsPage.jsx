@@ -59,7 +59,7 @@ const InvoiceDetailsPage = () => {
             setInvoice(data);
         } catch (err) {
             console.error('Load invoice error:', err);
-            showError('فشل في تحميل الفاتورة');
+            showError(t('invoices.details.loadError'));
         } finally {
             setLoading(false);
         }
@@ -72,25 +72,25 @@ const InvoiceDetailsPage = () => {
             } else {
                 await printJobService.openInvoicePdf(id);
             }
-            showSuccess(`تم فتح ${printJobService.getTypeText(type)}`);
+            showSuccess(t('invoices.details.printSuccess', { type: printJobService.getTypeText(type) }));
         } catch (err) {
             console.error('Print error:', err);
-            showError('فشل في الطباعة');
+            showError(t('invoices.details.printError'));
         }
     };
 
     const handleSendToFactory = () => {
         setConfirmDialog({
             isOpen: true,
-            title: 'إرسال للمصنع',
-            message: `هل تريد إرسال ملصق الفاتورة #${id} للمصنع؟`,
+            title: t('invoices.details.sendToFactoryConfirmTitle'),
+            message: t('invoices.details.sendToFactoryConfirmMessage', { id }),
             type: 'info',
             onConfirm: async () => {
                 try {
                     await printJobService.openStickerPdf(id);
-                    showSuccess('تم فتح الملصق للطباعة');
+                    showSuccess(t('invoices.details.stickerOpened'));
                 } catch (err) {
-                    showError('فشل في فتح الملصق');
+                    showError(t('invoices.details.stickerOpenError'));
                 }
             }
         });
@@ -99,17 +99,17 @@ const InvoiceDetailsPage = () => {
     const handleDelete = () => {
         setConfirmDialog({
             isOpen: true,
-            title: 'حذف الفاتورة',
-            message: `هل أنت متأكد من حذف الفاتورة #${id}؟ سيتم حذف جميع المدفوعات المرتبطة.`,
+            title: t('invoices.details.deleteConfirmTitle'),
+            message: t('invoices.details.deleteConfirmMessage', { id }),
             type: 'danger',
-            confirmText: 'حذف',
+            confirmText: t('actions.delete'),
             onConfirm: async () => {
                 try {
                     await invoiceService.deleteInvoice(id);
-                    showSuccess('تم حذف الفاتورة بنجاح');
+                    showSuccess(t('invoices.details.deleteSuccess'));
                     navigate('/invoices');
                 } catch (err) {
-                    showError('فشل في حذف الفاتورة');
+                    showError(t('invoices.details.deleteError'));
                 }
             }
         });
@@ -162,83 +162,80 @@ const InvoiceDetailsPage = () => {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
                 <FiFileText className="text-gray-400 mb-4" size={64} />
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">الفاتورة غير موجودة</h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">لم يتم العثور على الفاتورة المطلوبة</p>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('invoices.details.notFound')}</h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">{t('invoices.details.notFoundMessage')}</p>
                 <Button onClick={() => navigate('/invoices')}>
                     <FiArrowRight className="ml-2" />
-                    العودة للفواتير
+                    {t('invoices.details.backToInvoices')}
                 </Button>
             </div>
         );
     }
 
-    return (
-        <div className="space-y-6" dir="rtl">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => navigate('/invoices')}
-                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                    >
-                        <FiArrowRight size={24} className="text-gray-600 dark:text-gray-400" />
-                    </button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                            {t('invoices.invoice')} #{invoice.id}
-                            {getStatusBadge(invoice.status)}
-                            {getWorkStatusBadge(invoice.workStatus)}
-                        </h1>
-                        <p className="text-gray-600 dark:text-gray-400 mt-1">
-                            {new Date(invoice.issueDate).toLocaleDateString('ar-EG', {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                            })}
-                        </p>
-                    </div>
-                </div>
+    const breadcrumbs = [
+        { label: t('navigation.home'), href: '/' },
+        { label: t('invoices.title'), href: '/invoices' },
+        { label: `#${invoice.id}` }
+    ];
 
-                {/* Actions */}
-                <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                        variant="outline"
-                        onClick={() => setIsPrintOptionsOpen(true)}
-                        className="flex items-center gap-2"
-                    >
-                        <FiPrinter size={18} />
-                        طباعة
-                    </Button>
-                    <Button
-                        variant="outline"
-                        onClick={handleSendToFactory}
-                        className="flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50"
-                    >
-                        <FiSend size={18} />
-                        إرسال للمصنع
-                    </Button>
-                    {invoice.status !== 'PAID' && invoice.remainingBalance > 0 && (
-                        <Button
-                            variant="primary"
-                            onClick={() => setIsPaymentModalOpen(true)}
-                            className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-                        >
-                            <FiDollarSign size={18} />
-                            تسجيل دفعة
-                        </Button>
-                    )}
-                    {canDeleteInvoices() && (
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <PageHeader
+                title={`${t('invoices.invoice')} #${invoice.id}`}
+                subtitle={new Date(invoice.issueDate).toLocaleDateString(undefined, {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                })}
+                breadcrumbs={breadcrumbs}
+                actions={
+                    <div className="flex flex-wrap items-center gap-2">
                         <Button
                             variant="outline"
-                            onClick={handleDelete}
-                            className="flex items-center gap-2 text-red-600 border-red-300 hover:bg-red-50"
+                            onClick={() => setIsPrintOptionsOpen(true)}
+                            className="flex items-center gap-2"
                         >
-                            <FiTrash2 size={18} />
-                            حذف
+                            <FiPrinter size={18} />
+                            {t('invoices.details.print')}
                         </Button>
-                    )}
-                </div>
+                        <Button
+                            variant="outline"
+                            onClick={handleSendToFactory}
+                            className="flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50"
+                        >
+                            <FiSend size={18} />
+                            {t('invoices.details.sendToFactory')}
+                        </Button>
+                        {invoice.status !== 'PAID' && invoice.remainingBalance > 0 && (
+                            <Button
+                                variant="primary"
+                                onClick={() => setIsPaymentModalOpen(true)}
+                                className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                            >
+                                <FiDollarSign size={18} />
+                                {t('invoices.details.recordPayment')}
+                            </Button>
+                        )}
+                        {canDeleteInvoices() && (
+                            <Button
+                                variant="outline"
+                                onClick={handleDelete}
+                                className="flex items-center gap-2 text-red-600 border-red-300 hover:bg-red-50"
+                            >
+                                <FiTrash2 size={18} />
+                                {t('invoices.details.delete')}
+                            </Button>
+                        )}
+                    </div>
+                }
+            />
+
+            {/* Status Badges */}
+            <div className="flex items-center gap-3">
+                {getStatusBadge(invoice.status)}
+                {getWorkStatusBadge(invoice.workStatus)}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -248,27 +245,27 @@ const InvoiceDetailsPage = () => {
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                             <FiUser className="text-blue-600" />
-                            بيانات العميل
+                            {t('invoices.details.customerData')}
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="text-sm text-gray-500 dark:text-gray-400">الاسم</label>
+                                <label className="text-sm text-gray-500 dark:text-gray-400">{t('invoices.details.name')}</label>
                                 <p className="font-medium text-gray-900 dark:text-white">
                                     {['REGULAR', 'COMPANY'].includes(invoice.customer?.customerType) ? (
                                         <Link
                                             to={`/customers/${invoice.customer.id}`}
                                             className="text-blue-600 hover:underline"
                                         >
-                                            {invoice.customer?.name || 'غير محدد'}
+                                            {invoice.customer?.name || t('common.unspecified')}
                                         </Link>
                                     ) : (
-                                        invoice.customer?.name || 'غير محدد'
+                                        invoice.customer?.name || t('common.unspecified')
                                     )}
                                 </p>
                             </div>
                             {invoice.customer?.phone && (
                                 <div>
-                                    <label className="text-sm text-gray-500 dark:text-gray-400">الهاتف</label>
+                                    <label className="text-sm text-gray-500 dark:text-gray-400">{t('invoices.details.phone')}</label>
                                     <p className="font-medium text-gray-900 dark:text-white font-mono" dir="ltr">
                                         {invoice.customer.phone}
                                     </p>
@@ -276,18 +273,16 @@ const InvoiceDetailsPage = () => {
                             )}
                             {invoice.customer?.address && (
                                 <div className="md:col-span-2">
-                                    <label className="text-sm text-gray-500 dark:text-gray-400">العنوان</label>
+                                    <label className="text-sm text-gray-500 dark:text-gray-400">{t('invoices.details.address')}</label>
                                     <p className="font-medium text-gray-900 dark:text-white">
                                         {invoice.customer.address}
                                     </p>
                                 </div>
                             )}
                             <div>
-                                <label className="text-sm text-gray-500 dark:text-gray-400">نوع العميل</label>
+                                <label className="text-sm text-gray-500 dark:text-gray-400">{t('invoices.details.customerType')}</label>
                                 <p className="font-medium text-gray-900 dark:text-white">
-                                    {invoice.customer?.customerType === 'CASH' && 'نقدي'}
-                                    {invoice.customer?.customerType === 'COMPANY' && 'شركة'}
-                                    {invoice.customer?.customerType === 'REGULAR' && 'عميل عادي'}
+                                    {t(`customers.types.${invoice.customer?.customerType || 'CASH'}`)}
                                 </p>
                             </div>
                         </div>
@@ -298,7 +293,7 @@ const InvoiceDetailsPage = () => {
                         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 <FiPackage className="text-green-600" />
-                                بنود الفاتورة ({invoice.invoiceLines?.length || 0} بند)
+                                {t('invoices.details.invoiceItems')} ({invoice.invoiceLines?.length || 0} {t('invoices.details.invoiceItem')})
                             </h2>
                         </div>
 
@@ -332,7 +327,7 @@ const InvoiceDetailsPage = () => {
                                                 </div>
                                             </div>
                                             <div className="text-left md:text-right">
-                                                <div className="text-sm text-gray-500 dark:text-gray-400">إجمالي البند</div>
+                                                <div className="text-sm text-gray-500 dark:text-gray-400">{t('invoices.details.lineTotal')}</div>
                                                 <div className="text-xl font-bold text-gray-900 dark:text-white">
                                                     {formatCurrency(line.lineTotal)}
                                                 </div>
@@ -342,36 +337,36 @@ const InvoiceDetailsPage = () => {
                                         {/* Line Details Grid */}
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
                                             <div>
-                                                <div className="text-xs text-gray-500 dark:text-gray-400">المساحة</div>
+                                                <div className="text-xs text-gray-500 dark:text-gray-400">{t('invoices.details.area')}</div>
                                                 <div className="font-mono font-medium text-gray-900 dark:text-white">
-                                                    {line.areaM2?.toFixed(3)} م²
+                                                    {line.areaM2?.toFixed(3)} {t('common.squareMeter')}
                                                 </div>
                                             </div>
                                             {line.quantity && (
                                                 <div>
-                                                    <div className="text-xs text-gray-500 dark:text-gray-400">الكمية</div>
+                                                    <div className="text-xs text-gray-500 dark:text-gray-400">{t('invoices.details.quantity')}</div>
                                                     <div className="font-mono font-medium text-gray-900 dark:text-white">
-                                                        {line.quantity} قطعة
+                                                        {line.quantity} {t('invoices.details.piece')}
                                                     </div>
                                                 </div>
                                             )}
                                             <div>
-                                                <div className="text-xs text-gray-500 dark:text-gray-400">سعر الزجاج</div>
+                                                <div className="text-xs text-gray-500 dark:text-gray-400">{t('invoices.details.glassPrice')}</div>
                                                 <div className="font-mono font-medium text-emerald-600 dark:text-emerald-400">
                                                     {formatCurrency((line.lineTotal || 0) - (line.cuttingPrice || 0))}
                                                 </div>
                                             </div>
                                             <div>
-                                                <div className="text-xs text-gray-500 dark:text-gray-400">سعر العمليات</div>
+                                                <div className="text-xs text-gray-500 dark:text-gray-400">{t('invoices.details.operationsPrice')}</div>
                                                 <div className="font-mono font-medium text-orange-600 dark:text-orange-400">
                                                     {formatCurrency(line.cuttingPrice)}
                                                 </div>
                                             </div>
                                             {line.shatafMeters > 0 && (
                                                 <div>
-                                                    <div className="text-xs text-gray-500 dark:text-gray-400">أمتار الشطف</div>
+                                                    <div className="text-xs text-gray-500 dark:text-gray-400">{t('invoices.details.chamferMeters')}</div>
                                                     <div className="font-mono font-medium text-purple-600 dark:text-purple-400">
-                                                        {line.shatafMeters?.toFixed(2)} م
+                                                        {line.shatafMeters?.toFixed(2)} {t('common.meter')}
                                                     </div>
                                                 </div>
                                             )}
@@ -382,7 +377,7 @@ const InvoiceDetailsPage = () => {
                                             <div className="mt-4">
                                                 <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                                                     <FiScissors size={14} />
-                                                    العمليات ({line.operations.length})
+                                                    {t('invoices.details.operations')} ({line.operations.length})
                                                 </div>
                                                 <div className="flex flex-wrap gap-2">
                                                     {line.operations.map((op, idx) => {
@@ -425,7 +420,7 @@ const InvoiceDetailsPage = () => {
                                 ))
                             ) : (
                                 <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                                    لا توجد بنود في الفاتورة
+                                    {t('invoices.details.noItems')}
                                 </div>
                             )}
                         </div>
@@ -437,7 +432,7 @@ const InvoiceDetailsPage = () => {
                     {/* Invoice Summary */}
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 sticky top-6">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                            ملخص الفاتورة
+                            {t('invoices.details.invoiceSummary')}
                         </h2>
 
                         <div className="space-y-4">
@@ -450,7 +445,7 @@ const InvoiceDetailsPage = () => {
                                 <div className="flex justify-between text-sm">
                                     <span className="text-gray-600 dark:text-gray-400">{t('invoices.date')}</span>
                                     <span className="text-gray-900 dark:text-white">
-                                        {new Date(invoice.issueDate).toLocaleDateString('ar-EG')}
+                                        {new Date(invoice.issueDate).toLocaleDateString()}
                                     </span>
                                 </div>
                                 <div className="flex justify-between text-sm">
@@ -466,21 +461,21 @@ const InvoiceDetailsPage = () => {
                             {/* Totals */}
                             <div className="space-y-3">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">المجموع الفرعي</span>
+                                    <span className="text-gray-600 dark:text-gray-400">{t('invoices.details.subtotal')}</span>
                                     <span className="font-mono text-gray-900 dark:text-white">
                                         {formatCurrency(invoice.totalPrice)}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">الضريبة</span>
-                                    <span className="font-mono text-gray-900 dark:text-white">0.00 ج.م</span>
+                                    <span className="text-gray-600 dark:text-gray-400">{t('invoices.details.tax')}</span>
+                                    <span className="font-mono text-gray-900 dark:text-white">{formatCurrency(0)}</span>
                                 </div>
                             </div>
 
                             {/* Total */}
                             <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-lg font-bold text-gray-900 dark:text-white">الإجمالي</span>
+                                    <span className="text-lg font-bold text-gray-900 dark:text-white">{t('invoices.details.total')}</span>
                                     <span className="text-2xl font-bold text-green-600 dark:text-green-400 font-mono">
                                         {formatCurrency(invoice.totalPrice)}
                                     </span>
@@ -490,13 +485,13 @@ const InvoiceDetailsPage = () => {
                             {/* Payment Status */}
                             <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">المدفوع</span>
+                                    <span className="text-gray-600 dark:text-gray-400">{t('invoices.details.amountPaid')}</span>
                                     <span className="font-mono font-bold text-green-600 dark:text-green-400">
                                         {formatCurrency(invoice.amountPaidNow || 0)}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">المتبقي</span>
+                                    <span className="text-gray-600 dark:text-gray-400">{t('invoices.details.remainingBalance')}</span>
                                     <span className={`font-mono font-bold ${
                                         (invoice.remainingBalance || 0) > 0
                                             ? 'text-red-600 dark:text-red-400'
@@ -514,8 +509,8 @@ const InvoiceDetailsPage = () => {
                                         onClick={() => setIsPaymentModalOpen(true)}
                                         className="w-full bg-green-600 hover:bg-green-700 text-white"
                                     >
-                                        <FiDollarSign className="ml-2" />
-                                        تسجيل دفعة
+                                        <FiDollarSign className="me-2" />
+                                        {t('invoices.details.recordPayment')}
                                     </Button>
                                 </div>
                             )}

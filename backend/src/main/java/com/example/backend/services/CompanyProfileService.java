@@ -2,17 +2,12 @@ package com.example.backend.services;
 
 import com.example.backend.models.CompanyProfile;
 import com.example.backend.repositories.CompanyProfileRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.util.Base64;
 
 @Service
 @Slf4j
@@ -21,9 +16,6 @@ public class CompanyProfileService {
     private final CompanyProfileRepository repository;
     private final com.example.backend.repositories.InvoiceRepository invoiceRepository;
 
-    @Value("${app.assets.path:./assets}")
-    private String assetsPath;
-
     public CompanyProfileService(CompanyProfileRepository repository,
                                   com.example.backend.repositories.InvoiceRepository invoiceRepository) {
         this.repository = repository;
@@ -31,15 +23,18 @@ public class CompanyProfileService {
     }
 
     /**
-     * Get profile for frontend display (with API URL for logo)
+     * Get profile for frontend display (with base64 data URL for logo)
      */
     public CompanyProfile getProfile() {
         CompanyProfile profile = getProfileInternal();
 
-        // Return API URL for logo instead of file path (for frontend display)
-        if (profile.getLogoUrl() != null && !profile.getLogoUrl().isEmpty()) {
-            // Create a copy to avoid modifying the entity
-            CompanyProfile copy = CompanyProfile.builder()
+        // If logo exists, return with data URL for direct display
+        if (profile.getLogoBase64() != null && !profile.getLogoBase64().isEmpty()) {
+            String contentType = profile.getLogoContentType() != null ? profile.getLogoContentType() : "image/png";
+            String dataUrl = "data:" + contentType + ";base64," + profile.getLogoBase64();
+
+            // Create a copy to avoid modifying the entity, return data URL in logoUrl
+            return CompanyProfile.builder()
                     .id(profile.getId())
                     .companyName(profile.getCompanyName())
                     .companyNameArabic(profile.getCompanyNameArabic())
@@ -49,9 +44,8 @@ public class CompanyProfileService {
                     .taxId(profile.getTaxId())
                     .commercialRegister(profile.getCommercialRegister())
                     .footerText(profile.getFooterText())
-                    .logoUrl("/api/v1/company-profile/logo")
+                    .logoUrl(dataUrl)
                     .build();
-            return copy;
         }
 
         return profile;
@@ -60,7 +54,7 @@ public class CompanyProfileService {
     /**
      * Get profile from database (internal use)
      */
-    private CompanyProfile getProfileInternal() {
+    public CompanyProfile getProfileInternal() {
         return repository.findAll().stream().findFirst().orElseGet(this::createDefaultProfile);
     }
 
@@ -76,12 +70,11 @@ public class CompanyProfileService {
         existing.setCommercialRegister(updatedProfile.getCommercialRegister());
         existing.setFooterText(updatedProfile.getFooterText());
 
-        // Don't update logoUrl here, handled separately
+        // Don't update logo here, handled separately
 
         CompanyProfile saved = repository.save(existing);
 
-        // Invalidate all cached invoice PDFs to force regeneration with new profile
-        // data
+        // Invalidate all cached invoice PDFs to force regeneration with new profile data
         try {
             invoiceRepository.clearAllPdfUrls();
             log.info("Cleared all cached invoice PDF URLs due to profile update");
@@ -93,8 +86,7 @@ public class CompanyProfileService {
     }
 
     /**
-     * Upload and save company logo to local filesystem.
-     * Deletes any existing logo before saving the new one.
+     * Upload and save company logo as base64 in database.
      * @param file The logo file to upload
      * @return Updated company profile
      */
@@ -102,33 +94,23 @@ public class CompanyProfileService {
         CompanyProfile existing = getProfileInternal();
 
         try {
-            // Create assets directory if it doesn't exist
-            Path assetsDir = Paths.get(assetsPath);
-            if (!Files.exists(assetsDir)) {
-                Files.createDirectories(assetsDir);
-                log.info("Created assets directory: {}", assetsDir.toAbsolutePath());
+            // Convert file to base64
+            byte[] fileBytes = file.getBytes();
+            String base64 = Base64.getEncoder().encodeToString(fileBytes);
+
+            // Get content type
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                contentType = "image/png"; // default
             }
 
-            // Delete any existing logo files first
-            deleteExistingLogos(assetsDir);
+            // Update profile with base64 logo
+            existing.setLogoBase64(base64);
+            existing.setLogoContentType(contentType);
+            existing.setLogoUrl(null); // Clear old file path if any
 
-            // Get file extension
-            String originalFilename = file.getOriginalFilename();
-            String extension = ".png"; // default
-            if (originalFilename != null && originalFilename.contains(".")) {
-                extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
-            }
+            log.info("Logo saved as base64, size: {} bytes, type: {}", fileBytes.length, contentType);
 
-            // Save as logo.png/jpg/etc in assets folder
-            String logoFilename = "logo" + extension;
-            Path logoPath = assetsDir.resolve(logoFilename);
-
-            // Copy file to assets folder
-            Files.copy(file.getInputStream(), logoPath, StandardCopyOption.REPLACE_EXISTING);
-            log.info("Logo saved to: {}", logoPath.toAbsolutePath());
-
-            // Update profile with the local path
-            existing.setLogoUrl(logoPath.toString());
             CompanyProfile saved = repository.save(existing);
 
             // Invalidate all cached invoice PDFs to force regeneration with new logo
@@ -139,49 +121,50 @@ public class CompanyProfileService {
                 log.error("Failed to clear PDF cache after logo update: {}", e.getMessage());
             }
 
-            // Return with API URL for frontend
-            saved.setLogoUrl("/api/v1/company-profile/logo");
+            // Return with data URL for frontend
+            String dataUrl = "data:" + contentType + ";base64," + base64;
+            saved.setLogoUrl(dataUrl);
+            saved.setLogoBase64(null); // Don't send full base64 back in response
+
             return saved;
 
         } catch (IOException e) {
-            log.error("Failed to save logo file: {}", e.getMessage());
-            throw new RuntimeException("Failed to save logo file: " + e.getMessage(), e);
+            log.error("Failed to process logo file: {}", e.getMessage());
+            throw new RuntimeException("Failed to process logo file: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Delete all existing logo files from assets directory
+     * Get logo as byte array for PDF generation
+     * @return Logo bytes or null if not set
      */
-    private void deleteExistingLogos(Path assetsDir) {
-        String[] logoExtensions = {"png", "jpg", "jpeg", "gif", "webp", "svg"};
-        for (String ext : logoExtensions) {
+    public byte[] getLogoBytes() {
+        CompanyProfile profile = getProfileInternal();
+        if (profile.getLogoBase64() != null && !profile.getLogoBase64().isEmpty()) {
             try {
-                Path logoFile = assetsDir.resolve("logo." + ext);
-                if (Files.exists(logoFile)) {
-                    Files.delete(logoFile);
-                    log.info("Deleted existing logo: {}", logoFile);
-                }
-            } catch (IOException e) {
-                log.warn("Failed to delete existing logo with extension {}: {}", ext, e.getMessage());
+                return Base64.getDecoder().decode(profile.getLogoBase64());
+            } catch (Exception e) {
+                log.error("Failed to decode logo base64: {}", e.getMessage());
             }
         }
+        return null;
     }
 
     /**
-     * Get the logo file path
-     * @return Path to logo file or null if not set
+     * Get logo content type
+     * @return Content type or null if not set
      */
-    public String getLogoPath() {
+    public String getLogoContentType() {
         CompanyProfile profile = getProfileInternal();
-        if (profile.getLogoUrl() != null && !profile.getLogoUrl().isEmpty()) {
-            return profile.getLogoUrl();
-        }
-        // Check for default logo in assets
-        Path defaultLogo = Paths.get(assetsPath, "logo.png");
-        if (Files.exists(defaultLogo)) {
-            return defaultLogo.toString();
-        }
-        return null;
+        return profile.getLogoContentType();
+    }
+
+    /**
+     * Check if logo exists
+     */
+    public boolean hasLogo() {
+        CompanyProfile profile = getProfileInternal();
+        return profile.getLogoBase64() != null && !profile.getLogoBase64().isEmpty();
     }
 
     private CompanyProfile createDefaultProfile() {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FiUser, FiPhone, FiMapPin, FiCreditCard, FiClock, FiDollarSign } from 'react-icons/fi';
 import Button from '@/components/ui/Button';
 import DataTable from '@/components/ui/DataTable';
@@ -7,12 +8,13 @@ import PageHeader from '@/components/ui/PageHeader';
 import Tabs from '@/components/ui/Tabs';
 import InvoiceViewModal from '@/components/InvoiceViewModal';
 import { customerService } from '@/services/customerService';
-import paymentService from '@/services/paymentService'; // Consistently use default export
-import invoiceService from '@/services/invoiceService'; // Use default export
+import paymentService from '@/services/paymentService';
+import invoiceService from '@/services/invoiceService';
 import PaymentModal from '@/components/ui/PaymentModal';
-import InvoiceList from '@/pages/cashier/components/InvoiceList'; // Import InvoiceList
+import InvoiceList from '@/pages/cashier/components/InvoiceList';
 
 const CustomerDetailsPage = () => {
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate(); // Still useful if we need programmatic navigation
     const [customer, setCustomer] = useState(null);
@@ -50,7 +52,7 @@ const CustomerDetailsPage = () => {
             fetchInvoices(id, invoicePage);
 
         } catch (err) {
-            setError('فشل في استرداد بيانات العميل');
+            setError(t('customers.details.loadError'));
             console.error(err);
         } finally {
             setLoading(false);
@@ -91,47 +93,47 @@ const CustomerDetailsPage = () => {
         }
     }, [invoicePage, id]);
 
-    if (loading) return <div className="p-8 text-center">جاري التحميل...</div>;
+    if (loading) return <div className="p-8 text-center">{t('app.loading')}</div>;
     if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
-    if (!customer) return <div className="p-8 text-center">العميل غير موجود</div>;
+    if (!customer) return <div className="p-8 text-center">{t('customers.details.notFound')}</div>;
 
     const paymentColumns = [
         {
             key: 'id',
-            header: 'رقم العملية',
+            header: t('customers.details.paymentId'),
             render: (value) => `#${value}`
         },
         {
             key: 'paymentDate',
-            header: 'التاريخ',
-            render: (value) => new Date(value).toLocaleDateString('ar-EG')
+            header: t('customers.details.paymentDate'),
+            render: (value) => new Date(value).toLocaleDateString()
         },
         {
             key: 'amount',
-            header: 'المبلغ',
-            render: (value) => <span className="font-bold text-green-600">{parseFloat(value).toFixed(2)} ج.م</span>
+            header: t('customers.details.paymentAmount'),
+            render: (value) => <span className="font-bold text-green-600">{parseFloat(value).toFixed(2)} {t('common.currency')}</span>
         },
         {
             key: 'paymentMethod',
-            header: 'طريقة الدفع',
-            render: (value) => paymentService.formatPaymentMethod(value)
+            header: t('customers.details.paymentMethod'),
+            render: (value) => t(`payment.methods.${value}`, paymentService.formatPaymentMethod(value))
         },
         {
             key: 'invoice',
-            header: 'الفاتورة',
+            header: t('customers.details.paymentInvoice'),
             render: (_, row) => row.invoiceId ? `#${row.invoiceId}` : '-'
         },
         {
             key: 'referenceNumber',
-            header: 'المرجع',
+            header: t('customers.details.paymentReference'),
             render: (value) => value || '-'
         }
     ];
 
     // Define Breadcrumbs
     const breadcrumbs = [
-        { label: 'الرئيسية', href: '/' },
-        { label: 'العملاء', href: '/customers' }, // Assuming this route exists
+        { label: t('navigation.home'), href: '/' },
+        { label: t('customers.title'), href: '/customers' },
         { label: customer.name }
     ];
 
@@ -139,8 +141,8 @@ const CustomerDetailsPage = () => {
         <div className="flex flex-col dark:bg-gray-900">
             {/* Page Header */}
             <PageHeader
-                title={`ملف العميل: ${customer.name}`}
-                subtitle={`عرض التفاصيل المالية وسجل المدفوعات لـ ${customer.name}`}
+                title={`${t('customers.details.title')}: ${customer.name}`}
+                subtitle={t('customers.details.subtitle', { name: customer.name })}
                 breadcrumbs={breadcrumbs}
                 actions={
                     ['REGULAR', 'COMPANY'].includes(customer.customerType) && (
@@ -149,7 +151,7 @@ const CustomerDetailsPage = () => {
                             icon={FiDollarSign}
                             onClick={() => setIsPaymentModalOpen(true)}
                         >
-                            تسجيل دفعة
+                            {t('customers.details.recordPayment')}
                         </Button>
                     )
                 }
@@ -163,9 +165,9 @@ const CustomerDetailsPage = () => {
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">الرصيد المستحق</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{t('customers.details.outstandingBalance')}</p>
                                 <h3 className={`text-2xl font-bold font-mono mt-1 ${customer.balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                    {parseFloat(customer.balance || 0).toFixed(2)} ج.م
+                                    {parseFloat(customer.balance || 0).toFixed(2)} {t('common.currency')}
                                 </h3>
                             </div>
                             <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
@@ -177,10 +179,9 @@ const CustomerDetailsPage = () => {
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">نوع العميل</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{t('customers.details.customerType')}</p>
                                 <h3 className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">
-                                    {customer.customerType === 'COMPANY' ? 'شركة' :
-                                        customer.customerType === 'REGULAR' ? 'عميل دائم' : 'نقدي'}
+                                    {t(`customers.types.${customer.customerType || 'CASH'}`)}
                                 </h3>
                             </div>
                             <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -205,7 +206,7 @@ const CustomerDetailsPage = () => {
                             )}
                             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
                                 <FiClock className="text-gray-400" />
-                                <span className="text-sm">تاريخ التسجيل: {new Date(customer.createdAt || Date.now()).toLocaleDateString('ar-EG')}</span>
+                                <span className="text-sm">{t('customers.details.registrationDate')}: {new Date(customer.createdAt || Date.now()).toLocaleDateString()}</span>
                             </div>
                         </div>
                     </div>
@@ -220,7 +221,7 @@ const CustomerDetailsPage = () => {
                             tabs={[
                                 {
                                     id: 'invoices',
-                                    label: 'الفواتير',
+                                    label: t('customers.details.invoicesTab'),
                                     icon: <FiCreditCard />,
                                     content: (
                                         <div className="mt-4">
@@ -236,8 +237,6 @@ const CustomerDetailsPage = () => {
                                                 }}
                                                 onPrintInvoice={(invoice) => {
                                                     setSelectedInvoice(invoice);
-                                                    // We can use the modal to print too, or handle directly.
-                                                    // For now, let's open details which has print.
                                                     setIsInvoiceModalOpen(true);
                                                 }}
                                                 onSendToFactory={() => { }}
@@ -250,14 +249,14 @@ const CustomerDetailsPage = () => {
                                 },
                                 {
                                     id: 'payments',
-                                    label: 'سجل المدفوعات',
+                                    label: t('customers.details.paymentsTab'),
                                     icon: <FiDollarSign />,
                                     content: (
                                         <div className="mt-4">
                                             <DataTable
                                                 data={payments}
                                                 columns={paymentColumns}
-                                                emptyMessage="لا يوجد سجل مدفوعات لهذا العميل"
+                                                emptyMessage={t('customers.details.noPayments')}
                                             />
                                         </div>
                                     )

@@ -17,7 +17,7 @@ import { invoiceService } from '@services/invoiceService.js';
 import { customerService } from '@services/customerService.js';
 import { glassTypeService } from '@services/glassTypeService.js';
 import { printJobService } from '@services/printJobService.js';
-import { invoiceUtils } from '@utils';
+import { invoiceUtils, getErrorMessage, getErrorDetails } from '@utils';
 import { PageHeader } from "@components";
 import { useSnackbar } from "@contexts/SnackbarContext.jsx";
 import { useWebSocket, WEBSOCKET_TOPICS } from '@hooks/useWebSocket';
@@ -220,7 +220,7 @@ const CashierInvoicesPage = () => {
             setCurrentPage(page);
         } catch (err) {
             console.error('Load invoices error:', err);
-            showError(t('messages.loadingInvoices'));
+            showError(getErrorMessage(err, t('messages.loadingInvoices')));
         } finally {
             setLoading(false);
         }
@@ -236,7 +236,7 @@ const CashierInvoicesPage = () => {
             setGlassTypes(types);
         } catch (err) {
             console.error('Load glass types error:', err);
-            showError(t('messages.loadingData'));
+            showError(getErrorMessage(err, t('messages.loadingData')));
         }
     };
 
@@ -292,7 +292,7 @@ const CashierInvoicesPage = () => {
             setTimeout(() => glassTypeRef.current?.focus(), 100);
         } catch (err) {
             console.error('Create customer error:', err);
-            showError(t('messages.saveError'));
+            showError(getErrorMessage(err, t('messages.saveError')));
         } finally {
             setIsAddingCustomer(false);
         }
@@ -321,13 +321,7 @@ const CashierInvoicesPage = () => {
             return;
         }
 
-        // Validation: Must have at least one operation
-        if (operations.length === 0) {
-            showError(t('product.validation.operationRequired'));
-            return;
-        }
-
-        // Validate operations
+        // Validate operations (if any provided)
         for (let i = 0; i < operations.length; i++) {
             const op = operations[i];
             const prefix = `${t('product.validation.operationPrefix')} ${i + 1}: `;
@@ -420,7 +414,13 @@ const CashierInvoicesPage = () => {
 
         } catch (err) {
             console.error('Calculate price error:', err);
-            showError(err.response?.data?.message || t('messages.saveError'));
+            const errorMsg = getErrorMessage(err, t('messages.saveError'));
+            const details = getErrorDetails(err);
+            if (details.length > 0) {
+                showError(`${errorMsg}: ${details.join(', ')}`);
+            } else {
+                showError(errorMsg);
+            }
         } finally {
             setIsCalculatingPrice(false);
         }
@@ -554,7 +554,13 @@ const CashierInvoicesPage = () => {
 
         } catch (error) {
             console.error('Create invoice error:', error);
-            showError(error.response?.data?.message || t('messages.invoiceCreationError'));
+            const errorMsg = getErrorMessage(error, t('messages.invoiceCreationError'));
+            const details = getErrorDetails(error);
+            if (details.length > 0) {
+                showError(`${errorMsg}: ${details.join(', ')}`);
+            } else {
+                showError(errorMsg);
+            }
         } finally {
             setIsCreating(false);
         }
@@ -569,7 +575,7 @@ const CashierInvoicesPage = () => {
             showSuccess(t('messages.saveSuccess'));
         } catch (err) {
             console.error('Print invoice error:', err);
-            showError(t('messages.saveError'));
+            showError(getErrorMessage(err, t('messages.printError')));
         } finally {
             setIsPrinting(false);
         }
@@ -604,7 +610,7 @@ const CashierInvoicesPage = () => {
             loadInvoices(currentPage);
         } catch (err) {
             console.error('Send to factory error:', err);
-            showError(t('messages.saveError'));
+            showError(getErrorMessage(err, t('messages.sendToFactoryError')));
         } finally {
             setIsSendingToFactory(false);
         }
@@ -629,7 +635,7 @@ const CashierInvoicesPage = () => {
             loadInvoices(currentPage);
         } catch (err) {
             console.error('Mark as paid error:', err);
-            showError(t('messages.saveError'));
+            showError(getErrorMessage(err, t('messages.markAsPaidError')));
         }
     };
 

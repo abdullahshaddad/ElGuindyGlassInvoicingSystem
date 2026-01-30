@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth, usePermissions } from '@/contexts/AuthContext';
@@ -23,7 +23,10 @@ import {
     FiSun,
     FiMoon,
     FiGlobe,
-    FiUser
+    FiUser,
+    FiChevronLeft,
+    FiChevronRight,
+    FiMenu
 } from 'react-icons/fi';
 
 // Professional icon mapping using React Icons
@@ -153,39 +156,48 @@ const getSidebarItems = (t) => [
     }
 ];
 
-const NavItem = ({ to, icon: IconComponent, label, isActive, onClick, badge }) => (
+const NavItem = ({ to, icon: IconComponent, label, isActive, onClick, badge, isCollapsed }) => (
     <Link
         to={to}
         onClick={onClick}
+        title={isCollapsed ? label : undefined}
         className={clsx(
-            'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200',
+            'flex items-center gap-3 rounded-lg transition-all duration-200',
+            isCollapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3',
             'hover:bg-primary-50 dark:hover:bg-gray-800',
             isActive && 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300',
             !isActive && 'text-gray-700 dark:text-gray-300'
         )}
     >
-        <IconComponent className="w-5 h-5" />
-        <span className="font-medium flex-1">{label}</span>
-        {badge && (
-            <span className="bg-primary-100 text-primary-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-primary-900 dark:text-primary-300">
-                {badge}
-            </span>
+        <IconComponent className="w-5 h-5 flex-shrink-0" />
+        {!isCollapsed && (
+            <>
+                <span className="font-medium flex-1">{label}</span>
+                {badge && (
+                    <span className="bg-primary-100 text-primary-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-primary-900 dark:text-primary-300">
+                        {badge}
+                    </span>
+                )}
+            </>
         )}
     </Link>
 );
 
-const NavGroup = ({ title, children }) => (
+const NavGroup = ({ title, children, isCollapsed }) => (
     <div className="mb-6">
-        <h3 className="px-4 mb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">
-            {title}
-        </h3>
+        {!isCollapsed && (
+            <h3 className="px-4 mb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                {title}
+            </h3>
+        )}
+        {isCollapsed && <div className="border-t border-gray-200 dark:border-gray-700 my-2 mx-3"></div>}
         <nav className="space-y-1">
             {children}
         </nav>
     </div>
 );
 
-const Sidebar = ({ isOpen, onClose }) => {
+const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
     const { t, i18n } = useTranslation();
     const { user, logout } = useAuth();
     const { isOwner, isCashier, isWorker, isAdmin } = usePermissions();
@@ -194,8 +206,25 @@ const Sidebar = ({ isOpen, onClose }) => {
     const [showUserSettings, setShowUserSettings] = useState(false);
     const [companyLogo, setCompanyLogo] = useState(null);
     const [companyName, setCompanyName] = useState(null);
+    const popupRef = useRef(null);
 
     const isRTL = i18n.language === 'ar';
+
+    // Close popup when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (popupRef.current && !popupRef.current.contains(event.target)) {
+                setShowUserSettings(false);
+            }
+        };
+
+        if (showUserSettings) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showUserSettings]);
     const isActive = (path) => location.pathname === path;
 
     // Fetch company profile for logo
@@ -204,6 +233,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             try {
                 const profile = await companyProfileService.getProfile();
                 if (profile?.logoUrl) {
+                    // Logo URL is now a data URL (base64) directly from backend
                     setCompanyLogo(profile.logoUrl);
                 }
                 if (profile?.companyNameArabic || profile?.companyName) {
@@ -254,9 +284,11 @@ const Sidebar = ({ isOpen, onClose }) => {
             {/* Sidebar */}
             <div
                 className={clsx(
-                    'fixed inset-y-0 z-50 w-64 bg-white dark:bg-gray-900',
-                    'transform transition-transform duration-300 ease-in-out',
+                    'fixed inset-y-0 z-50 bg-white dark:bg-gray-900',
+                    'transform transition-all duration-300 ease-in-out',
                     'flex flex-col',
+                    // Width based on collapsed state
+                    isCollapsed ? 'w-20' : 'w-64',
                     // Position based on language direction
                     isRTL ? 'right-0 border-l border-gray-200 dark:border-gray-700' : 'left-0 border-r border-gray-200 dark:border-gray-700',
                     // Desktop: always visible
@@ -267,11 +299,8 @@ const Sidebar = ({ isOpen, onClose }) => {
             >
                 {/* Sidebar header - Fixed at top */}
                 <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className={clsx(
-                        'flex items-center gap-3',
-                        isRTL ? 'justify-between' : 'justify-between flex-row-reverse'
-                    )}>
-                        <div className={clsx('flex items-center gap-3', !isRTL && 'flex-row-reverse')}>
+                    <div className="flex items-center justify-between">
+                        <div className={clsx('flex items-center gap-3', isCollapsed && 'justify-center w-full')}>
                             {companyLogo ? (
                                 <img
                                     src={companyLogo}
@@ -285,32 +314,58 @@ const Sidebar = ({ isOpen, onClose }) => {
                             ) : null}
                             <div
                                 className={clsx(
-                                    "w-10 h-10 bg-primary-500 rounded-xl items-center justify-center text-white font-bold",
+                                    "w-10 h-10 rounded-xl items-center justify-center text-white font-bold flex-shrink-0",
                                     companyLogo ? "hidden" : "flex"
                                 )}
+                                style={{ backgroundColor: '#0077B6' }}
                             >
                                 G
                             </div>
-                            <div>
-                                <h1 className="text-lg font-bold text-gray-900 dark:text-white">
-                                    {companyName || t('app.name', 'الجيندي للزجاج')}
-                                </h1>
-                            </div>
+                            {!isCollapsed && (
+                                <div className="min-w-0 flex-1">
+                                    <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+                                        {companyName || t('app.name', 'الجيندي للزجاج')}
+                                    </h1>
+                                </div>
+                            )}
                         </div>
 
-                        {/* Close button for mobile */}
-                        <button
-                            onClick={onClose}
-                            className="lg:hidden p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                        >
-                            <FiX className="w-5 h-5" />
-                        </button>
+                        {/* Toggle & Close buttons */}
+                        <div className="flex items-center gap-1">
+                            {/* Collapse Toggle Button - Desktop only */}
+                            <button
+                                onClick={onToggleCollapse}
+                                className={clsx(
+                                    'hidden lg:flex p-2 rounded-lg',
+                                    'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
+                                    'hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'
+                                )}
+                                title={isCollapsed
+                                    ? (isRTL ? 'توسيع القائمة' : 'Expand sidebar')
+                                    : (isRTL ? 'طي القائمة' : 'Collapse sidebar')
+                                }
+                            >
+                                {isCollapsed
+                                    ? <FiMenu className="w-5 h-5" />
+                                    : (isRTL ? <FiChevronRight className="w-5 h-5" /> : <FiChevronLeft className="w-5 h-5" />)
+                                }
+                            </button>
+
+                            {/* Close button for mobile */}
+                            {!isCollapsed && (
+                                <button
+                                    onClick={onClose}
+                                    className="lg:hidden p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                >
+                                    <FiX className="w-5 h-5" />
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 {/* Navigation - Scrollable section */}
                 <div className="flex-1 px-2 py-4 overflow-y-auto overflow-x-hidden">
-                    {/* ADDED: overflow-y-auto for vertical scrolling, overflow-x-hidden to prevent horizontal scroll */}
                     {sidebarItems.map((group) => {
                         // Check if group should be visible based on user roles
                         if (!shouldShowGroup(group)) return null;
@@ -322,7 +377,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                         if (visibleItems.length === 0) return null;
 
                         return (
-                            <NavGroup key={group.id} title={group.title}>
+                            <NavGroup key={group.id} title={group.title} isCollapsed={isCollapsed}>
                                 {visibleItems.map((item) => (
                                     <NavItem
                                         key={item.id}
@@ -332,6 +387,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                                         isActive={isActive(item.to)}
                                         onClick={onClose}
                                         badge={item.badge}
+                                        isCollapsed={isCollapsed}
                                     />
                                 ))}
                             </NavGroup>
@@ -339,15 +395,35 @@ const Sidebar = ({ isOpen, onClose }) => {
                     })}
                 </div>
 
-                {/* Footer with user info, settings, and logout - Fixed at bottom */}
-                <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700">
-                    {/* Settings Panel - Shows when user clicks on profile */}
+                {/* Footer with user info - Fixed at bottom */}
+                <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 relative" ref={popupRef}>
+                    {/* Settings Popup - Floats above user profile */}
                     {showUserSettings && (
-                        <div className="p-3 border-b border-gray-200 dark:border-gray-700 space-y-2 bg-gray-50 dark:bg-gray-800/50">
+                        <div className={clsx(
+                            'absolute bottom-full mb-2 z-50',
+                            'bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700',
+                            'p-2 space-y-1 min-w-[200px]',
+                            isCollapsed
+                                ? (isRTL ? 'right-0' : 'left-0')
+                                : (isRTL ? 'left-2 right-2' : 'left-2 right-2')
+                        )}>
+                            {/* User Info Header in Popup */}
+                            <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700 mb-1">
+                                <div className="font-medium text-gray-900 dark:text-white text-sm">
+                                    {user?.displayName || t('users.user')}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    {user?.role === 'OWNER' && t('users.roles.OWNER')}
+                                    {user?.role === 'ADMIN' && t('users.roles.ADMIN')}
+                                    {user?.role === 'CASHIER' && t('users.roles.CASHIER')}
+                                    {user?.role === 'WORKER' && t('users.roles.WORKER')}
+                                </div>
+                            </div>
+
                             {/* Theme Toggle */}
                             <button
                                 onClick={toggleTheme}
-                                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 transition-colors"
+                                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                             >
                                 <div className="flex items-center gap-3">
                                     {isDarkMode ? <FiMoon className="w-4 h-4" /> : <FiSun className="w-4 h-4" />}
@@ -371,7 +447,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                             {/* Language Toggle */}
                             <button
                                 onClick={toggleLanguage}
-                                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 transition-colors"
+                                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                             >
                                 <div className="flex items-center gap-3">
                                     <FiGlobe className="w-4 h-4" />
@@ -381,6 +457,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                                     {i18n.language === 'ar' ? 'AR' : 'EN'}
                                 </span>
                             </button>
+
+                            <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
 
                             {/* Logout Button */}
                             <button
@@ -395,28 +473,43 @@ const Sidebar = ({ isOpen, onClose }) => {
 
                     {/* User Profile - Clickable */}
                     <div
-                        className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        className={clsx(
+                            'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors',
+                            isCollapsed ? 'p-3' : 'p-4',
+                            showUserSettings && 'bg-gray-50 dark:bg-gray-800'
+                        )}
                         onClick={() => setShowUserSettings(!showUserSettings)}
+                        title={isCollapsed ? user?.displayName : undefined}
                     >
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
+                        <div className={clsx(
+                            'flex items-center',
+                            isCollapsed ? 'justify-center' : 'gap-3'
+                        )}>
+                            <div
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium flex-shrink-0"
+                                style={{ backgroundColor: '#0077B6' }}
+                            >
                                 {user?.firstName?.charAt(0) || <FiUser size={18} />}
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="font-medium text-gray-900 dark:text-white truncate">
-                                    {user?.displayName || t('users.user')}
-                                </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    {user?.role === 'OWNER' && t('users.roles.OWNER')}
-                                    {user?.role === 'ADMIN' && t('users.roles.ADMIN')}
-                                    {user?.role === 'CASHIER' && t('users.roles.CASHIER')}
-                                    {user?.role === 'WORKER' && t('users.roles.WORKER')}
-                                </div>
-                            </div>
-                            <FiSettings className={clsx(
-                                'w-5 h-5 text-gray-400 transition-transform duration-200',
-                                showUserSettings && 'rotate-90'
-                            )} />
+                            {!isCollapsed && (
+                                <>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-gray-900 dark:text-white truncate">
+                                            {user?.displayName || t('users.user')}
+                                        </div>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                                            {user?.role === 'OWNER' && t('users.roles.OWNER')}
+                                            {user?.role === 'ADMIN' && t('users.roles.ADMIN')}
+                                            {user?.role === 'CASHIER' && t('users.roles.CASHIER')}
+                                            {user?.role === 'WORKER' && t('users.roles.WORKER')}
+                                        </div>
+                                    </div>
+                                    <FiSettings className={clsx(
+                                        'w-5 h-5 text-gray-400 transition-transform duration-200',
+                                        showUserSettings && 'rotate-90'
+                                    )} />
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

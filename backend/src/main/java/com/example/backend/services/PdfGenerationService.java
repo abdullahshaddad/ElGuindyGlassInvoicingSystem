@@ -181,35 +181,16 @@ public class PdfGenerationService {
         PdfPCell cComp = new PdfPCell();
         cComp.setBorder(Rectangle.NO_BORDER);
 
-        // Logo - try to load from company profile or assets path
+        // Logo - load from database (base64)
         try {
-            String logoPath = null;
-
-            // First, try the logo URL from profile (saved logo)
-            if (StringUtils.hasText(prof.getLogoUrl())) {
-                logoPath = prof.getLogoUrl();
-            }
-
-            // If not found, try default logo in assets
-            if (logoPath == null || !Files.exists(Paths.get(logoPath))) {
-                // Try common extensions
-                String[] extensions = {"png", "jpg", "jpeg", "gif"};
-                for (String ext : extensions) {
-                    Path defaultLogo = Paths.get(assetsPath, "logo." + ext);
-                    if (Files.exists(defaultLogo)) {
-                        logoPath = defaultLogo.toString();
-                        break;
-                    }
-                }
-            }
-
-            if (logoPath != null && Files.exists(Paths.get(logoPath))) {
-                Image img = Image.getInstance(logoPath);
+            byte[] logoBytes = companyProfileService.getLogoBytes();
+            if (logoBytes != null && logoBytes.length > 0) {
+                Image img = Image.getInstance(logoBytes);
                 img.scaleToFit(130, 65);
                 // In RTL, ALIGN_LEFT aligns to the visual Right (Start of line)
                 img.setAlignment(Element.ALIGN_LEFT);
                 cComp.addElement(img);
-                log.debug("Logo loaded from: {}", logoPath);
+                log.debug("Logo loaded from database, size: {} bytes", logoBytes.length);
             }
         } catch (Exception e) {
             log.debug("Could not load logo: {}", e.getMessage());
@@ -283,15 +264,19 @@ public class PdfGenerationService {
         // --- 3. Items Table ---
         PdfPTable tbl = new PdfPTable(5);
         tbl.setWidthPercentage(100);
-        tbl.setWidths(new float[]{3.5f, 1.2f, 0.8f, 1.2f, 1.2f}); // Wide Description column
+        tbl.setWidths(new float[]{3.5f, 1.2f, 0.8f, 1.5f, 1.2f}); // Wide Description column
         tbl.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
 
         // Headers
         addHeaderCell(tbl, "الوصف", fHeader, Element.ALIGN_LEFT); // Align Visual Right
         addHeaderCell(tbl, "المقاس", fHeader, Element.ALIGN_CENTER);
         addHeaderCell(tbl, "العدد", fHeader, Element.ALIGN_CENTER);
-        addHeaderCell(tbl, "السعر", fHeader, Element.ALIGN_CENTER);
+        addHeaderCell(tbl, "تفاصيل السعر", fHeader, Element.ALIGN_CENTER);
         addHeaderCell(tbl, "الإجمالي", fHeader, Element.ALIGN_CENTER);
+
+        // Small fonts for breakdown
+        Font fSmall = new Font(bf, 8, Font.NORMAL, COL_TEXT_SEC);
+        Font fSmallBold = new Font(bf, 8, Font.BOLD, COL_TEXT_MAIN);
 
         // Rows
         for (InvoiceLine line : inv.getInvoiceLines()) {
@@ -311,26 +296,83 @@ public class PdfGenerationService {
             pMain.setAlignment(Element.ALIGN_LEFT); // Visual Right
             cDesc.addElement(pMain);
 
+            // Glass price per m² info
+            if(line.getGlassType() != null && line.getGlassType().getPricePerMeter() != null) {
+                String priceInfo = "سعر المتر: " + fmtMoney(line.getGlassType().getPricePerMeter()) + " ج.م/م²";
+                Paragraph pPrice = new Paragraph(priceInfo, fSmall);
+                pPrice.setAlignment(Element.ALIGN_LEFT);
+                cDesc.addElement(pPrice);
+            }
+
             // Operations Sub-text
             if(line.getOperations() != null && !line.getOperations().isEmpty()) {
                 List<String> ops = new ArrayList<>();
                 line.getOperations().forEach(o -> ops.add(o.getDescription()));
-                Paragraph pOps = new Paragraph(String.join(" + ", ops), new Font(bf, 8, Font.NORMAL, COL_TEXT_SEC));
+                Paragraph pOps = new Paragraph("العمليات: " + String.join(" + ", ops), new Font(bf, 8, Font.NORMAL, COL_TEXT_SEC));
                 pOps.setAlignment(Element.ALIGN_LEFT); // Visual Right
                 cDesc.addElement(pOps);
             }
             tbl.addCell(cDesc);
 
-            // Dims
-            String dims = String.format("%.0f × %.0f cm", line.getWidth(), line.getHeight());
-            addBodyCell(tbl, dims, fBody);
+            // Dims with area
+            PdfPCell cDims = new PdfPCell();
+            cDims.setPaddingTop(8); cDims.setPaddingBottom(8);
+            cDims.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cDims.setBorder(Rectangle.BOTTOM);
+            cDims.setBorderColor(COL_BORDER);
+            cDims.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+
+            String dims = String.format("%.0f × %.0f سم", line.getWidth(), line.getHeight());
+            Paragraph pDims = new Paragraph(dims, fBody);
+            pDims.setAlignment(Element.ALIGN_CENTER);
+            cDims.addElement(pDims);
+
+            // Show area in m²
+            if(line.getAreaM2() != null && line.getAreaM2() > 0) {
+                String areaStr = String.format("%.3f م²", line.getAreaM2());
+                Paragraph pArea = new Paragraph(areaStr, fSmall);
+                pArea.setAlignment(Element.ALIGN_CENTER);
+                cDims.addElement(pArea);
+            }
+            tbl.addCell(cDims);
 
             // Qty
             addBodyCell(tbl, String.valueOf(line.getQuantity()), fBody);
 
-            // Unit Price
-            double unit = line.getLineTotal() / (line.getQuantity() > 0 ? line.getQuantity() : 1);
-            addBodyCell(tbl, fmtMoney(unit), fBody);
+            // Price Breakdown Cell
+            PdfPCell cBreakdown = new PdfPCell();
+            cBreakdown.setPaddingTop(6); cBreakdown.setPaddingBottom(6);
+            cBreakdown.setPaddingLeft(4); cBreakdown.setPaddingRight(4);
+            cBreakdown.setBorder(Rectangle.BOTTOM);
+            cBreakdown.setBorderColor(COL_BORDER);
+            cBreakdown.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+
+            // Glass price breakdown
+            Double glassPrice = line.getGlassPrice() != null ? line.getGlassPrice() : 0.0;
+            Paragraph pGlass = new Paragraph("الزجاج: " + fmtMoney(glassPrice), fSmall);
+            pGlass.setAlignment(Element.ALIGN_LEFT);
+            cBreakdown.addElement(pGlass);
+
+            // Operations breakdown
+            if(line.getOperations() != null && !line.getOperations().isEmpty()) {
+                for(InvoiceLineOperation op : line.getOperations()) {
+                    String opName = op.getOperationType() != null ? op.getOperationType().getArabicName() : "عملية";
+                    Double opPrice = op.getOperationPrice() != null ? op.getOperationPrice() : 0.0;
+                    Paragraph pOp = new Paragraph(opName + ": " + fmtMoney(opPrice), fSmall);
+                    pOp.setAlignment(Element.ALIGN_LEFT);
+                    cBreakdown.addElement(pOp);
+                }
+            }
+
+            // Unit total (per piece)
+            int qty = line.getQuantity() != null && line.getQuantity() > 0 ? line.getQuantity() : 1;
+            double unitPrice = line.getLineTotal() / qty;
+            Paragraph pUnit = new Paragraph("سعر القطعة: " + fmtMoney(unitPrice), fSmallBold);
+            pUnit.setAlignment(Element.ALIGN_LEFT);
+            pUnit.setSpacingBefore(3);
+            cBreakdown.addElement(pUnit);
+
+            tbl.addCell(cBreakdown);
 
             // Line Total
             addBodyCell(tbl, fmtMoney(line.getLineTotal()), fVal);

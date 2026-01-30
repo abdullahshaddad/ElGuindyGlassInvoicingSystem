@@ -40,11 +40,9 @@ import java.util.Optional;
 @Slf4j
 public class InvoiceService {
 
-    // Constants for validation
-    private static final double MAX_GLASS_WIDTH = 10000000.0; // 5 meters in mm
-    private static final double MAX_GLASS_HEIGHT = 1000000.0; // 3 meters in mm
-    private static final double MIN_DIMENSION = 0.1; // Minimum 0.1mm
-    private static final int MAX_NOTES_LENGTH = 5000000;
+    // Constants for validation (in meters)
+    private static final double MIN_DIMENSION_METERS = 0.001; // 1mm in meters
+    private static final int MAX_NOTES_LENGTH = 5000;
 
     private final InvoiceRepository invoiceRepository;
     private final InvoiceLineRepository invoiceLineRepository;
@@ -503,6 +501,10 @@ public class InvoiceService {
                 request.getCuttingType(), cuttingPrice);
     }
 
+    /**
+     * Validates dimensions with unit conversion.
+     * This is the primary validation method - all dimension validation should use this.
+     */
     private void validateDimensions(Double width, Double height, DimensionUnit unit) {
         if (width == null || height == null) {
             throw new InvalidDimensionsException("العرض والارتفاع مطلوبان");
@@ -516,26 +518,22 @@ public class InvoiceService {
         double widthInMeters = unit.toMeters(width);
         double heightInMeters = unit.toMeters(height);
 
-        double minInMeters = 0.001; // 1mm
-        double maxWidthInMeters = 5.0; // 5 meters
-        double maxHeightInMeters = 3.0; // 3 meters
+        validateDimensionsInMeters(widthInMeters, heightInMeters, unit);
+    }
 
-        if (widthInMeters < minInMeters || heightInMeters < minInMeters) {
+    /**
+     * Validates dimensions that are already in meters.
+     * Only checks minimum dimension (must be at least 1mm).
+     * @param widthInMeters width in meters
+     * @param heightInMeters height in meters
+     * @param unit optional unit for error message formatting (null = meters)
+     */
+    private void validateDimensionsInMeters(double widthInMeters, double heightInMeters, DimensionUnit unit) {
+        if (widthInMeters < MIN_DIMENSION_METERS || heightInMeters < MIN_DIMENSION_METERS) {
+            String unitName = unit != null ? unit.getArabicName() : "متر";
+            double minDisplay = unit != null ? unit.fromMeters(MIN_DIMENSION_METERS) : MIN_DIMENSION_METERS;
             throw new InvalidDimensionsException(
-                    String.format("الأبعاد صغيرة جداً (الحد الأدنى: %.1f %s)",
-                            unit.fromMeters(minInMeters), unit.getArabicName()));
-        }
-
-        if (widthInMeters > maxWidthInMeters) {
-            throw new InvalidDimensionsException(
-                    String.format("العرض كبير جداً (الحد الأقصى: %.1f %s)",
-                            unit.fromMeters(maxWidthInMeters), unit.getArabicName()));
-        }
-
-        if (heightInMeters > maxHeightInMeters) {
-            throw new InvalidDimensionsException(
-                    String.format("الارتفاع كبير جداً (الحد الأقصى: %.1f %s)",
-                            unit.fromMeters(maxHeightInMeters), unit.getArabicName()));
+                    String.format("الأبعاد صغيرة جداً (الحد الأدنى: %.1f %s)", minDisplay, unitName));
         }
     }
 
@@ -562,26 +560,6 @@ public class InvoiceService {
         }
     }
 
-    /**
-     * Validate dimensions are within reasonable limits
-     */
-    private void validateDimensions(Double width, Double height) {
-        if (width == null || height == null) {
-            throw new InvalidDimensionsException("العرض والارتفاع مطلوبان");
-        }
-
-        if (width < MIN_DIMENSION || height < MIN_DIMENSION) {
-            throw new InvalidDimensionsException("الأبعاد صغيرة جداً (الحد الأدنى: " + MIN_DIMENSION + " مم)");
-        }
-
-        if (width > MAX_GLASS_WIDTH) {
-            throw new InvalidDimensionsException("العرض كبير جداً (الحد الأقصى: " + MAX_GLASS_WIDTH + " مم)");
-        }
-
-        if (height > MAX_GLASS_HEIGHT) {
-            throw new InvalidDimensionsException("الارتفاع كبير جداً (الحد الأقصى: " + MAX_GLASS_HEIGHT + " مم)");
-        }
-    }
 
     /**
      * Enhanced validation with proper customer ID validation
@@ -637,14 +615,20 @@ public class InvoiceService {
 
         if (line.getWidth() == null || line.getWidth() <= 0) {
             errors.add(prefix + "العرض يجب أن يكون أكبر من صفر");
-        } else if (line.getWidth() > MAX_GLASS_WIDTH) {
-            errors.add(prefix + "العرض كبير جداً (الحد الأقصى: " + MAX_GLASS_WIDTH + " مم)");
         }
 
         if (line.getHeight() == null || line.getHeight() <= 0) {
             errors.add(prefix + "الارتفاع يجب أن يكون أكبر من صفر");
-        } else if (line.getHeight() > MAX_GLASS_HEIGHT) {
-            errors.add(prefix + "الارتفاع كبير جداً (الحد الأقصى: " + MAX_GLASS_HEIGHT + " مم)");
+        }
+
+        // Validate dimensions with unit conversion
+        if (line.getWidth() != null && line.getWidth() > 0 &&
+            line.getHeight() != null && line.getHeight() > 0) {
+            try {
+                validateDimensions(line.getWidth(), line.getHeight(), line.getDimensionUnit());
+            } catch (InvalidDimensionsException e) {
+                errors.add(prefix + e.getMessage());
+            }
         }
 
         // Validate operations - New Format
@@ -856,7 +840,7 @@ public class InvoiceService {
             Double height = convertToMeters(request.getHeight(), request.getDimensionUnit());
 
             // 3. Validate converted dimensions (now in meters)
-            validateDimensions(width, height);
+            validateDimensionsInMeters(width, height, request.getDimensionUnit());
 
             // 4. Calculate quantities (same logic as InvoiceLine)
             Double areaM2 = width * height;

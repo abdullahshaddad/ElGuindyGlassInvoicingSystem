@@ -82,12 +82,7 @@ const EnhancedProductEntry = ({
             errors.push(t('product.validation.heightRequired'));
         }
 
-        // Must have at least one operation
-        if (operations.length === 0) {
-            errors.push(t('product.validation.operationRequired'));
-        }
-
-        // Validate each operation
+        // Validate each operation (operations are optional)
         operations.forEach((op, idx) => {
             const prefix = `${t('product.validation.operationPrefix')} ${idx + 1}: `;
 

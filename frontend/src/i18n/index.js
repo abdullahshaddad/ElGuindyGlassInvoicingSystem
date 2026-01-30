@@ -32,7 +32,7 @@ i18n
     .use(LanguageDetector)
     .use(initReactI18next)
     .init({
-        lng: 'ar',
+        // Don't set lng - let LanguageDetector handle it from localStorage
         fallbackLng: 'ar',
         supportedLngs: ['ar', 'en'],
 
