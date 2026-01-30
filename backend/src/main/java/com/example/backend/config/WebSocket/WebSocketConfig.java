@@ -38,28 +38,31 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        String[] allowedOrigins = {
+                // Local development
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "http://127.0.0.1:*",
+                "http://localhost:*",
+                // Production deployments
+                "https://el-guindy.vercel.app",
+                "https://elguindyglassinvoicingsystem.onrender.com"
+        };
+
         // Register STOMP endpoint with proper CORS configuration for your deployments
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns(
-                        // Local development
-                        "http://localhost:3000",
-                        "http://localhost:5173",
-                        "http://127.0.0.1:*",
-                        "http://localhost:*"
-
-
-                )
+                .setAllowedOriginPatterns(allowedOrigins)
                 .withSockJS()
                 .setHeartbeatTime(25000); // SockJS heartbeat (backup to STOMP heartbeat)
 
+        // Also register at /api/v1/ws for when frontend uses API URL prefix
+        registry.addEndpoint("/api/v1/ws")
+                .setAllowedOriginPatterns(allowedOrigins)
+                .withSockJS()
+                .setHeartbeatTime(25000);
+
         // Native WebSocket endpoint (without SockJS)
         registry.addEndpoint("/ws-native")
-                .setAllowedOriginPatterns(
-                        "http://localhost:3000",
-                        "http://localhost:5173",
-                        "http://127.0.0.1:*",
-                        "http://localhost:*"
-
-                );
+                .setAllowedOriginPatterns(allowedOrigins);
     }
 }

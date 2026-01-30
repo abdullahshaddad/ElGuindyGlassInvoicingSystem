@@ -79,7 +79,12 @@ export const useWebSocket = ({
             return;
         }
 
-        const wsUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/ws`;
+        // Use VITE_WS_URL if provided, otherwise derive from VITE_API_URL or default
+        // WebSocket endpoint is at /ws, not /api/v1/ws
+        const baseUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'http://localhost:8080';
+        // If baseUrl includes /api/v1, use it as is (backend now supports /api/v1/ws)
+        // Otherwise append /ws
+        const wsUrl = baseUrl.endsWith('/ws') ? baseUrl : `${baseUrl}/ws`;
         log('Connecting to:', wsUrl);
 
         try {

@@ -54,6 +54,29 @@ export const printJobService = {
     },
 
     /**
+     * Fetch and open sticker PDF for a single invoice line (with auth)
+     * @param {string|number} invoiceId - Invoice ID
+     * @param {string|number} lineId - Invoice Line ID
+     */
+    async openSingleLineStickerPdf(invoiceId, lineId) {
+        try {
+            const response = await api.get(`/print-jobs/pdf/invoice/${invoiceId}/line/${lineId}/sticker`, {
+                responseType: 'blob'
+            });
+
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+
+            // Clean up the URL after a delay
+            setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+        } catch (error) {
+            console.error('Error opening single line sticker PDF:', error);
+            throw error;
+        }
+    },
+
+    /**
      * Download invoice PDF (with auth)
      * @param {string|number} invoiceId - Invoice ID
      * @param {string} filename - Optional filename

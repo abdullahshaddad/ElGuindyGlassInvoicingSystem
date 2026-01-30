@@ -381,7 +381,8 @@
     "startWork": "Start Work",
     "markComplete": "Complete",
     "statusUpdated": "Status updated successfully",
-    "statusUpdateError": "Failed to update status"
+    "statusUpdateError": "Failed to update status",
+    "stickerError": "Failed to open sticker"
   },
   "payment": {
     "title": "Payment Details",

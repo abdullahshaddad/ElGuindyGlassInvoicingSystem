@@ -31,7 +31,9 @@ public class SecurityConfiguration {
                             "http://localhost:5173",
                             "http://localhost:5174",
                             "http://localhost:3000",
-                            "https://el-guindy.vercel.app"
+                            // Production deployments
+                            "https://el-guindy.vercel.app",
+                            "https://elguindyglassinvoicingsystem.onrender.com"
                     ));
                     configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
@@ -46,7 +48,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/ws-native/**").permitAll()
-
+                        .requestMatchers("/api/v1/ws/**").permitAll() // WebSocket via API path
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

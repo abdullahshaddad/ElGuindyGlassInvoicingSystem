@@ -381,7 +381,8 @@
     "startWork": "بدء العمل",
     "markComplete": "اكتمل",
     "statusUpdated": "تم تحديث الحالة بنجاح",
-    "statusUpdateError": "فشل في تحديث الحالة"
+    "statusUpdateError": "فشل في تحديث الحالة",
+    "stickerError": "فشل في فتح الملصق"
   },
   "payment": {
     "title": "تفاصيل السداد",

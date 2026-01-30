@@ -62,7 +62,7 @@ public class PdfGenerationService {
     }
 
     /**
-     * Entry point: Generate Sticker PDF bytes.
+     * Entry point: Generate Sticker PDF bytes for ALL invoice lines.
      * PDFs are generated on-demand and not stored.
      */
     public byte[] generateStickerPdf(Invoice invoice) {
@@ -71,6 +71,53 @@ public class PdfGenerationService {
         } catch (Exception e) {
             log.error("Error generating sticker PDF", e);
             throw new RuntimeException("Error generating sticker PDF", e);
+        }
+    }
+
+    /**
+     * Generate sticker PDF for a SINGLE invoice line only.
+     */
+    public byte[] generateSingleLineStickerPdf(Invoice invoice, Long lineId) {
+        try {
+            InvoiceLine targetLine = invoice.getInvoiceLines().stream()
+                    .filter(line -> line.getId().equals(lineId))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("Invoice line not found: " + lineId));
+
+            CompanyProfile profile = companyProfileService.getProfileInternal();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+            Document document = new Document(PageSize.A5, 10, 10, 10, 10);
+            PdfWriter writer = PdfWriter.getInstance(document, baos);
+            writer.setRunDirection(PdfWriter.RUN_DIRECTION_LTR);
+
+            document.open();
+            BaseFont bf = getArabicFont();
+
+            Font fHeader = new Font(bf, 14, Font.BOLD, BaseColor.BLACK);
+            Font fSubHeader = new Font(bf, 9, Font.NORMAL, BaseColor.DARK_GRAY);
+            Font fLabel = new Font(bf, 10, Font.BOLD, BaseColor.DARK_GRAY);
+            Font fValue = new Font(bf, 11, Font.NORMAL, BaseColor.BLACK);
+            Font fValueBold = new Font(bf, 12, Font.BOLD, BaseColor.BLACK);
+            Font fHero = new Font(bf, 24, Font.BOLD, BaseColor.BLACK);
+
+            int qty = targetLine.getQuantity() != null ? targetLine.getQuantity() : 1;
+            for (int i = 0; i < qty; i++) {
+                buildTechnicalStickerPage(document, invoice, targetLine, profile,
+                        fHeader, fSubHeader, fLabel, fValue, fValueBold, fHero, i + 1, qty);
+                if (i < qty - 1) {
+                    document.newPage();
+                }
+            }
+
+            document.close();
+            log.info("Generated single line sticker for invoice {} line {}, {} pages",
+                    invoice.getId(), lineId, qty);
+            return baos.toByteArray();
+
+        } catch (Exception e) {
+            log.error("Error generating single line sticker PDF", e);
+            throw new RuntimeException("Error generating single line sticker PDF", e);
         }
     }
 

@@ -330,11 +330,12 @@ const FactoryWorkerPage = () => {
         loadRecentInvoices(false);
     };
 
-    const handleViewSticker = async (invoiceId) => {
+    const handleViewSticker = async (invoiceId, lineId) => {
         try {
-            await printJobService.openStickerPdf(invoiceId);
+            await printJobService.openSingleLineStickerPdf(invoiceId, lineId);
         } catch (error) {
             console.error('Error opening sticker:', error);
+            showError(t('factory.stickerError'));
         }
     };
 
@@ -575,7 +576,7 @@ const GroupedView = ({ groups, onViewSticker, onStatusChange, t }) => (
                             <CuttingJobCard
                                 key={`${job.invoiceId}-${job.id}-${index}`}
                                 job={job}
-                                onViewSticker={() => onViewSticker(job.invoiceId)}
+                                onViewSticker={() => onViewSticker(job.invoiceId, job.id)}
                                 onStatusChange={onStatusChange}
                                 t={t}
                             />
@@ -625,7 +626,7 @@ const ListView = ({ jobs, selectedThickness, availableThicknesses, onThicknessCh
                 <CuttingJobCard
                     key={`${job.invoiceId}-${job.id}-${index}`}
                     job={job}
-                    onViewSticker={() => onViewSticker(job.invoiceId)}
+                    onViewSticker={() => onViewSticker(job.invoiceId, job.id)}
                     onStatusChange={onStatusChange}
                     showThickness
                     t={t}

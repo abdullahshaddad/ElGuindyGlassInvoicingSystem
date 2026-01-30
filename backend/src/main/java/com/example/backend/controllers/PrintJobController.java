@@ -489,6 +489,48 @@ public class PrintJobController {
     }
 
     /**
+     * Generate and serve sticker PDF for a SINGLE invoice line
+     * GET /api/v1/print-jobs/pdf/invoice/{invoiceId}/line/{lineId}/sticker
+     *
+     * @param invoiceId Invoice ID
+     * @param lineId Invoice Line ID
+     * @return PDF file as byte array
+     */
+    @GetMapping("/pdf/invoice/{invoiceId}/line/{lineId}/sticker")
+    @PreAuthorize("hasAnyRole('OWNER', 'MANAGER', 'WORKER', 'CASHIER')")
+    public ResponseEntity<byte[]> getSingleLineStickerPdf(
+            @PathVariable String invoiceId,
+            @PathVariable Long lineId) {
+        try {
+            log.info("REST API: Generating sticker PDF for invoice {} line {}", invoiceId, lineId);
+
+            Invoice invoice = invoiceRepository.findByIdWithDetails(invoiceId)
+                    .orElseThrow(() -> new InvoiceNotFoundException("الفاتورة غير موجودة: " + invoiceId));
+
+            byte[] pdfBytes = pdfGenerationService.generateSingleLineStickerPdf(invoice, lineId);
+            String filename = String.format("sticker_%s_line_%d.pdf", invoiceId, lineId);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("inline", filename);
+            headers.setContentLength(pdfBytes.length);
+
+            log.debug("Single line sticker PDF generated for invoice {} line {}: {} bytes",
+                    invoiceId, lineId, pdfBytes.length);
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+
+        } catch (InvoiceNotFoundException e) {
+            log.error("Invoice not found: {}", invoiceId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            log.error("Error generating sticker PDF for invoice {} line {}: {}",
+                    invoiceId, lineId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
      * Generate and serve invoice PDF on-demand
      * GET /api/v1/print-jobs/pdf/invoice/{invoiceId}/{printType}
      *
