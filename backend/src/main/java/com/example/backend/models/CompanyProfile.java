@@ -42,6 +42,13 @@ public class CompanyProfile {
     @Column(name = "logo_url")
     private String logoUrl;
 
+    @Lob
+    @Column(name = "logo_base64", columnDefinition = "TEXT")
+    private String logoBase64;
+
+    @Column(name = "logo_content_type")
+    private String logoContentType;
+
     @Column(name = "footer_text")
     private String footerText;
 }

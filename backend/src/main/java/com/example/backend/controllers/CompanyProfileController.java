@@ -4,17 +4,11 @@ import com.example.backend.models.CompanyProfile;
 import com.example.backend.services.CompanyProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @RestController
 @RequestMapping("/api/v1/company-profile")
@@ -40,20 +34,14 @@ public class CompanyProfileController {
     }
 
     @GetMapping("/logo")
-    public ResponseEntity<Resource> getLogo() {
+    public ResponseEntity<byte[]> getLogo() {
         try {
-            String logoPath = service.getLogoPath();
-            if (logoPath == null) {
+            byte[] logoBytes = service.getLogoBytes();
+            if (logoBytes == null) {
                 return ResponseEntity.notFound().build();
             }
 
-            Path path = Paths.get(logoPath);
-            if (!Files.exists(path)) {
-                return ResponseEntity.notFound().build();
-            }
-
-            Resource resource = new FileSystemResource(path);
-            String contentType = Files.probeContentType(path);
+            String contentType = service.getLogoContentType();
             if (contentType == null) {
                 contentType = "image/png";
             }
@@ -61,7 +49,8 @@ public class CompanyProfileController {
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(contentType))
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"logo\"")
-                    .body(resource);
+                    .header(HttpHeaders.CACHE_CONTROL, "max-age=86400") // Cache for 24 hours
+                    .body(logoBytes);
 
         } catch (Exception e) {
             log.error("Error serving logo: {}", e.getMessage());

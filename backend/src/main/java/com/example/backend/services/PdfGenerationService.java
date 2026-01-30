@@ -113,37 +113,48 @@ public class PdfGenerationService {
     /**
      * Core Logic: Generate Stickers (Byte Array)
      */
+// ==========================================
+    //           STICKER GENERATION
+    // ==========================================
+
     public byte[] generateStickerPdfOnDemand(Invoice invoice) {
         try {
             CompanyProfile profile = companyProfileService.getProfile();
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-            // A5 Size for stickers
-            Document document = new Document(PageSize.A5, 15, 15, 15, 15);
+            // A6 (105mm x 148mm) is standard for label printers, but using A5 per your setup.
+            // Small margins (5mm) to maximize printable area for the grid.
+            Document document = new Document(PageSize.A5, 10, 10, 10, 10);
             PdfWriter writer = PdfWriter.getInstance(document, baos);
-            writer.setRunDirection(PdfWriter.RUN_DIRECTION_LTR); // LTR often better for technical specs
+            // Global LTR for technical specs (Dimensions/Codes), distinct RTL for Arabic names
+            writer.setRunDirection(PdfWriter.RUN_DIRECTION_LTR);
 
             document.open();
             BaseFont bf = getArabicFont();
 
-            // Fonts
-            Font fTitle = new Font(bf, 16, Font.BOLD, BaseColor.BLACK);
-            Font fLabel = new Font(bf, 10, Font.NORMAL, BaseColor.GRAY);
-            Font fVal = new Font(bf, 12, Font.BOLD, BaseColor.BLACK);
-            Font fBig = new Font(bf, 16, Font.BOLD, BaseColor.BLACK);
+            // Fonts optimized for Label readability
+            Font fHeader = new Font(bf, 14, Font.BOLD, BaseColor.BLACK);
+            Font fSubHeader = new Font(bf, 9, Font.NORMAL, BaseColor.DARK_GRAY);
+            Font fLabel = new Font(bf, 10, Font.BOLD, BaseColor.DARK_GRAY);
+            Font fValue = new Font(bf, 11, Font.NORMAL, BaseColor.BLACK);
+            Font fValueBold = new Font(bf, 12, Font.BOLD, BaseColor.BLACK);
+            Font fHero = new Font(bf, 24, Font.BOLD, BaseColor.BLACK); // Huge size for Dimensions
 
-            // Sort lines by thickness for optimized cutting
+            // Sort lines: Thickness -> Area
             List<InvoiceLine> sortedLines = new ArrayList<>(invoice.getInvoiceLines());
             sortedLines.sort((a, b) -> {
-                Double ta = (a.getGlassType() != null) ? a.getGlassType().getThickness() : 0.0;
-                Double tb = (b.getGlassType() != null) ? b.getGlassType().getThickness() : 0.0;
-                return ta.compareTo(tb);
+                Double t1 = (a.getGlassType() != null) ? a.getGlassType().getThickness() : 0.0;
+                Double t2 = (b.getGlassType() != null) ? b.getGlassType().getThickness() : 0.0;
+                int cmp = t1.compareTo(t2);
+                if (cmp != 0) return cmp;
+                return Double.compare(a.getWidth() * a.getHeight(), b.getWidth() * b.getHeight());
             });
 
             for (InvoiceLine line : sortedLines) {
                 int qty = line.getQuantity() != null ? line.getQuantity() : 1;
                 for (int i = 0; i < qty; i++) {
-                    buildStickerPage(document, invoice, line, profile, fTitle, fLabel, fVal, fBig);
+                    buildTechnicalStickerPage(document, invoice, line, profile,
+                            fHeader, fSubHeader, fLabel, fValue, fValueBold, fHero, i + 1, qty);
                     document.newPage();
                 }
             }
@@ -157,6 +168,182 @@ public class PdfGenerationService {
         }
     }
 
+    private void buildTechnicalStickerPage(Document document, Invoice invoice, InvoiceLine line, CompanyProfile profile,
+                                           Font fHeader, Font fSubHeader, Font fLabel, Font fVal, Font fValBold, Font fHero,
+                                           int currentPiece, int totalPieces) throws DocumentException {
+
+        // 1. Outer Container (The thick black border)
+        PdfPTable mainTable = new PdfPTable(1);
+        mainTable.setWidthPercentage(100);
+        mainTable.getDefaultCell().setBorder(Rectangle.BOX);
+        mainTable.getDefaultCell().setBorderWidth(1.5f);
+        mainTable.getDefaultCell().setPadding(0);
+
+        // --- HEADER (Logo + Company Name) ---
+        PdfPTable header = new PdfPTable(2);
+        header.setWidthPercentage(100);
+        header.setWidths(new float[]{1f, 2.5f});
+
+        // Logo Cell
+        PdfPCell cLogo = new PdfPCell();
+        cLogo.setBorder(Rectangle.BOTTOM | Rectangle.RIGHT);
+        cLogo.setPadding(5);
+        cLogo.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        cLogo.setFixedHeight(50);
+        try {
+            byte[] logoBytes = companyProfileService.getLogoBytes();
+            if (logoBytes != null) {
+                Image img = Image.getInstance(logoBytes);
+                img.scaleToFit(50, 40);
+                img.setAlignment(Element.ALIGN_CENTER);
+                cLogo.addElement(img);
+            }
+        } catch (Exception ignored) {}
+        header.addCell(cLogo);
+
+        // Company Name Cell
+        PdfPCell cComp = new PdfPCell();
+        cComp.setBorder(Rectangle.BOTTOM);
+        cComp.setPadding(5);
+        cComp.setVerticalAlignment(Element.ALIGN_MIDDLE);
+
+        Paragraph pComp = new Paragraph(profile.getCompanyName(), fHeader);
+        pComp.setAlignment(Element.ALIGN_CENTER);
+        cComp.addElement(pComp);
+
+        Paragraph pSub = new Paragraph("INTERNATIONAL GLASS INDUSTRIES", fSubHeader); // Static or from profile
+        pSub.setAlignment(Element.ALIGN_CENTER);
+        cComp.addElement(pSub);
+        header.addCell(cComp);
+
+        // Add Header to Main
+        PdfPCell headerWrapper = new PdfPCell(header);
+        headerWrapper.setPadding(0);
+        headerWrapper.setBorder(Rectangle.NO_BORDER);
+        mainTable.addCell(headerWrapper);
+
+        // --- DATA GRID (The rows with borders) ---
+        PdfPTable grid = new PdfPTable(2);
+        grid.setWidthPercentage(100);
+        grid.setWidths(new float[]{1.2f, 2.8f}); // Label vs Value width
+
+        // 1. Product
+        String glassName = (line.getGlassType() != null) ? line.getGlassType().getName() : "Glass";
+        addGridRow(grid, "Product", glassName, fLabel, fValBold);
+
+        // 2. Thickness
+        String thk = (line.getGlassType() != null && line.getGlassType().getThickness() != null)
+                ? line.getGlassType().getThickness() + " MM" : "-";
+        addGridRow(grid, "Thickness", thk, fLabel, fValBold);
+
+        // 3. SIZE (HERO ROW)
+        // Custom cell logic for the large size text
+        PdfPCell lSize = new PdfPCell(new Phrase("Size", fLabel));
+        lSize.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        lSize.setPadding(8);
+        lSize.setBorder(Rectangle.BOTTOM | Rectangle.RIGHT);
+        grid.addCell(lSize);
+
+        String sizeStr = String.format("%.0f x %.0f", line.getWidth(), line.getHeight());
+        PdfPCell vSize = new PdfPCell(new Phrase(sizeStr, fHero)); // Huge Font
+        vSize.setHorizontalAlignment(Element.ALIGN_CENTER);
+        vSize.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        vSize.setPadding(10);
+        vSize.setBorder(Rectangle.BOTTOM);
+        grid.addCell(vSize);
+
+        // 4. Processing / Color
+        String processing = "None";
+        if (line.getOperations() != null && !line.getOperations().isEmpty()) {
+            List<String> ops = new ArrayList<>();
+            line.getOperations().forEach(o -> ops.add(o.getDescription()));
+            processing = String.join(", ", ops);
+        }
+        addGridRow(grid, "Processing", processing, fLabel, fVal);
+
+        // 5. Quantity / Piece Count
+        addGridRow(grid, "Quantity", String.format("Piece %d of %d", currentPiece, totalPieces), fLabel, fVal);
+
+        // 6. Packing Date (Issue Date)
+        // FIX: Used %s for formatted date to avoid crash
+        String dateStr = invoice.getIssueDate() != null ? invoice.getIssueDate().format(DATE_FMT) : "N/A";
+        addGridRow(grid, "Packing Date", dateStr, fLabel, fVal);
+
+        // 7. Customer (Arabic Support)
+        PdfPCell lCust = new PdfPCell(new Phrase("Customer", fLabel));
+        lCust.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        lCust.setPadding(6);
+        lCust.setBorder(Rectangle.BOTTOM | Rectangle.RIGHT);
+        grid.addCell(lCust);
+
+        PdfPCell vCust = new PdfPCell(new Phrase(invoice.getCustomer().getName(), fValBold));
+        vCust.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        vCust.setPadding(6);
+        vCust.setRunDirection(PdfWriter.RUN_DIRECTION_RTL); // Force RTL for name
+        vCust.setHorizontalAlignment(Element.ALIGN_RIGHT);  // Align right for Arabic
+        vCust.setBorder(Rectangle.BOTTOM);
+        grid.addCell(vCust);
+
+        // 8. Order Reference (FIXED CRASH HERE by using %s for ID)
+        String refData = String.format("Inv: #%s", invoice.getId());
+        addGridRow(grid, "Order Ref", refData, fLabel, fVal);
+
+        // 9. QC
+        addGridRow(grid, "QC Check", "OK", fLabel, fVal);
+
+        // Add Grid to Main
+        PdfPCell gridWrapper = new PdfPCell(grid);
+        gridWrapper.setPadding(0);
+        gridWrapper.setBorder(Rectangle.NO_BORDER);
+        mainTable.addCell(gridWrapper);
+
+        // --- FOOTER ---
+        PdfPTable footer = new PdfPTable(1);
+        footer.setWidthPercentage(100);
+
+        PdfPCell cFooter = new PdfPCell();
+        cFooter.setBorder(Rectangle.TOP);
+        cFooter.setPadding(5);
+        cFooter.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        String contact = "Hotline: " + (profile.getPhone() != null ? profile.getPhone() : "19xxx");
+        Paragraph pContact = new Paragraph(contact, new Font(fSubHeader.getBaseFont(), 9, Font.BOLD));
+        pContact.setAlignment(Element.ALIGN_CENTER);
+        cFooter.addElement(pContact);
+
+        if (profile.getAddress() != null) {
+            Paragraph pWeb = new Paragraph(profile.getAddress(), new Font(fSubHeader.getBaseFont(), 8, Font.NORMAL));
+            pWeb.setAlignment(Element.ALIGN_CENTER);
+            cFooter.addElement(pWeb);
+        }
+
+        footer.addCell(cFooter);
+
+        PdfPCell footerWrapper = new PdfPCell(footer);
+        footerWrapper.setPadding(0);
+        footerWrapper.setBorder(Rectangle.NO_BORDER);
+        mainTable.addCell(footerWrapper);
+
+        document.add(mainTable);
+    }
+
+    // Helper to draw grid rows with consistent borders
+    private void addGridRow(PdfPTable table, String label, String value, Font fLabel, Font fVal) {
+        // Label Cell (Left)
+        PdfPCell l = new PdfPCell(new Phrase(label, fLabel));
+        l.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        l.setPadding(6);
+        l.setBorder(Rectangle.BOTTOM | Rectangle.RIGHT); // Right border to separate Label/Value
+        table.addCell(l);
+
+        // Value Cell (Right)
+        PdfPCell v = new PdfPCell(new Phrase(value, fVal));
+        v.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        v.setHorizontalAlignment(Element.ALIGN_CENTER);
+        v.setPadding(6);
+        v.setBorder(Rectangle.BOTTOM);
+        table.addCell(v);
+    }
     // ==========================================
     //           INVOICE LAYOUT BUILDER
     // ==========================================
