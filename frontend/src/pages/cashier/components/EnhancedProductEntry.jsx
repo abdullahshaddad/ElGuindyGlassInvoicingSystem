@@ -186,6 +186,8 @@ const EnhancedProductEntry = ({
         setTouched(true);
         if (validation.isValid) {
             onAddToCart();
+            // Reset touched after successful add so errors don't show for reset form
+            setTouched(false);
         }
     };
 
@@ -277,12 +279,11 @@ const EnhancedProductEntry = ({
                                 <span className="text-red-500 mr-1">*</span>
                             </label>
                             <Input
-                                type="number"
+                                type="text"
+                                inputMode="numeric"
                                 value={op.diameter || ''}
                                 onChange={(e) => patchOperation(op.id, { diameter: e.target.value })}
                                 placeholder="0"
-                                step="1"
-                                min="1"
                                 disabled={disabled}
                             />
                         </div>
@@ -296,12 +297,11 @@ const EnhancedProductEntry = ({
                                 <span className="text-red-500 mr-1">*</span>
                             </label>
                             <Input
-                                type="number"
+                                type="text"
+                                inputMode="decimal"
                                 value={op.manualCuttingPrice ?? ''}
                                 onChange={(e) => patchOperation(op.id, { manualCuttingPrice: e.target.value })}
                                 placeholder="0.00"
-                                step="0.01"
-                                min="0"
                                 disabled={disabled}
                             />
                         </div>
@@ -362,12 +362,11 @@ const EnhancedProductEntry = ({
                             <span className="text-red-500 mr-1">*</span>
                         </label>
                         <Input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             value={op.manualPrice ?? ''}
                             onChange={(e) => patchOperation(op.id, { manualPrice: e.target.value })}
                             placeholder="0.00"
-                            step="0.01"
-                            min="0"
                             disabled={disabled}
                         />
                     </div>
@@ -434,12 +433,11 @@ const EnhancedProductEntry = ({
                         <span className="text-red-500 mr-1">*</span>
                     </label>
                     <Input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         value={currentLine.width || ''}
                         onChange={(e) => onLineChange({ ...currentLine, width: e.target.value })}
                         placeholder="0"
-                        step="0.1"
-                        min="0.1"
                         disabled={disabled}
                     />
                 </div>
@@ -450,12 +448,11 @@ const EnhancedProductEntry = ({
                         <span className="text-red-500 mr-1">*</span>
                     </label>
                     <Input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         value={currentLine.height || ''}
                         onChange={(e) => onLineChange({ ...currentLine, height: e.target.value })}
                         placeholder="0"
-                        step="0.1"
-                        min="0.1"
                         disabled={disabled}
                     />
                 </div>
@@ -465,15 +462,15 @@ const EnhancedProductEntry = ({
                         {t('product.quantity')}
                     </label>
                     <Input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
                         value={currentLine.quantity || 1}
                         onChange={(e) => onLineChange({ ...currentLine, quantity: parseInt(e.target.value) || 1 })}
                         placeholder="1"
-                        step="1"
-                        min="1"
                         disabled={disabled}
                     />
                 </div>
+
             </div>
 
             {/* Operations Section */}
@@ -481,7 +478,6 @@ const EnhancedProductEntry = ({
                 <div className="flex items-center justify-between">
                     <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         {t('product.operations')}
-                        <span className="text-red-500 mr-1">*</span>
                     </div>
                     <div className="flex gap-2">
                         <Button
@@ -524,8 +520,8 @@ const EnhancedProductEntry = ({
                     <div className="space-y-3">
                         {operations.map((op) => (
                             <div key={op.id}>
-                                {op.type === 'SHATAF' && <ShatafCard op={op} t={t} />}
-                                {op.type === 'LASER' && <LaserCard op={op} t={t} />}
+                                {op.type === 'SHATAF' && ShatafCard({ op, t })}
+                                {op.type === 'LASER' && LaserCard({ op, t })}
                             </div>
                         ))}
                     </div>

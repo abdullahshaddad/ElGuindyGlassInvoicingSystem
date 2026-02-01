@@ -111,11 +111,9 @@ public class CreateInvoiceLineRequest {
     }
 
     /**
-     * Validate that either operations or legacy fields are provided
+     * Validate the request (operations are now optional for glass-only invoices)
      */
     public void validate() {
-        if (!hasOperations() && !hasLegacyOperation()) {
-            throw new IllegalArgumentException("يجب توفير عملية واحدة على الأقل (operations أو legacy fields)");
-        }
+        // Operations are optional - glass-only invoices are allowed
     }
 }

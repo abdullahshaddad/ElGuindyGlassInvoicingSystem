@@ -393,8 +393,7 @@ public class InvoiceService {
      * UPDATED to support multiple operations per line
      */
     private InvoiceLine createInvoiceLine(Invoice invoice, CreateInvoiceLineRequest request) {
-        // Validate request has at least one operation (new or legacy format)
-        request.validate();
+        // Operations are optional - invoice can be glass-only without any operations
 
         // Validate glass type exists
         GlassType glassType = glassTypeService.findById(request.getGlassTypeId())
@@ -430,10 +429,13 @@ public class InvoiceService {
             // NEW: Multiple operations support
             log.debug("Processing {} operations for invoice line", request.getOperations().size());
             processOperations(line, request, widthM, heightM);
-        } else {
+        } else if (request.hasLegacyOperation()) {
             // LEGACY: Single operation support
             log.debug("Processing legacy single operation for invoice line");
             processLegacyOperation(line, request);
+        } else {
+            // No operations - glass-only invoice line
+            log.debug("No operations for invoice line - glass only");
         }
 
         // Recalculate line total (glass + all operations)
@@ -655,12 +657,8 @@ public class InvoiceService {
                 }
             }
         }
-        // Validate Legacy Format (only if no operations provided)
-        else {
-            if (line.getCuttingType() == null) {
-                errors.add(prefix + "نوع القطع مطلوب");
-            }
-
+        // Validate Legacy Format (only if cutting type is provided)
+        else if (line.getCuttingType() != null) {
             // Validate manual cutting price for laser
             if (CuttingType.LASER.equals(line.getCuttingType())) {
                 if (line.getManualCuttingPrice() == null) {
@@ -670,6 +668,7 @@ public class InvoiceService {
                 }
             }
         }
+        // No operations and no cutting type is allowed (glass-only invoice line)
     }
 
     /**
