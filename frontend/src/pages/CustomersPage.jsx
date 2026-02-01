@@ -28,7 +28,7 @@ const CUSTOMER_TYPE_LABEL = {
 const CustomersPage = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
-    const { isAuthorized, isLoading: authLoading } = useAuthorized(['CASHIER', 'OWNER']);
+    const { isAuthorized, isLoading: authLoading } = useAuthorized(['CASHIER', 'ADMIN', 'OWNER']);
 
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);

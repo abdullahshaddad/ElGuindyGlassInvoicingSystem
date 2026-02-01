@@ -17,7 +17,7 @@ import InvoiceList from '@/pages/cashier/components/InvoiceList';
 
 const InvoicesPage = () => {
     const { t, i18n } = useTranslation();
-    const { isAuthorized, isLoading: authLoading } = useAuthorized(['CASHIER', 'OWNER']);
+    const { isAuthorized, isLoading: authLoading } = useAuthorized(['CASHIER', 'ADMIN', 'OWNER']);
     const { showSuccess, showError, showInfo } = useSnackbar();
     const navigate = useNavigate();
 
