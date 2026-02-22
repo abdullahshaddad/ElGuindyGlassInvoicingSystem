@@ -74,11 +74,11 @@ public class Invoice {
     @Builder.Default
     private List<InvoiceLine> invoiceLines = new ArrayList<>();
 
-    @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @Builder.Default
     private List<PrintJob> printJobs = new ArrayList<>();
 
-    @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @Builder.Default
     private List<Payment> payments = new ArrayList<>();
 
