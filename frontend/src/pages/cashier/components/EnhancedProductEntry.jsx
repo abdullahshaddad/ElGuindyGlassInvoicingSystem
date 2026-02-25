@@ -5,33 +5,161 @@ import Input from '@components/ui/Input.jsx';
 import Select from '@components/ui/Select.jsx';
 import Button from '@components/ui/Button.jsx';
 import Badge from '@components/ui/Badge.jsx';
-import FarmaTypeSelector from './FarmaTypeSelector.jsx';
-import ShatafTypeSelector from './ShatafTypeSelector.jsx';
-import { SHATAF_TYPES, SHATAF_CATEGORIES } from '@/constants/shatafTypes.js';
-import { FARMA_TYPES } from '@/constants/farmaTypes.js';
+import BevelingCalculationSelector from './BevelingCalculationSelector.jsx';
+import BevelingTypeSelector from './BevelingTypeSelector.jsx';
+import { BEVELING_TYPES, BEVELING_CATEGORIES } from '@/constants/bevelingTypes.js';
+import { BEVELING_CALCULATIONS } from '@/constants/bevelingCalculations.js';
 
 /**
  * EnhancedProductEntry - Multi-operation card layout
- * Supports multiple operations (SHATAF, FARMA, LASER) per line item
+ * Supports multiple operations per line item.
  *
- * Props:
- *  - glassTypes: array of available glass types
- *  - currentLine: object containing glass info and operations array
- *  - onLineChange: function(updatedLine) - called when line data changes
- *  - onAddToCart: function() - called when user wants to add to cart
- *  - disabled: bool
- *  - glassTypeRef: ref for focusing glass type select
+ * Each operation in state has the shape:
+ *   { id, bevelingType, calcMethod?, diameter?, manualMeters?, manualPrice? }
+ *
+ * bevelingType = one of the operationTypeCode values (KHARZAN, LASER, SANDING, etc.)
+ * calcMethod   = one of the calculationMethodCode values (STRAIGHT, FRAME_HEAD, etc.)
  */
 
-const LASER_TYPES = {
-    NORMAL: { key: 'NORMAL', arabicName: 'ليزر عادي' },
-    DEEP: { key: 'DEEP', arabicName: 'ليزر عميق' },
-    ENGRAVE: { key: 'ENGRAVE', arabicName: 'حفر ليزر' },
-    POLISH: { key: 'POLISH', arabicName: 'تلميع ليزر' }
-};
-
-// Maximum number of operations allowed per line item
 const MAX_OPERATIONS_PER_LINE = 10;
+
+// Extracted outside EnhancedProductEntry so React keeps a stable component
+// identity across re-renders — prevents inputs from losing focus on every keystroke.
+const OperationCard = ({
+    op,
+    disabled,
+    showAdvanced,
+    lineWidth,
+    lineHeight,
+    onRemove,
+    onBevelingTypeChange,
+    onPatch,
+}) => {
+    const { t } = useTranslation();
+    const st = op.bevelingType ? BEVELING_TYPES[op.bevelingType] : null;
+    const showCalcMethod = st?.requiresCalculation;
+    const isManualMethod = op.calcMethod ? BEVELING_CALCULATIONS[op.calcMethod]?.isManual : false;
+    const requiresDiameter = op.calcMethod ? BEVELING_CALCULATIONS[op.calcMethod]?.requiresDiameter : false;
+
+    const borderColor = st?.category === BEVELING_CATEGORIES.MANUAL_INPUT
+        ? 'border-purple-200 dark:border-purple-800'
+        : st?.category === BEVELING_CATEGORIES.AREA_BASED
+            ? 'border-green-200 dark:border-green-800'
+            : 'border-blue-200 dark:border-blue-800';
+
+    const badgeLabel = st?.category === BEVELING_CATEGORIES.MANUAL_INPUT
+        ? t('product.addLaser')
+        : st?.category === BEVELING_CATEGORIES.AREA_BASED
+            ? t('product.sanding', 'صنفرة')
+            : t('product.addShataf');
+
+    const badgeVariant = st?.category === BEVELING_CATEGORIES.MANUAL_INPUT ? 'warning'
+        : st?.category === BEVELING_CATEGORIES.AREA_BASED ? 'success' : 'info';
+
+    return (
+        <div className={`bg-white dark:bg-gray-800 border ${borderColor} rounded-lg p-4 space-y-3 shadow-sm`}>
+            <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                    <Badge variant={badgeVariant} className="text-xs">{badgeLabel}</Badge>
+                    {st && (
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {st.arabicName}
+                        </span>
+                    )}
+                </div>
+                <button
+                    type="button"
+                    onClick={() => onRemove(op.id)}
+                    disabled={disabled}
+                    className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
+                    title={t('product.removeOperation')}
+                >
+                    <FiTrash2 size={16} />
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div>
+                    <BevelingTypeSelector
+                        value={op.bevelingType || ''}
+                        onChange={(v) => onBevelingTypeChange(op.id, v)}
+                        disabled={disabled}
+                        showDescription={showAdvanced}
+                    />
+                </div>
+
+                {showCalcMethod && (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {t('product.calculationMethod')}
+                            <span className="text-red-500 mr-1">*</span>
+                        </label>
+                        <BevelingCalculationSelector
+                            value={op.calcMethod || ''}
+                            onChange={(v) => onPatch(op.id, { calcMethod: v })}
+                            width={lineWidth}
+                            height={lineHeight}
+                            diameter={op.diameter}
+                            disabled={disabled}
+                            showCalculationPreview={showAdvanced}
+                        />
+                    </div>
+                )}
+
+                {requiresDiameter && (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {t('product.diameter')}
+                            <span className="text-red-500 mr-1">*</span>
+                        </label>
+                        <Input
+                            type="text"
+                            inputMode="numeric"
+                            value={op.diameter || ''}
+                            onChange={(e) => onPatch(op.id, { diameter: e.target.value })}
+                            placeholder="0"
+                            disabled={disabled}
+                        />
+                    </div>
+                )}
+
+                {isManualMethod && (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {t('product.manualCalcPrice', 'عدد الأمتار (يدوي)')}
+                            <span className="text-red-500 mr-1">*</span>
+                        </label>
+                        <Input
+                            type="text"
+                            inputMode="decimal"
+                            value={op.manualMeters ?? ''}
+                            onChange={(e) => onPatch(op.id, { manualMeters: e.target.value })}
+                            placeholder="0.00"
+                            disabled={disabled}
+                        />
+                    </div>
+                )}
+
+                {st?.requiresManualPrice && (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {t('product.laserPrice')}
+                            <span className="text-red-500 mr-1">*</span>
+                        </label>
+                        <Input
+                            type="text"
+                            inputMode="decimal"
+                            value={op.manualPrice ?? ''}
+                            onChange={(e) => onPatch(op.id, { manualPrice: e.target.value })}
+                            placeholder="0.00"
+                            disabled={disabled}
+                        />
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
 
 const EnhancedProductEntry = ({
     glassTypes = [],
@@ -42,22 +170,19 @@ const EnhancedProductEntry = ({
     glassTypeRef
 }) => {
     const { t } = useTranslation();
-    // Ensure operations array exists
     const operations = currentLine.operations || [];
 
     const [touched, setTouched] = useState(false);
     const [validation, setValidation] = useState({ isValid: true, errors: [] });
     const [showAdvanced, setShowAdvanced] = useState(false);
 
-    // Helper for generating unique IDs
     const makeId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
-    // Glass options for select dropdown
     const glassOptions = useMemo(
         () =>
             (glassTypes || []).map((g) => (
-                <option key={g.id} value={g.id}>
-                    {`${g.name} (${g.thickness || 0} مم) - ${(g.pricePerMeter || 0).toFixed(2)} جنيه/م${g.calculationMethod === 'AREA' ? '²' : ''}`}
+                <option key={g._id} value={g._id}>
+                    {t('product.glassOptionLabel', { name: g.name, thickness: g.thickness || 0, price: (g.pricePerMeter || 0).toFixed(2) })}
                 </option>
             )),
         [glassTypes]
@@ -67,7 +192,6 @@ const EnhancedProductEntry = ({
     useEffect(() => {
         const errors = [];
 
-        // Basic validations
         if (!currentLine.glassTypeId) {
             errors.push(t('product.validation.glassTypeRequired'));
         }
@@ -75,123 +199,89 @@ const EnhancedProductEntry = ({
         const width = Number(currentLine.width || 0);
         const height = Number(currentLine.height || 0);
 
-        if (!width || width <= 0) {
-            errors.push(t('product.validation.widthRequired'));
-        }
-        if (!height || height <= 0) {
-            errors.push(t('product.validation.heightRequired'));
-        }
+        if (!width || width <= 0) errors.push(t('product.validation.widthRequired'));
+        if (!height || height <= 0) errors.push(t('product.validation.heightRequired'));
 
-        // Validate each operation (operations are optional)
+        // Validate each operation
         operations.forEach((op, idx) => {
             const prefix = `${t('product.validation.operationPrefix')} ${idx + 1}: `;
 
-            if (op.type === 'SHATAF') {
-                if (!op.shatafType) {
-                    errors.push(prefix + t('product.validation.shatafTypeRequired'));
+            if (!op.bevelingType) {
+                errors.push(prefix + t('product.validation.shatafTypeRequired'));
+                return;
+            }
+
+            const st = BEVELING_TYPES[op.bevelingType];
+
+            // Formula-based types need a calculation method
+            if (st?.requiresCalculation) {
+                if (!op.calcMethod) {
+                    errors.push(prefix + t('product.validation.farmaRequired'));
                 } else {
-                    const st = SHATAF_TYPES[op.shatafType];
-
-                    // Validate Farma / Calculation Method
-                    if (st?.requiresFarma) {
-                        if (!op.farmaType) {
-                            errors.push(prefix + t('product.validation.farmaRequired'));
-                        } else {
-                            const ft = FARMA_TYPES[op.farmaType];
-                            if (ft?.requiresDiameter && (!op.diameter || Number(op.diameter) <= 0)) {
-                                errors.push(prefix + t('product.validation.diameterRequired'));
-                            }
-                            if (ft?.isManual && (op.manualCuttingPrice === null || op.manualCuttingPrice === undefined || op.manualCuttingPrice === '')) {
-                                errors.push(prefix + t('product.validation.manualPriceRequired'));
-                            }
-                        }
+                    const ft = BEVELING_CALCULATIONS[op.calcMethod];
+                    if (ft?.requiresDiameter && (!op.diameter || Number(op.diameter) <= 0)) {
+                        errors.push(prefix + t('product.validation.diameterRequired'));
                     }
-
-                    if (st?.requiresManualPrice && (op.manualCuttingPrice === null || op.manualCuttingPrice === undefined || op.manualCuttingPrice === '')) {
-                        // This is likely deprecated for new types but kept for safety
-                        errors.push(prefix + t('product.validation.cuttingPriceRequired'));
+                    if (ft?.isManual && (op.manualMeters === null || op.manualMeters === undefined || op.manualMeters === '')) {
+                        errors.push(prefix + t('product.validation.manualPriceRequired'));
                     }
                 }
-            } else if (op.type === 'LASER') {
-                if (!op.laserType) {
-                    errors.push(prefix + t('product.validation.laserTypeRequired'));
-                }
-                if (op.manualPrice === null || op.manualPrice === undefined || op.manualPrice === '') {
-                    errors.push(prefix + t('product.validation.laserPriceRequired'));
-                }
+            }
+
+            // LASER requires manual price
+            if (st?.requiresManualPrice && (op.manualPrice === null || op.manualPrice === undefined || op.manualPrice === '')) {
+                errors.push(prefix + t('product.validation.laserPriceRequired'));
             }
         });
 
         setValidation({ isValid: errors.length === 0, errors });
     }, [currentLine, operations, t]);
 
-    // Update operations array
     const updateOperations = (newOps) => {
         onLineChange({ ...currentLine, operations: newOps });
         setTouched(true);
     };
 
-    // Add a new operation (with max limit)
-    const addOperation = (type) => {
-        // Check max operations limit
-        if (operations.length >= MAX_OPERATIONS_PER_LINE) {
-            return; // Silently ignore, button will be disabled
-        }
+    const addOperation = () => {
+        if (operations.length >= MAX_OPERATIONS_PER_LINE) return;
 
-        const base = {
+        updateOperations([...operations, {
             id: makeId(),
-            type
-        };
-
-        if (type === 'SHATAF') {
-            base.shatafType = '';
-            base.farmaType = null; // Default null, force user to select
-            base.diameter = null;
-            base.manualCuttingPrice = null;
-        } else if (type === 'LASER') {
-            base.laserType = '';
-            base.manualPrice = null;
-            base.notes = '';
-        }
-
-        updateOperations([...operations, base]);
+            bevelingType: '',
+            calcMethod: null,
+            diameter: null,
+            manualMeters: null,
+            manualPrice: null,
+        }]);
     };
 
-    // Remove an operation
     const removeOperation = (id) => {
         updateOperations(operations.filter((o) => o.id !== id));
     };
 
-    // Update a single operation by ID
     const patchOperation = (id, patch) => {
-        const newOps = operations.map((op) => (op.id === id ? { ...op, ...patch } : op));
-        updateOperations(newOps);
+        updateOperations(operations.map((op) => (op.id === id ? { ...op, ...patch } : op)));
     };
 
-    // Handle shataf type change with proper field resets
-    const handleShatafTypeChange = (opId, newShatafType) => {
-        const typeInfo = SHATAF_TYPES[newShatafType];
-        const patch = {
-            shatafType: newShatafType,
-            manualCuttingPrice: null, // Reset manual price
-            // Reset farma but keep calculation method selection open
-            farmaType: '',
-            diameter: null
-        };
-        patchOperation(opId, patch);
+    const handleBevelingTypeChange = (opId, newBevelingType) => {
+        patchOperation(opId, {
+            bevelingType: newBevelingType,
+            calcMethod: '',
+            diameter: null,
+            manualMeters: null,
+            manualPrice: null,
+        });
     };
 
-    // Handle add to cart
     const handleAddToCartClick = () => {
         setTouched(true);
         if (validation.isValid) {
             onAddToCart();
-            // Reset touched after successful add so errors don't show for reset form
             setTouched(false);
         }
     };
 
-    // Keyboard shortcut handler
+    // Keyboard shortcut
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.ctrlKey && e.key === 'Enter') {
@@ -199,194 +289,9 @@ const EnhancedProductEntry = ({
                 handleAddToCartClick();
             }
         };
-
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [validation.isValid]);
-
-    // ========== Render Card Components ==========
-
-    const ShatafCard = ({ op, t }) => {
-        const st = op.shatafType ? SHATAF_TYPES[op.shatafType] : null;
-
-        // Define if we should show calculation method (Farma) selector
-        // Show for formula based types
-        const showCalculationMethod = st?.requiresFarma;
-
-        // Check if selected calculation method is Manual (Rotation/Tableaux)
-        const isManualMethod = op.farmaType ? FARMA_TYPES[op.farmaType]?.isManual : false;
-
-        // Check if selected method requires diameter
-        const requiresDiameter = op.farmaType ? FARMA_TYPES[op.farmaType]?.requiresDiameter : false;
-
-        return (
-            <div className="bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-lg p-4 space-y-3 shadow-sm">
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <Badge variant="info" className="text-xs">{t('product.addShataf')}</Badge>
-                        {st && (
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                                {st.arabicName}
-                            </span>
-                        )}
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => removeOperation(op.id)}
-                        disabled={disabled}
-                        className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
-                        title={t('product.removeOperation')}
-                    >
-                        <FiTrash2 size={16} />
-                    </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {/* Shataf Type Selector */}
-                    <div>
-                        <ShatafTypeSelector
-                            value={op.shatafType || ''}
-                            onChange={(v) => handleShatafTypeChange(op.id, v)}
-                            disabled={disabled}
-                            showDescription={showAdvanced}
-                        />
-                    </div>
-
-                    {/* Calculation Method (Farma) Selector */}
-                    {showCalculationMethod && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                {t('product.calculationMethod')}
-                                <span className="text-red-500 mr-1">*</span>
-                            </label>
-                            <FarmaTypeSelector
-                                value={op.farmaType || ''}
-                                onChange={(v) => patchOperation(op.id, { farmaType: v })}
-                                width={currentLine.width}
-                                height={currentLine.height}
-                                diameter={op.diameter}
-                                disabled={disabled}
-                                showCalculationPreview={showAdvanced}
-                            />
-                        </div>
-                    )}
-
-                    {/* Diameter (if farma requires it) */}
-                    {requiresDiameter && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                {t('product.diameter')}
-                                <span className="text-red-500 mr-1">*</span>
-                            </label>
-                            <Input
-                                type="text"
-                                inputMode="numeric"
-                                value={op.diameter || ''}
-                                onChange={(e) => patchOperation(op.id, { diameter: e.target.value })}
-                                placeholder="0"
-                                disabled={disabled}
-                            />
-                        </div>
-                    )}
-
-                    {/* Manual Price (if required by Manual Shataf OR Manual Calculation Method) */}
-                    {(st?.requiresManualPrice || isManualMethod) && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                {isManualMethod ? t('product.manualCalcPrice') : t('product.manualCuttingPrice')}
-                                <span className="text-red-500 mr-1">*</span>
-                            </label>
-                            <Input
-                                type="text"
-                                inputMode="decimal"
-                                value={op.manualCuttingPrice ?? ''}
-                                onChange={(e) => patchOperation(op.id, { manualCuttingPrice: e.target.value })}
-                                placeholder="0.00"
-                                disabled={disabled}
-                            />
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    };
-
-    const LaserCard = ({ op, t }) => {
-        const lt = op.laserType ? LASER_TYPES[op.laserType] : null;
-
-        return (
-            <div className="bg-white dark:bg-gray-800 border border-purple-200 dark:border-purple-800 rounded-lg p-4 space-y-3 shadow-sm">
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <Badge variant="warning" className="text-xs">{t('product.addLaser')}</Badge>
-                        {lt && (
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                                {t(`product.laser.${lt.key}`)}
-                            </span>
-                        )}
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => removeOperation(op.id)}
-                        disabled={disabled}
-                        className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
-                        title={t('product.removeOperation')}
-                    >
-                        <FiTrash2 size={16} />
-                    </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {/* Laser Type */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            {t('product.laserType')}
-                            <span className="text-red-500 mr-1">*</span>
-                        </label>
-                        <Select
-                            value={op.laserType || ''}
-                            onChange={(e) => patchOperation(op.id, { laserType: e.target.value })}
-                            disabled={disabled}
-                        >
-                            <option value="">{t('product.selectLaserType')}</option>
-                            {Object.values(LASER_TYPES).map((l) => (
-                                <option key={l.key} value={l.key}>{t(`product.laser.${l.key}`)}</option>
-                            ))}
-                        </Select>
-                    </div>
-
-                    {/* Manual Price */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            {t('product.laserPrice')}
-                            <span className="text-red-500 mr-1">*</span>
-                        </label>
-                        <Input
-                            type="text"
-                            inputMode="decimal"
-                            value={op.manualPrice ?? ''}
-                            onChange={(e) => patchOperation(op.id, { manualPrice: e.target.value })}
-                            placeholder="0.00"
-                            disabled={disabled}
-                        />
-                    </div>
-
-                    {/* Notes */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            {t('product.notes')}
-                        </label>
-                        <Input
-                            value={op.notes || ''}
-                            onChange={(e) => patchOperation(op.id, { notes: e.target.value })}
-                            placeholder={t('product.notesOptional')}
-                            disabled={disabled}
-                        />
-                    </div>
-                </div>
-            </div>
-        );
-    };
 
     // ========== Main Render ==========
     return (
@@ -470,7 +375,6 @@ const EnhancedProductEntry = ({
                         disabled={disabled}
                     />
                 </div>
-
             </div>
 
             {/* Operations Section */}
@@ -479,33 +383,19 @@ const EnhancedProductEntry = ({
                     <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         {t('product.operations')}
                     </div>
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addOperation('SHATAF')}
-                            disabled={disabled || operations.length >= MAX_OPERATIONS_PER_LINE}
-                            className="text-blue-600 border-blue-300 hover:bg-blue-50"
-                            title={operations.length >= MAX_OPERATIONS_PER_LINE ? t('product.maxOperationsReached') : ''}
-                        >
-                            <FiPlus className="ml-1" size={14} />
-                            {t('product.addShataf')}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addOperation('LASER')}
-                            disabled={disabled || operations.length >= MAX_OPERATIONS_PER_LINE}
-                            className="text-purple-600 border-purple-300 hover:bg-purple-50"
-                            title={operations.length >= MAX_OPERATIONS_PER_LINE ? t('product.maxOperationsReached') : ''}
-                        >
-                            <FiPlus className="ml-1" size={14} />
-                            {t('product.addLaser')}
-                        </Button>
-                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={addOperation}
+                        disabled={disabled || operations.length >= MAX_OPERATIONS_PER_LINE}
+                        className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                        title={operations.length >= MAX_OPERATIONS_PER_LINE ? t('product.maxOperationsReached') : ''}
+                    >
+                        <FiPlus className="ml-1" size={14} />
+                        {t('product.addOperation', 'إضافة عملية')}
+                    </Button>
                 </div>
 
-                {/* Operations List */}
                 {operations.length === 0 ? (
                     <div className="bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
                         <FiInfo className="mx-auto text-gray-400 mb-2" size={24} />
@@ -519,10 +409,17 @@ const EnhancedProductEntry = ({
                 ) : (
                     <div className="space-y-3">
                         {operations.map((op) => (
-                            <div key={op.id}>
-                                {op.type === 'SHATAF' && ShatafCard({ op, t })}
-                                {op.type === 'LASER' && LaserCard({ op, t })}
-                            </div>
+                            <OperationCard
+                                key={op.id}
+                                op={op}
+                                disabled={disabled}
+                                showAdvanced={showAdvanced}
+                                lineWidth={currentLine.width}
+                                lineHeight={currentLine.height}
+                                onRemove={removeOperation}
+                                onBevelingTypeChange={handleBevelingTypeChange}
+                                onPatch={patchOperation}
+                            />
                         ))}
                     </div>
                 )}

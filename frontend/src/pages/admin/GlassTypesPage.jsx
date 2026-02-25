@@ -1,7 +1,7 @@
 // src/pages/GlassTypesPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { glassTypeService } from '@services/glassTypeService.js';
+import { useGlassTypes, useCreateGlassType, useUpdateGlassType, useDeleteGlassType } from '@services/glassTypeService';
 import {
     Button,
     Input,
@@ -16,8 +16,16 @@ import { useAuth } from '@contexts/AuthContext.jsx';
 const GlassTypesPage = () => {
     const { t } = useTranslation();
     const { user } = useAuth();
-    const [glassTypes, setGlassTypes] = useState([]);
-    const [loading, setLoading] = useState(true);
+
+    // Convex reactive query - returns undefined while loading, then array
+    const glassTypes = useGlassTypes();
+    const loading = glassTypes === undefined;
+
+    // Convex mutations
+    const createGlassType = useCreateGlassType();
+    const updateGlassType = useUpdateGlassType();
+    const deleteGlassType = useDeleteGlassType();
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
 
@@ -32,25 +40,8 @@ const GlassTypesPage = () => {
     const [errors, setErrors] = useState({});
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Load glass types on component mount
-    useEffect(() => {
-        loadGlassTypes();
-    }, []);
-
-    const loadGlassTypes = async () => {
-        try {
-            setLoading(true);
-            const data = await glassTypeService.getAllGlassTypes();
-            setGlassTypes(data);
-        } catch (error) {
-            console.error('Error loading glass types:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     // Filter and search glass types
-    const filteredGlassTypes = glassTypes.filter(item => {
+    const filteredGlassTypes = (glassTypes || []).filter(item => {
         const matchesSearch = !searchQuery ||
             item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.color?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -63,16 +54,15 @@ const GlassTypesPage = () => {
         const newErrors = {};
 
         if (!formData.name.trim()) {
-            newErrors.name = 'اسم نوع الزجاج مطلوب';
+            newErrors.name = t('glassTypes.validation.nameRequired');
         }
 
         if (!formData.thickness || isNaN(formData.thickness) || parseFloat(formData.thickness) <= 0) {
-            newErrors.thickness = 'السماكة يجب أن تكون رقم موجب';
+            newErrors.thickness = t('glassTypes.validation.thicknessRequired');
         }
 
-        // Backend requires pricePerMeter > 0 (positive)
         if (!formData.pricePerMeter || isNaN(formData.pricePerMeter) || parseFloat(formData.pricePerMeter) <= 0) {
-            newErrors.pricePerMeter = 'السعر يجب أن يكون رقم موجب';
+            newErrors.pricePerMeter = t('glassTypes.validation.priceRequired');
         }
 
         setErrors(newErrors);
@@ -86,38 +76,34 @@ const GlassTypesPage = () => {
         if (!validateForm()) return;
 
         try {
-            // Create data object matching backend GlassType model
             const glassTypeData = {
                 name: formData.name,
                 thickness: parseFloat(formData.thickness),
-                color: formData.color || null, // Optional field
+                color: formData.color || undefined,
                 pricePerMeter: parseFloat(formData.pricePerMeter)
-                // calculationMethod will be set to AREA by default in backend
             };
 
-            console.log('Sending data to backend:', glassTypeData);
-
             if (editingItem) {
-                await glassTypeService.updateGlassType(editingItem.id, glassTypeData);
+                await updateGlassType({
+                    glassTypeId: editingItem._id,
+                    ...glassTypeData
+                });
             } else {
-                await glassTypeService.createGlassType(glassTypeData);
+                await createGlassType(glassTypeData);
             }
 
-            await loadGlassTypes();
             handleCloseModal();
         } catch (error) {
             console.error('Error saving glass type:', error);
-            // You can add toast notification here
         }
     };
 
     // Handle delete
     const handleDelete = async (id) => {
-        if (!window.confirm('هل أنت متأكد من حذف هذا النوع؟')) return;
+        if (!window.confirm(t('glassTypes.deleteConfirm'))) return;
 
         try {
-            await glassTypeService.deleteGlassType(id);
-            await loadGlassTypes();
+            await deleteGlassType({ glassTypeId: id });
         } catch (error) {
             console.error('Error deleting glass type:', error);
         }
@@ -166,7 +152,6 @@ const GlassTypesPage = () => {
             [name]: value
         }));
 
-        // Clear error for this field
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
@@ -176,40 +161,40 @@ const GlassTypesPage = () => {
     const columns = [
         {
             key: 'name',
-            header: 'اسم نوع الزجاج',
+            header: t('glassTypes.fields.name'),
             render: (value) => (
                 <div className="font-medium text-gray-900 dark:text-white">{value}</div>
             )
         },
         {
             key: 'thickness',
-            header: 'السماكة (مم)',
+            header: t('glassTypes.fields.thickness'),
             align: 'center',
             render: (value) => (
                 <Badge variant="outline" size="sm">
-                    {value} مم
+                    {value} {t('common.millimeter')}
                 </Badge>
             )
         },
         {
             key: 'color',
-            header: 'اللون',
+            header: t('glassTypes.fields.color'),
             align: 'center',
             render: (value) => value || '-'
         },
         {
             key: 'pricePerMeter',
-            header: 'السعر (م²)',
+            header: t('glassTypes.fields.priceColumn'),
             align: 'center',
             render: (value) => (
                 <span className="font-medium text-green-600 dark:text-green-400">
-                    {value?.toFixed(2)} ج.م
+                    {value?.toFixed(2)} {t('common.currency')}
                 </span>
             )
         },
         {
             key: 'actions',
-            header: 'الإجراءات',
+            header: t('glassTypes.fields.actions'),
             align: 'center',
             sortable: false,
             render: (_, row) => (
@@ -219,7 +204,7 @@ const GlassTypesPage = () => {
                         variant="ghost"
                         onClick={() => handleOpenModal(row)}
                         className="text-blue-600 hover:text-blue-800"
-                        title="تعديل"
+                        title={t('actions.edit')}
                     >
                         <Icon name="edit" size="sm" />
                     </Button>
@@ -228,9 +213,9 @@ const GlassTypesPage = () => {
                         <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleDelete(row.id)}
+                            onClick={() => handleDelete(row._id)}
                             className="text-red-600 hover:text-red-800"
-                            title="حذف"
+                            title={t('actions.delete')}
                         >
                             <Icon name="delete" size="sm" />
                         </Button>
@@ -244,11 +229,11 @@ const GlassTypesPage = () => {
         <div className="space-y-6">
             {/* Page Header */}
             <PageHeader
-                title="إدارة أنواع الزجاج"
-                subtitle="إدارة أنواع الزجاج والأسعار"
+                title={t('glassTypes.title')}
+                subtitle={t('glassTypes.subtitle')}
                 breadcrumbs={[
-                    { label: 'الرئيسية', href: '/' },
-                    { label: 'أنواع الزجاج' }
+                    { label: t('navigation.home'), href: '/' },
+                    { label: t('glassTypes.title') }
                 ]}
                 actions={
                     <Button
@@ -257,7 +242,7 @@ const GlassTypesPage = () => {
                         className="flex items-center space-x-2 rtl:space-x-reverse"
                     >
                         <Icon name="add" size="sm" />
-                        <span>إضافة نوع جديد</span>
+                        <span>{t('glassTypes.addNew')}</span>
                     </Button>
                 }
             />
@@ -266,7 +251,7 @@ const GlassTypesPage = () => {
             <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
                 <div className="flex-1">
                     <Input
-                        placeholder="البحث في أنواع الزجاج..."
+                        placeholder={t('glassTypes.searchPlaceholder')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full max-w-md"
@@ -279,15 +264,15 @@ const GlassTypesPage = () => {
                 data={filteredGlassTypes}
                 columns={columns}
                 loading={loading}
-                emptyMessage="لا توجد أنواع زجاج"
-                loadingMessage="جاري تحميل أنواع الزجاج..."
+                emptyMessage={t('glassTypes.noTypes')}
+                loadingMessage={t('glassTypes.loadingTypes')}
             />
 
             {/* Modal for Add/Edit */}
             <Modal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
-                title={editingItem ? 'تعديل نوع الزجاج' : 'إضافة نوع زجاج جديد'}
+                title={editingItem ? t('glassTypes.editType') : t('glassTypes.addNewType')}
                 size="md"
                 footer={(
                     <div className="flex justify-end space-x-3 rtl:space-x-reverse w-full">
@@ -296,14 +281,14 @@ const GlassTypesPage = () => {
                             variant="outline"
                             onClick={handleCloseModal}
                         >
-                            إلغاء
+                            {t('actions.cancel')}
                         </Button>
                         <Button
                             form="glass-type-form"
                             type="submit"
                             variant="primary"
                         >
-                            {editingItem ? 'تحديث' : 'إضافة'}
+                            {editingItem ? t('actions.update') : t('actions.add')}
                         </Button>
                     </div>
                 )}
@@ -311,19 +296,19 @@ const GlassTypesPage = () => {
                 <form id="glass-type-form" onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 gap-4">
                         <Input
-                            label="اسم نوع الزجاج"
+                            label={t('glassTypes.fields.name')}
                             name="name"
                             value={formData.name}
                             onChange={handleInputChange}
                             error={!!errors.name}
                             helperText={errors.name}
                             required
-                            placeholder="مثال: زجاج شفاف"
+                            placeholder={t('glassTypes.placeholders.name')}
                         />
 
                         <div className="grid grid-cols-2 gap-4">
                             <Input
-                                label="السماكة (مم)"
+                                label={t('glassTypes.fields.thickness')}
                                 name="thickness"
                                 type="number"
                                 step="0.1"
@@ -333,11 +318,11 @@ const GlassTypesPage = () => {
                                 error={!!errors.thickness}
                                 helperText={errors.thickness}
                                 required
-                                placeholder="6.0"
+                                placeholder={t('glassTypes.placeholders.thickness')}
                             />
 
                             <Input
-                                label="السعر لكل متر مربع (ج.م) "
+                                label={t('glassTypes.fields.pricePerMeter')}
                                 name="pricePerMeter"
                                 type="number"
                                 step="0.01"
@@ -347,16 +332,16 @@ const GlassTypesPage = () => {
                                 error={!!errors.pricePerMeter}
                                 helperText={errors.pricePerMeter}
                                 required
-                                placeholder="100.00"
+                                placeholder={t('glassTypes.placeholders.price')}
                             />
                         </div>
 
                         <Input
-                            label="اللون (اختياري)"
+                            label={t('glassTypes.fields.colorOptional')}
                             name="color"
                             value={formData.color}
                             onChange={handleInputChange}
-                            placeholder="شفاف، أزرق، أخضر..."
+                            placeholder={t('glassTypes.placeholders.color')}
                         />
                     </div>
                 </form>

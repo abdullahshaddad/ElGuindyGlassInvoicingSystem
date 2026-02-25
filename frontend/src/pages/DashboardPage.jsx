@@ -1,10 +1,8 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React from 'react';
 import {useTranslation} from 'react-i18next';
 import {Link} from 'react-router-dom';
 import {useAuth, usePermissions} from '@/contexts/AuthContext';
-import dashboardService from '@/services/dashboardService';
-import { useWebSocket, WEBSOCKET_TOPICS } from '@/hooks/useWebSocket';
-import { useSnackbar } from '@/contexts/SnackbarContext';
+import { useDashboardStats, useTopCustomers, useMonthlyRevenue, useRecentInvoices } from '@/services/dashboardService';
 import {
     FiActivity,
     FiAlertCircle,
@@ -19,8 +17,6 @@ import {
     FiTrendingDown,
     FiTrendingUp,
     FiUsers,
-    FiWifi,
-    FiWifiOff,
     FiCalendar,
     FiPieChart
 } from 'react-icons/fi';
@@ -42,6 +38,7 @@ import {
 
 // Stats Card Component
 const StatsCard = ({title, value, change, icon: Icon, loading, trend, subtitle}) => {
+    const {t} = useTranslation();
     return (<div
         className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
         <div className="flex items-start justify-between">
@@ -57,7 +54,7 @@ const StatsCard = ({title, value, change, icon: Icon, loading, trend, subtitle})
                             <FiTrendingDown className="w-4 h-4"/>}
                         <span>{Math.abs(change).toFixed(1)}%</span>
                         {trend &&
-                            <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">من الشهر الماضي</span>}
+                            <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">{t('dashboard.fromLastMonth')}</span>}
                     </div>)}
                 </>)}
             </div>
@@ -74,14 +71,14 @@ const StatsCard = ({title, value, change, icon: Icon, loading, trend, subtitle})
 // Quick Action Card Component
 const QuickActionCard = ({title, icon: Icon, to, description}) => {
     const {i18n} = useTranslation();
-    const isArabic = i18n.language === 'ar';
+    const isRtl = i18n.dir() === 'rtl';
 
     return (<Link
         to={to}
         className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 hover:border-blue-400 hover:shadow-lg transition-all duration-200 group block"
-        dir={isArabic ? 'rtl' : 'ltr'}
+        dir={isRtl ? 'rtl' : 'ltr'}
     >
-        <div className={`flex items-center gap-3 ${isArabic ? 'flex-row-reverse' : 'flex-row'}`}>
+        <div className={`flex items-center gap-3 ${isRtl ? 'flex-row-reverse' : 'flex-row'}`}>
             <div
                 className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition-colors">
                 <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400"/>
@@ -89,12 +86,12 @@ const QuickActionCard = ({title, icon: Icon, to, description}) => {
 
             <div className="flex-1">
                 <h4
-                    className={`text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${isArabic ? 'text-right' : 'text-left'}`}
+                    className={`text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${isRtl ? 'text-right' : 'text-left'}`}
                 >
                     {title}
                 </h4>
                 {description && (<p
-                    className={`text-xs text-gray-500 dark:text-gray-400 mt-0.5 ${isArabic ? 'text-right' : 'text-left'}`}
+                    className={`text-xs text-gray-500 dark:text-gray-400 mt-0.5 ${isRtl ? 'text-right' : 'text-left'}`}
                 >
                     {description}
                 </p>)}
@@ -106,7 +103,7 @@ const QuickActionCard = ({title, icon: Icon, to, description}) => {
 
 // Recent Invoice Row Component
 const InvoiceRow = ({invoice}) => {
-    const {i18n} = useTranslation();
+    const {t} = useTranslation();
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -124,11 +121,11 @@ const InvoiceRow = ({invoice}) => {
     const getStatusText = (status) => {
         switch (status) {
             case 'PAID':
-                return 'مدفوعة';
+                return t('dashboard.statusPaid');
             case 'PENDING':
-                return 'معلقة';
+                return t('dashboard.statusPending');
             case 'CANCELLED':
-                return 'ملغاة';
+                return t('dashboard.statusCancelled');
             default:
                 return status;
         }
@@ -138,10 +135,10 @@ const InvoiceRow = ({invoice}) => {
         className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
         <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                {invoice.customer?.name || 'عميل'}
+                {invoice.customer?.name || invoice.customerName || t('dashboard.customer')}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-                #{invoice.id}
+                {invoice.readableId || invoice.invoiceNumber || invoice._id}
             </p>
         </div>
         <div className="flex items-center gap-3">
@@ -149,7 +146,7 @@ const InvoiceRow = ({invoice}) => {
                     {getStatusText(invoice.status)}
                 </span>
             <span className="text-sm font-semibold text-gray-900 dark:text-white">
-    {i18n.language === 'ar' ? `${invoice.totalPrice?.toFixed(2)} ج.م` : `EGP ${invoice.totalPrice?.toFixed(2)}`}
+    {`${t('common.currency')} ${invoice.totalPrice?.toFixed(2)}`}
 </span>
 
         </div>
@@ -157,7 +154,9 @@ const InvoiceRow = ({invoice}) => {
 };
 
 // Top Customer Row Component
-const TopCustomerRow = ({customer, rank, isArabic}) => {
+const TopCustomerRow = ({customer, rank}) => {
+    const {t} = useTranslation();
+
     const getRankBadge = (rank) => {
         const colors = {
             1: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
@@ -178,22 +177,21 @@ const TopCustomerRow = ({customer, rank, isArabic}) => {
                         {customer.customerName}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {customer.invoiceCount} {isArabic ? 'فاتورة' : 'invoices'}
+                        {t('dashboard.invoiceCountLabel', { count: customer.invoiceCount })}
                     </p>
                 </div>
             </div>
             <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                {isArabic
-                    ? `${customer.totalRevenue?.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ج.م`
-                    : `EGP ${customer.totalRevenue?.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
-                }
+                {`${t('common.currency')} ${customer.totalRevenue?.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}
             </span>
         </div>
     );
 };
 
 // Today's Summary Card Component
-const TodaySummaryCard = ({todayStats, salesOverview, loading, isArabic}) => {
+const TodaySummaryCard = ({todayStats, salesOverview, loading}) => {
+    const {t} = useTranslation();
+
     if (loading) {
         return (
             <div className="rounded-xl p-6 text-white" style={{ background: `linear-gradient(135deg, ${COMPANY_COLORS.primary}, ${COMPANY_COLORS.secondary})` }}>
@@ -209,23 +207,23 @@ const TodaySummaryCard = ({todayStats, salesOverview, loading, isArabic}) => {
         <div className="rounded-xl p-6 text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${COMPANY_COLORS.primary}, ${COMPANY_COLORS.secondary})` }}>
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold opacity-90">
-                    {isArabic ? 'ملخص اليوم' : "Today's Summary"}
+                    {t('dashboard.todaySummary')}
                 </h3>
                 <FiActivity className="w-6 h-6 opacity-80" />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <p className="text-sm opacity-80 mb-1">
-                        {isArabic ? 'إيرادات اليوم' : "Today's Revenue"}
+                        {t('dashboard.todayRevenue')}
                     </p>
                     <p className="text-2xl font-bold">
                         {(todayStats?.totalRevenue || 0).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
-                        <span className="text-sm mr-1">{isArabic ? 'ج.م' : 'EGP'}</span>
+                        <span className="text-sm mr-1">{t('common.currency')}</span>
                     </p>
                 </div>
                 <div>
                     <p className="text-sm opacity-80 mb-1">
-                        {isArabic ? 'فواتير اليوم' : "Today's Invoices"}
+                        {t('dashboard.todayInvoices')}
                     </p>
                     <p className="text-2xl font-bold">
                         {todayStats?.invoiceCount || 0}
@@ -235,7 +233,7 @@ const TodaySummaryCard = ({todayStats, salesOverview, loading, isArabic}) => {
             {salesOverview && (
                 <div className="mt-4 pt-4 border-t border-white/20">
                     <div className="flex justify-between text-sm">
-                        <span className="opacity-80">{isArabic ? 'عملاء هذا الشهر' : 'Monthly Customers'}</span>
+                        <span className="opacity-80">{t('dashboard.monthlyCustomers')}</span>
                         <span className="font-semibold">{salesOverview.uniqueCustomers || 0}</span>
                     </div>
                 </div>
@@ -245,7 +243,9 @@ const TodaySummaryCard = ({todayStats, salesOverview, loading, isArabic}) => {
 };
 
 // Outstanding Balance Card
-const OutstandingBalanceCard = ({stats, loading, isArabic}) => {
+const OutstandingBalanceCard = ({stats, loading}) => {
+    const {t} = useTranslation();
+
     if (loading || !stats) {
         return (
             <div className="rounded-xl p-6 text-white" style={{ background: `linear-gradient(135deg, ${COMPANY_COLORS.accent}, #48CAE4)` }}>
@@ -265,22 +265,22 @@ const OutstandingBalanceCard = ({stats, loading, isArabic}) => {
         <div className="rounded-xl p-6 text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${COMPANY_COLORS.accent}, #48CAE4)` }}>
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold opacity-90">
-                    {isArabic ? 'المبالغ المعلقة' : 'Outstanding Balance'}
+                    {t('dashboard.outstandingBalance')}
                 </h3>
                 <FiAlertCircle className="w-6 h-6 opacity-80" />
             </div>
             <div className="space-y-3">
                 <div>
                     <p className="text-sm opacity-80 mb-1">
-                        {isArabic ? 'إجمالي المعلق' : 'Total Pending'}
+                        {t('dashboard.totalPending')}
                     </p>
                     <p className="text-2xl font-bold">
                         {pendingAmount.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
-                        <span className="text-sm mr-1">{isArabic ? 'ج.م' : 'EGP'}</span>
+                        <span className="text-sm mr-1">{t('common.currency')}</span>
                     </p>
                 </div>
                 <div className="flex justify-between text-sm pt-2 border-t border-white/20">
-                    <span className="opacity-80">{isArabic ? 'فواتير معلقة' : 'Pending Invoices'}</span>
+                    <span className="opacity-80">{t('dashboard.pendingInvoicesCount')}</span>
                     <span className="font-semibold">{stats.pendingInvoices || 0}</span>
                 </div>
             </div>
@@ -313,7 +313,9 @@ const COMPANY_COLORS = {
 };
 
 // Revenue Chart Component
-const RevenueChart = ({ data, loading, isArabic }) => {
+const RevenueChart = ({ data, loading }) => {
+    const {t, i18n} = useTranslation();
+
     if (loading) {
         return (
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -326,8 +328,9 @@ const RevenueChart = ({ data, loading, isArabic }) => {
     }
 
     // Transform data for chart
-    const chartData = data.map(item => ({
-        month: MONTH_NAMES[isArabic ? 'ar' : 'en'][item.month] || item.month,
+    const lang = i18n.language === 'ar' ? 'ar' : 'en';
+    const chartData = (data || []).map(item => ({
+        month: MONTH_NAMES[lang][item.month] || item.month,
         revenue: item.revenue || 0,
         invoices: item.invoiceCount || 0
     }));
@@ -338,12 +341,11 @@ const RevenueChart = ({ data, loading, isArabic }) => {
                 <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
                     <p className="font-semibold text-gray-900 dark:text-white mb-1">{label}</p>
                     <p className="text-sm" style={{ color: COMPANY_COLORS.primary }}>
-                        {isArabic ? 'الإيرادات: ' : 'Revenue: '}
-                        {payload[0]?.value?.toLocaleString('en-US', {minimumFractionDigits: 0})} {isArabic ? 'ج.م' : 'EGP'}
+                        {t('dashboard.revenue')}: {payload[0]?.value?.toLocaleString('en-US', {minimumFractionDigits: 0})} {t('common.currency')}
                     </p>
                     {payload[1] && (
                         <p className="text-sm" style={{ color: COMPANY_COLORS.secondary }}>
-                            {isArabic ? 'الفواتير: ' : 'Invoices: '}{payload[1]?.value}
+                            {t('dashboard.invoicesLabel')}: {payload[1]?.value}
                         </p>
                     )}
                 </div>
@@ -357,10 +359,10 @@ const RevenueChart = ({ data, loading, isArabic }) => {
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {isArabic ? 'الإيرادات الشهرية' : 'Monthly Revenue'}
+                        {t('dashboard.monthlyRevenue')}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {isArabic ? 'آخر 6 أشهر' : 'Last 6 months'}
+                        {t('dashboard.last6Months')}
                     </p>
                 </div>
                 <FiBarChart2 className="w-6 h-6" style={{ color: COMPANY_COLORS.primary }} />
@@ -404,7 +406,9 @@ const RevenueChart = ({ data, loading, isArabic }) => {
 };
 
 // Invoice Status Pie Chart Component
-const InvoiceStatusChart = ({ stats, loading, isArabic }) => {
+const InvoiceStatusChart = ({ stats, loading }) => {
+    const {t} = useTranslation();
+
     if (loading || !stats) {
         return (
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -420,9 +424,9 @@ const InvoiceStatusChart = ({ stats, loading, isArabic }) => {
     const PIE_COLORS = [COMPANY_COLORS.secondary, COMPANY_COLORS.warning, '#ef4444'];
 
     const data = [
-        { name: isArabic ? 'مدفوعة' : 'Paid', value: stats.paidInvoices || 0, color: PIE_COLORS[0] },
-        { name: isArabic ? 'معلقة' : 'Pending', value: stats.pendingInvoices || 0, color: PIE_COLORS[1] },
-        { name: isArabic ? 'ملغاة' : 'Cancelled', value: (stats.totalInvoices - stats.paidInvoices - stats.pendingInvoices) || 0, color: PIE_COLORS[2] }
+        { name: t('dashboard.statusPaid'), value: stats.paidInvoices || 0, color: PIE_COLORS[0] },
+        { name: t('dashboard.statusPending'), value: stats.pendingInvoices || 0, color: PIE_COLORS[1] },
+        { name: t('dashboard.statusCancelled'), value: (stats.totalInvoices - stats.paidInvoices - stats.pendingInvoices) || 0, color: PIE_COLORS[2] }
     ].filter(item => item.value > 0);
 
     const total = data.reduce((sum, item) => sum + item.value, 0);
@@ -432,10 +436,10 @@ const InvoiceStatusChart = ({ stats, loading, isArabic }) => {
             <div className="flex items-center justify-between mb-4">
                 <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {isArabic ? 'حالة الفواتير' : 'Invoice Status'}
+                        {t('dashboard.invoiceStatus')}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {isArabic ? 'هذا الشهر' : 'This month'}
+                        {t('dashboard.thisMonth')}
                     </p>
                 </div>
                 <FiPieChart className="w-6 h-6 text-gray-400" />
@@ -481,7 +485,9 @@ const InvoiceStatusChart = ({ stats, loading, isArabic }) => {
 };
 
 // Growth Comparison Card
-const GrowthComparisonCard = ({ currentMonth, previousMonth, loading, isArabic }) => {
+const GrowthComparisonCard = ({ currentMonth, previousMonth, loading }) => {
+    const {t} = useTranslation();
+
     if (loading) {
         return (
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -505,7 +511,7 @@ const GrowthComparisonCard = ({ currentMonth, previousMonth, loading, isArabic }
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {isArabic ? 'مقارنة النمو' : 'Growth Comparison'}
+                    {t('dashboard.growthComparison')}
                 </h3>
                 <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium ${
                     isPositive
@@ -519,26 +525,26 @@ const GrowthComparisonCard = ({ currentMonth, previousMonth, loading, isArabic }
             <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                        {isArabic ? 'الشهر الحالي' : 'This Month'}
+                        {t('dashboard.thisMonthLabel')}
                     </p>
                     <p className="text-lg font-bold text-gray-900 dark:text-white">
                         {currentRevenue.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
-                        <span className="text-xs mr-1 font-normal">{isArabic ? 'ج.م' : 'EGP'}</span>
+                        <span className="text-xs mr-1 font-normal">{t('common.currency')}</span>
                     </p>
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                        {isArabic ? 'الشهر السابق' : 'Last Month'}
+                        {t('dashboard.lastMonth')}
                     </p>
                     <p className="text-lg font-bold text-gray-900 dark:text-white">
                         {previousRevenue.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
-                        <span className="text-xs mr-1 font-normal">{isArabic ? 'ج.م' : 'EGP'}</span>
+                        <span className="text-xs mr-1 font-normal">{t('common.currency')}</span>
                     </p>
                 </div>
             </div>
             <div className="mt-4">
                 <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                    <span>{isArabic ? 'التقدم نحو الهدف' : 'Progress to Goal'}</span>
+                    <span>{t('dashboard.progressToGoal')}</span>
                     <span>{Math.min(100, (currentRevenue / (previousRevenue || 1)) * 100).toFixed(0)}%</span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -553,7 +559,9 @@ const GrowthComparisonCard = ({ currentMonth, previousMonth, loading, isArabic }
 };
 
 // Daily Activity Mini Chart
-const DailyActivityCard = ({ todayStats, salesOverview, loading, isArabic }) => {
+const DailyActivityCard = ({ todayStats, salesOverview, loading }) => {
+    const {t} = useTranslation();
+
     if (loading) {
         return (
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -578,7 +586,7 @@ const DailyActivityCard = ({ todayStats, salesOverview, loading, isArabic }) => 
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {isArabic ? 'نشاط اليوم' : "Today's Activity"}
+                    {t('dashboard.todayActivity')}
                 </h3>
                 <FiActivity className="w-6 h-6 text-gray-400" />
             </div>
@@ -587,7 +595,7 @@ const DailyActivityCard = ({ todayStats, salesOverview, loading, isArabic }) => 
                     <div>
                         <p className="text-3xl font-bold text-gray-900 dark:text-white">{todayInvoices}</p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {isArabic ? 'فواتير اليوم' : 'invoices today'}
+                            {t('dashboard.invoicesToday')}
                         </p>
                     </div>
                     <div className={`text-right px-3 py-2 rounded-lg ${
@@ -605,13 +613,13 @@ const DailyActivityCard = ({ todayStats, salesOverview, loading, isArabic }) => 
                                     : 'text-red-600 dark:text-red-400'
                         }`}>{performance}%</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {isArabic ? 'من المتوسط' : 'of average'}
+                            {t('dashboard.ofAverage')}
                         </p>
                     </div>
                 </div>
                 <div>
                     <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                        <span>{isArabic ? 'المتوسط اليومي' : 'Daily average'}: {avgDailyInvoices}</span>
+                        <span>{t('dashboard.dailyAverage')}: {avgDailyInvoices}</span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div
@@ -629,160 +637,79 @@ const DashboardPage = () => {
     const {t, i18n} = useTranslation();
     const {user} = useAuth();
     const {isOwner, isCashier, isWorker} = usePermissions();
-    const { showSuccess, showInfo } = useSnackbar();
 
-    // State management
-    const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState(null);
-    const [recentInvoices, setRecentInvoices] = useState([]);
-    const [topCustomers, setTopCustomers] = useState([]);
-    const [todayStats, setTodayStats] = useState(null);
-    const [salesOverview, setSalesOverview] = useState(null);
-    const [monthlyRevenue, setMonthlyRevenue] = useState([]);
-    const [error, setError] = useState(null);
+    // Convex reactive queries - auto-update in real-time, no WebSocket needed
+    const stats = useDashboardStats();
+    const recentInvoices = useRecentInvoices(5);
+    const topCustomers = useTopCustomers(5);
+    const monthlyRevenue = useMonthlyRevenue(12);
 
-    // WebSocket message handler
-    const handleWebSocketMessage = useCallback((topic, data) => {
-        console.log('Dashboard WebSocket message:', topic, data);
+    // Derive loading state from Convex (undefined means still loading)
+    const loading = stats === undefined;
 
-        switch (topic) {
-            case WEBSOCKET_TOPICS.DASHBOARD_INVOICE_CREATED:
-                // New invoice created - refresh data
-                showInfo(i18n.language === 'ar'
-                    ? `فاتورة جديدة #${data.invoiceId} - ${data.customerName}`
-                    : `New invoice #${data.invoiceId} - ${data.customerName}`
-                );
-                fetchDashboardData();
-                break;
-
-            case WEBSOCKET_TOPICS.DASHBOARD_PRINT_UPDATE:
-                // Print job status changed
-                console.log('Print job update:', data);
-                break;
-
-            case WEBSOCKET_TOPICS.DASHBOARD_INVOICE_STATUS:
-                // Invoice status changed - refresh data
-                showInfo(i18n.language === 'ar'
-                    ? `تم تحديث حالة الفاتورة #${data.invoiceId}`
-                    : `Invoice #${data.invoiceId} status updated`
-                );
-                fetchDashboardData();
-                break;
-
-            default:
-                break;
-        }
-    }, [i18n.language]);
-
-    // WebSocket connection for real-time updates
-    const { connected: wsConnected } = useWebSocket({
-        topics: [
-            WEBSOCKET_TOPICS.DASHBOARD_INVOICE_CREATED,
-            WEBSOCKET_TOPICS.DASHBOARD_PRINT_UPDATE,
-            WEBSOCKET_TOPICS.DASHBOARD_INVOICE_STATUS
-        ],
-        onMessage: handleWebSocketMessage,
-        enabled: true
-    });
-
-    // Fetch dashboard data
-    useEffect(() => {
-        fetchDashboardData();
-    }, []);
-
-    const fetchDashboardData = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            // Fetch all data in parallel
-            const [dashboardStats, invoices, customers, todayData, overview, monthly] = await Promise.all([
-                dashboardService.getDashboardStats(),
-                dashboardService.getRecentInvoices(5),
-                dashboardService.getTopCustomers(5, 'month').catch(() => []),
-                dashboardService.getRevenueStats({ period: 'today' }).catch(() => null),
-                dashboardService.getSalesOverview('month').catch(() => null),
-                dashboardService.getMonthlyRevenue(6).catch(() => [])
-            ]);
-
-            setStats(dashboardStats);
-            setRecentInvoices(invoices || []);
-            setTopCustomers(customers || []);
-            setTodayStats(todayData);
-            setSalesOverview(overview);
-            setMonthlyRevenue(monthly || []);
-        } catch (err) {
-            console.error('Failed to fetch dashboard data:', err);
-            setError(i18n.language === 'ar' ? 'فشل في تحميل بيانات لوحة التحكم' : 'Failed to load dashboard data');
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Derive todayStats and salesOverview from the stats object
+    // The dashboard stats query returns these as part of the stats object
+    const todayStats = stats?.todayStats || null;
+    const salesOverview = stats?.salesOverview || null;
 
     const getWelcomeMessage = () => {
         const hour = new Date().getHours();
-        if (i18n.language === 'ar') {
-            if (hour < 12) return 'صباح الخير';
-            if (hour < 18) return 'مساء الخير';
-            return 'مساء الخير';
-        } else {
-            if (hour < 12) return 'Good Morning';
-            if (hour < 18) return 'Good Afternoon';
-            return 'Good Evening';
-        }
+        if (hour < 12) return t('dashboard.greeting.morning');
+        if (hour < 18) return t('dashboard.greeting.afternoon');
+        return t('dashboard.greeting.evening');
     };
 
     const getQuickActions = () => {
         if (isOwner) {
             return [{
-                title: i18n.language === 'ar' ? 'فاتورة جديدة' : 'New Invoice',
+                title: t('dashboard.newInvoice'),
                 icon: FiFileText,
                 to: '/sys-cashier',
-                description: i18n.language === 'ar' ? 'إنشاء فاتورة جديدة' : 'Create new invoice'
+                description: t('dashboard.createNewInvoice')
             }, {
-                title: i18n.language === 'ar' ? 'عميل جديد' : 'New Customer',
+                title: t('dashboard.newCustomer'),
                 icon: FiUsers,
                 to: '/customers',
-                description: i18n.language === 'ar' ? 'إضافة عميل جديد' : 'Add new customer'
+                description: t('dashboard.addNewCustomer')
             }, {
-                title: i18n.language === 'ar' ? 'التقارير' : 'Reports',
+                title: t('dashboard.reports'),
                 icon: FiBarChart2,
                 to: '/reports',
-                description: i18n.language === 'ar' ? 'عرض التقارير والإحصائيات' : 'View reports and analytics'
+                description: t('dashboard.viewReports')
             }, {
-                title: i18n.language === 'ar' ? 'الإعدادات' : 'Settings',
+                title: t('dashboard.settingsAction'),
                 icon: FiTool,
                 to: '/settings',
-                description: i18n.language === 'ar' ? 'إدارة إعدادات النظام' : 'Manage system settings'
+                description: t('dashboard.manageSettings')
             }];
         } else if (isCashier) {
             return [{
-                title: i18n.language === 'ar' ? 'فاتورة جديدة' : 'New Invoice',
+                title: t('dashboard.newInvoice'),
                 icon: FiFileText,
                 to: '/invoices/new',
-                description: i18n.language === 'ar' ? 'إنشاء فاتورة جديدة' : 'Create new invoice'
+                description: t('dashboard.createNewInvoice')
             }, {
-                title: i18n.language === 'ar' ? 'عرض الفواتير' : 'View Invoices',
+                title: t('dashboard.viewInvoices'),
                 icon: FiPackage,
                 to: '/invoices',
-                description: i18n.language === 'ar' ? 'إدارة الفواتير' : 'Manage invoices'
+                description: t('dashboard.manageInvoices')
             }, {
-                title: i18n.language === 'ar' ? 'العملاء' : 'Customers',
+                title: t('dashboard.customersAction'),
                 icon: FiUsers,
                 to: '/customers',
-                description: i18n.language === 'ar' ? 'إدارة العملاء' : 'Manage customers'
+                description: t('dashboard.manageCustomers')
             }];
         } else if (isWorker) {
             return [{
-                title: i18n.language === 'ar' ? 'طلبات المصنع' : 'Factory Orders',
+                title: t('dashboard.factoryOrders'),
                 icon: FiPackage,
                 to: '/factory',
-                description: i18n.language === 'ar' ? 'عرض طلبات الإنتاج' : 'View production orders'
+                description: t('dashboard.viewProductionOrders')
             }, {
-                title: i18n.language === 'ar' ? 'المهام المعلقة' : 'Pending Tasks',
+                title: t('dashboard.pendingTasks'),
                 icon: FiClock,
                 to: '/factory/pending',
-                description: i18n.language === 'ar' ? 'عرض المهام المعلقة' : 'View pending tasks'
+                description: t('dashboard.viewPendingTasks')
             }];
         }
         return [];
@@ -797,48 +724,48 @@ const DashboardPage = () => {
 
         if (isOwner || isCashier) {
             return [{
-                title: i18n.language === 'ar' ? 'إجمالي الإيرادات' : 'Total Revenue',
-                value: `${(stats.totalRevenue || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${i18n.language === 'ar' ? 'ج.م' : 'EGP'}`,
+                title: t('dashboard.totalRevenue'),
+                value: `${(stats.totalRevenue || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${t('common.currency')}`,
                 icon: FiDollarSign,
                 loading: loading,
-                subtitle: i18n.language === 'ar' ? 'هذا الشهر' : 'This month'
+                subtitle: t('dashboard.thisMonth')
             }, {
-                title: i18n.language === 'ar' ? 'عدد الفواتير' : 'Total Invoices',
+                title: t('dashboard.totalInvoices'),
                 value: stats.totalInvoices || '0',
                 icon: FiFileText,
                 loading: loading,
-                subtitle: i18n.language === 'ar' ? 'هذا الشهر' : 'This month'
+                subtitle: t('dashboard.thisMonth')
             }, {
-                title: i18n.language === 'ar' ? 'الفواتير المدفوعة' : 'Paid Invoices',
+                title: t('dashboard.paidInvoicesLabel'),
                 value: stats.paidInvoices || '0',
                 icon: FiCheckCircle,
                 loading: loading,
-                subtitle: `${stats.totalInvoices > 0 ? ((stats.paidInvoices / stats.totalInvoices) * 100).toFixed(0) : 0}% ${i18n.language === 'ar' ? 'من الإجمالي' : 'of total'}`
+                subtitle: `${stats.totalInvoices > 0 ? ((stats.paidInvoices / stats.totalInvoices) * 100).toFixed(0) : 0}% ${t('dashboard.ofTotal')}`
             }, {
-                title: i18n.language === 'ar' ? 'معدل الفاتورة' : 'Average Invoice',
-                value: `${(stats.averageOrderValue || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${i18n.language === 'ar' ? 'ج.م' : 'EGP'}`,
+                title: t('dashboard.averageInvoice'),
+                value: `${(stats.averageOrderValue || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${t('common.currency')}`,
                 icon: FiShoppingCart,
                 loading: loading,
-                subtitle: i18n.language === 'ar' ? 'متوسط القيمة' : 'Average value'
+                subtitle: t('dashboard.averageValue')
             }];
         } else if (isWorker) {
             return [{
-                title: i18n.language === 'ar' ? 'طلبات اليوم' : "Today's Orders",
+                title: t('dashboard.todayOrders'),
                 value: todayStats?.invoiceCount || '0',
                 icon: FiPackage,
                 loading: loading
             }, {
-                title: i18n.language === 'ar' ? 'المهام المكتملة' : 'Completed Tasks',
+                title: t('dashboard.completedTasks'),
                 value: '0',
                 icon: FiCheckCircle,
                 loading: loading
             }, {
-                title: i18n.language === 'ar' ? 'المهام المعلقة' : 'Pending Tasks',
+                title: t('dashboard.pendingTasks'),
                 value: '0',
                 icon: FiClock,
                 loading: loading
             }, {
-                title: i18n.language === 'ar' ? 'الإنتاجية' : 'Productivity',
+                title: t('dashboard.productivity'),
                 value: '0%',
                 icon: FiActivity,
                 loading: loading
@@ -859,26 +786,12 @@ const DashboardPage = () => {
                         {getWelcomeMessage()}{i18n.language === 'ar' ? '، ' : ', '}{user?.firstName}
                     </h1>
                     <p className="opacity-90">
-                        {isOwner && (i18n.language === 'ar' ? 'نظرة عامة على أداء الأعمال' : 'Business performance overview')}
-                        {isCashier && (i18n.language === 'ar' ? 'جاهز لخدمة العملاء اليوم' : 'Ready to serve customers today')}
-                        {isWorker && (i18n.language === 'ar' ? 'مهامك في المصنع' : 'Your factory tasks')}
+                        {isOwner && t('dashboard.businessOverview')}
+                        {isCashier && t('dashboard.readyToServe')}
+                        {isWorker && t('dashboard.yourFactoryTasks')}
                     </p>
                 </div>
                 <div className="hidden md:flex items-center gap-4">
-                    {/* WebSocket Connection Status */}
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${
-                        wsConnected
-                            ? 'bg-white/20 text-white'
-                            : 'bg-red-500/30 text-red-100'
-                    }`}>
-                        {wsConnected ? <FiWifi size={14} /> : <FiWifiOff size={14} />}
-                        <span className="text-xs font-medium">
-                            {wsConnected
-                                ? (i18n.language === 'ar' ? 'مباشر' : 'Live')
-                                : (i18n.language === 'ar' ? 'غير متصل' : 'Offline')
-                            }
-                        </span>
-                    </div>
                     <div className={i18n.language === 'ar' ? 'text-right' : 'text-left'}>
                         <p className="text-sm opacity-90">
                             {new Date().toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', {
@@ -889,21 +802,6 @@ const DashboardPage = () => {
                 </div>
             </div>
         </div>
-
-        {/* Error Message */}
-        {error && (<div
-            className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-3">
-            <FiAlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"/>
-            <div className="flex-1">
-                <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
-                <button
-                    onClick={fetchDashboardData}
-                    className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline mt-1"
-                >
-                    {i18n.language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
-                </button>
-            </div>
-        </div>)}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -917,12 +815,10 @@ const DashboardPage = () => {
                     todayStats={todayStats}
                     salesOverview={salesOverview}
                     loading={loading}
-                    isArabic={i18n.language === 'ar'}
                 />
                 <OutstandingBalanceCard
                     stats={stats}
                     loading={loading}
-                    isArabic={i18n.language === 'ar'}
                 />
             </div>
         )}
@@ -933,9 +829,8 @@ const DashboardPage = () => {
                 {/* Revenue Chart - Takes 2 columns */}
                 <div className="lg:col-span-2">
                     <RevenueChart
-                        data={monthlyRevenue}
-                        loading={loading}
-                        isArabic={i18n.language === 'ar'}
+                        data={monthlyRevenue || []}
+                        loading={monthlyRevenue === undefined}
                     />
                 </div>
                 {/* Invoice Status Pie Chart */}
@@ -943,7 +838,6 @@ const DashboardPage = () => {
                     <InvoiceStatusChart
                         stats={stats}
                         loading={loading}
-                        isArabic={i18n.language === 'ar'}
                     />
                 </div>
             </div>
@@ -954,15 +848,13 @@ const DashboardPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <GrowthComparisonCard
                     currentMonth={stats}
-                    previousMonth={monthlyRevenue.length > 1 ? monthlyRevenue[monthlyRevenue.length - 2] : null}
+                    previousMonth={monthlyRevenue && monthlyRevenue.length > 1 ? monthlyRevenue[monthlyRevenue.length - 2] : null}
                     loading={loading}
-                    isArabic={i18n.language === 'ar'}
                 />
                 <DailyActivityCard
                     todayStats={todayStats}
                     salesOverview={salesOverview}
                     loading={loading}
-                    isArabic={i18n.language === 'ar'}
                 />
             </div>
         )}
@@ -974,7 +866,7 @@ const DashboardPage = () => {
                 <div
                     className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                        {i18n.language === 'ar' ? 'الإجراءات السريعة' : 'Quick Actions'}
+                        {t('dashboard.quickActions')}
                     </h3>
                     <div className="space-y-3">
                         {quickActions.map((action, index) => (<QuickActionCard key={index} {...action} />))}
@@ -988,25 +880,25 @@ const DashboardPage = () => {
                     className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {i18n.language === 'ar' ? 'الفواتير الأخيرة' : 'Recent Invoices'}
+                            {t('dashboard.recentInvoices')}
                         </h3>
                         <Link
                             to="/invoices"
                             className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
                         >
-                            {i18n.language === 'ar' ? 'عرض الكل' : 'View All'}
+                            {t('dashboard.viewAll')}
                         </Link>
                     </div>
                     <div className="space-y-1">
-                        {loading ? (<div className="space-y-3">
+                        {recentInvoices === undefined ? (<div className="space-y-3">
                             {[1, 2, 3, 4, 5].map((i) => (<div key={i}
                                                               className="h-12 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>))}
-                        </div>) : recentInvoices.length > 0 ? (recentInvoices.map((invoice) => (
-                            <InvoiceRow key={invoice.id} invoice={invoice}/>))) : (
+                        </div>) : recentInvoices && recentInvoices.length > 0 ? (recentInvoices.map((invoice) => (
+                            <InvoiceRow key={invoice._id || invoice.id} invoice={invoice}/>))) : (
                             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                                 <FiFileText className="w-12 h-12 mx-auto mb-2 text-gray-300 dark:text-gray-600"/>
                                 <p className="text-sm">
-                                    {i18n.language === 'ar' ? 'لا توجد فواتير حديثة' : 'No recent invoices'}
+                                    {t('dashboard.noRecentInvoices')}
                                 </p>
                             </div>)}
                     </div>
@@ -1019,36 +911,35 @@ const DashboardPage = () => {
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {i18n.language === 'ar' ? 'أفضل العملاء' : 'Top Customers'}
+                        {t('dashboard.topCustomers')}
                     </h3>
                     <Link
                         to="/customers"
                         className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
                     >
-                        {i18n.language === 'ar' ? 'عرض الكل' : 'View All'}
+                        {t('dashboard.viewAll')}
                     </Link>
                 </div>
                 <div className="space-y-1">
-                    {loading ? (
+                    {topCustomers === undefined ? (
                         <div className="space-y-3">
                             {[1, 2, 3, 4, 5].map((i) => (
                                 <div key={i} className="h-12 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>
                             ))}
                         </div>
-                    ) : topCustomers.length > 0 ? (
+                    ) : topCustomers && topCustomers.length > 0 ? (
                         topCustomers.map((customer, index) => (
                             <TopCustomerRow
-                                key={customer.customerId}
+                                key={customer.customerId || index}
                                 customer={customer}
                                 rank={index + 1}
-                                isArabic={i18n.language === 'ar'}
                             />
                         ))
                     ) : (
                         <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                             <FiUsers className="w-12 h-12 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
                             <p className="text-sm">
-                                {i18n.language === 'ar' ? 'لا توجد بيانات عملاء' : 'No customer data'}
+                                {t('dashboard.noCustomerData')}
                             </p>
                         </div>
                     )}
@@ -1060,13 +951,13 @@ const DashboardPage = () => {
         {isOwner && stats && (<div
             className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                {i18n.language === 'ar' ? 'نظرة عامة على الأداء' : 'Performance Overview'}
+                {t('dashboard.performanceOverview')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                     <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">
-                                    {i18n.language === 'ar' ? 'معدل الدفع' : 'Payment Rate'}
+                                    {t('dashboard.paymentRate')}
                                 </span>
                         <span className="text-sm font-semibold text-gray-900 dark:text-white">
                                     {stats.totalInvoices > 0 ? ((stats.paidInvoices / stats.totalInvoices) * 100).toFixed(0) : 0}%
@@ -1083,7 +974,7 @@ const DashboardPage = () => {
                 <div>
                     <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">
-                                    {i18n.language === 'ar' ? 'الفواتير المعلقة' : 'Pending Invoices'}
+                                    {t('dashboard.pendingInvoicesCount')}
                                 </span>
                         <span className="text-sm font-semibold text-gray-900 dark:text-white">
                                     {stats.totalInvoices > 0 ? ((stats.pendingInvoices / stats.totalInvoices) * 100).toFixed(0) : 0}%
@@ -1100,7 +991,7 @@ const DashboardPage = () => {
                 <div>
                     <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">
-                                    {i18n.language === 'ar' ? 'كفاءة النظام' : 'System Efficiency'}
+                                    {t('dashboard.systemEfficiency')}
                                 </span>
                         <span className="text-sm font-semibold text-gray-900 dark:text-white">
                                     {stats.totalInvoices > 0 ? 85 : 0}%

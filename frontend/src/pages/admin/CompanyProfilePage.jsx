@@ -6,12 +6,20 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { companyProfileService } from '@/services/companyProfileService';
+import { useCompanyProfile, useUpsertCompanyProfile, useUploadLogo } from '@/services/companyProfileService';
 
 const CompanyProfilePage = () => {
     const { t } = useTranslation();
     const { showSuccess, showError } = useSnackbar();
-    const [loading, setLoading] = useState(true);
+
+    // Convex reactive query
+    const profileData = useCompanyProfile();
+    const loading = profileData === undefined;
+
+    // Convex mutations
+    const upsertCompanyProfile = useUpsertCompanyProfile();
+    const uploadLogo = useUploadLogo();
+
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
 
@@ -27,24 +35,23 @@ const CompanyProfilePage = () => {
         logoUrl: ''
     });
 
+    // Sync Convex data into local form state when it arrives or changes
     useEffect(() => {
-        fetchProfile();
-    }, []);
-
-    const fetchProfile = async () => {
-        try {
-            setLoading(true);
-            const data = await companyProfileService.getProfile();
-            if (data) {
-                setProfile(prev => ({ ...prev, ...data }));
-            }
-        } catch (error) {
-            console.error('Error fetching profile:', error);
-            showError(t('errors.fetchFailed', 'فشل تحميل البيانات'));
-        } finally {
-            setLoading(false);
+        if (profileData) {
+            setProfile(prev => ({
+                ...prev,
+                companyName: profileData.companyName || '',
+                companyNameArabic: profileData.companyNameArabic || '',
+                address: profileData.address || '',
+                phone: profileData.phone || '',
+                email: profileData.email || '',
+                taxId: profileData.taxId || '',
+                commercialRegister: profileData.commercialRegister || '',
+                footerText: profileData.footerText || '',
+                logoUrl: profileData.logoUrl || ''
+            }));
         }
-    };
+    }, [profileData]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -55,12 +62,22 @@ const CompanyProfilePage = () => {
         e.preventDefault();
         try {
             setSaving(true);
-            const data = await companyProfileService.updateProfile(profile);
-            setProfile(prev => ({ ...prev, ...data }));
-            showSuccess(t('success.saved', 'تم الحفظ بنجاح'));
+            await upsertCompanyProfile({
+                companyName: profile.companyName,
+                companyNameArabic: profile.companyNameArabic || undefined,
+                address: profile.address || undefined,
+                phone: profile.phone || undefined,
+                email: profile.email || undefined,
+                taxId: profile.taxId || undefined,
+                commercialRegister: profile.commercialRegister || undefined,
+                footerText: profile.footerText || undefined,
+                logoUrl: profile.logoUrl || undefined
+            });
+            // No manual refetch needed - Convex auto-updates
+            showSuccess(t('companyProfile.savedSuccess'));
         } catch (error) {
             console.error('Error saving profile:', error);
-            showError(t('errors.saveFailed', 'فشل الحفظ'));
+            showError(t('companyProfile.saveError'));
         } finally {
             setSaving(false);
         }
@@ -72,25 +89,46 @@ const CompanyProfilePage = () => {
 
         // Validate file type
         if (!file.type.startsWith('image/')) {
-            showError(t('errors.invalidImage', 'يجب اختيار ملف صورة صالح'));
+            showError(t('companyProfile.invalidImage'));
             return;
         }
 
         // Validate file size (e.g., max 2MB)
         if (file.size > 2 * 1024 * 1024) {
-            showError(t('errors.imageTooLarge', 'حجم الصورة يجب أن يكون أقل من 2 ميجابايت'));
+            showError(t('companyProfile.imageTooLarge'));
             return;
         }
 
         try {
             setUploading(true);
-            const data = await companyProfileService.uploadLogo(file);
-            setProfile(prev => ({ ...prev, logoUrl: data.logoUrl }));
-            showSuccess(t('success.logoUploaded', 'تم رفع الشعار بنجاح'));
+
+            // Convert file to base64 and store directly via upsertCompanyProfile
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                try {
+                    const base64Data = event.target.result;
+                    // Store the base64 data URL directly as logoUrl
+                    await upsertCompanyProfile({
+                        companyName: profile.companyName || 'Company',
+                        logoUrl: base64Data
+                    });
+                    // The reactive query will auto-update the profile with the new logoUrl
+                    showSuccess(t('companyProfile.logoUploaded'));
+                } catch (uploadError) {
+                    console.error('Error uploading logo:', uploadError);
+                    showError(t('companyProfile.uploadError'));
+                } finally {
+                    setUploading(false);
+                }
+            };
+            reader.onerror = () => {
+                showError(t('companyProfile.uploadError'));
+                setUploading(false);
+            };
+            reader.readAsDataURL(file);
         } catch (error) {
             console.error('Error uploading logo:', error);
-            showError(t('errors.uploadFailed', 'فشل رفع الشعار'));
-        } finally {
+            showError(t('companyProfile.uploadError'));
             setUploading(false);
         }
     };
@@ -108,10 +146,10 @@ const CompanyProfilePage = () => {
             <header className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {t('companyProfile.title', 'ملف الشركة')}
+                        {t('companyProfile.title')}
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">
-                        {t('companyProfile.subtitle', 'إدارة بيانات الشركة والشعار للفواتير')}
+                        {t('companyProfile.subtitle')}
                     </p>
                 </div>
                 <Button
@@ -121,7 +159,7 @@ const CompanyProfilePage = () => {
                     className="flex items-center gap-2"
                 >
                     <FiSave />
-                    {t('actions.save', 'حفظ التغييرات')}
+                    {t('actions.save')}
                 </Button>
             </header>
 
@@ -131,19 +169,19 @@ const CompanyProfilePage = () => {
                     <Card>
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <h2 className="text-lg font-semibold mb-4 border-b pb-2">
-                                {t('companyProfile.basicInfo', 'البيانات الأساسية')}
+                                {t('companyProfile.basicInfo')}
                             </h2>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input
-                                    label={t('companyProfile.companyName', 'اسم الشركة (English)')}
+                                    label={t('companyProfile.fields.companyName')}
                                     name="companyName"
                                     value={profile.companyName}
                                     onChange={handleChange}
                                     required
                                 />
                                 <Input
-                                    label={t('companyProfile.companyNameArabic', 'اسم الشركة (عربي)')}
+                                    label={t('companyProfile.fields.companyNameArabic')}
                                     name="companyNameArabic"
                                     value={profile.companyNameArabic}
                                     onChange={handleChange}
@@ -151,7 +189,7 @@ const CompanyProfilePage = () => {
                             </div>
 
                             <Input
-                                label={t('companyProfile.address', 'العنوان')}
+                                label={t('companyProfile.fields.address')}
                                 name="address"
                                 value={profile.address}
                                 onChange={handleChange}
@@ -159,13 +197,13 @@ const CompanyProfilePage = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input
-                                    label={t('companyProfile.phone', 'رقم الهاتف')}
+                                    label={t('companyProfile.fields.phone')}
                                     name="phone"
                                     value={profile.phone}
                                     onChange={handleChange}
                                 />
                                 <Input
-                                    label={t('companyProfile.email', 'البريد الإلكتروني')}
+                                    label={t('companyProfile.fields.email')}
                                     name="email"
                                     type="email"
                                     value={profile.email}
@@ -174,17 +212,17 @@ const CompanyProfilePage = () => {
                             </div>
 
                             <h2 className="text-lg font-semibold mb-4 border-b pb-2 pt-4">
-                                {t('companyProfile.legalInfo', 'البيانات القانونية')}
+                                {t('companyProfile.legalInfo')}
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input
-                                    label={t('companyProfile.taxId', 'الرقم الضريبي')}
+                                    label={t('companyProfile.fields.taxId')}
                                     name="taxId"
                                     value={profile.taxId}
                                     onChange={handleChange}
                                 />
                                 <Input
-                                    label={t('companyProfile.commercialRegister', 'السجل التجاري')}
+                                    label={t('companyProfile.fields.commercialRegister')}
                                     name="commercialRegister"
                                     value={profile.commercialRegister}
                                     onChange={handleChange}
@@ -192,14 +230,14 @@ const CompanyProfilePage = () => {
                             </div>
 
                             <h2 className="text-lg font-semibold mb-4 border-b pb-2 pt-4">
-                                {t('companyProfile.footer', 'تذييل الفاتورة')}
+                                {t('companyProfile.invoiceFooter')}
                             </h2>
                             <Input
-                                label={t('companyProfile.footerText', 'نص التذييل')}
+                                label={t('companyProfile.fields.footerText')}
                                 name="footerText"
                                 value={profile.footerText}
                                 onChange={handleChange}
-                                placeholder="Text to appear at the bottom of the invoice"
+                                placeholder={t('companyProfile.footerPlaceholder')}
                             />
                         </form>
                     </Card>
@@ -209,7 +247,7 @@ const CompanyProfilePage = () => {
                 <div className="lg:col-span-1">
                     <Card className="h-full">
                         <h2 className="text-lg font-semibold mb-4 border-b pb-2">
-                            {t('companyProfile.logo', 'شعار الشركة')}
+                            {t('companyProfile.fields.logo')}
                         </h2>
 
                         <div className="flex flex-col items-center justify-center space-y-4 py-6">
@@ -217,18 +255,18 @@ const CompanyProfilePage = () => {
                                 {profile.logoUrl ? (
                                     <img
                                         src={profile.logoUrl}
-                                        alt="Company Logo"
+                                        alt={t('companyProfile.fields.logo')}
                                         className="w-full h-full object-contain p-2"
                                     />
                                 ) : (
                                     <div className="text-gray-400 flex flex-col items-center">
                                         <FiImage size={48} />
-                                        <span className="mt-2 text-sm">No Logo</span>
+                                        <span className="mt-2 text-sm">{t('companyProfile.noLogo')}</span>
                                     </div>
                                 )}
 
                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <p className="text-white font-medium">Click Upload below to change</p>
+                                    <p className="text-white font-medium">{t('companyProfile.clickToChange')}</p>
                                 </div>
                             </div>
 
@@ -241,7 +279,7 @@ const CompanyProfilePage = () => {
                                         onClick={() => document.getElementById('logo-upload').click()}
                                     >
                                         {uploading ? <LoadingSpinner size="sm" /> : <FiUpload />}
-                                        {t('companyProfile.uploadLogo', 'رفع شعار جديد')}
+                                        {t('companyProfile.uploadLogo')}
                                     </Button>
                                     <input
                                         id="logo-upload"
@@ -252,7 +290,7 @@ const CompanyProfilePage = () => {
                                     />
                                 </label>
                                 <p className="text-xs text-gray-500 mt-2 text-center">
-                                    Supported formats: PNG, JPG, JPEG. Max size: 2MB.
+                                    {t('companyProfile.supportedFormats')}
                                 </p>
                             </div>
                         </div>

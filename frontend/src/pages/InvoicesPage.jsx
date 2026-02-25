@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FiPlus, FiWifi, FiWifiOff } from 'react-icons/fi';
+import { FiPlus } from 'react-icons/fi';
 import {
     Button,
     PageHeader,
 } from '@components';
 import { ConfirmationDialog } from '@components/ui/ConfirmationDialog';
 import PrintOptionsModal from '@components/ui/PrintOptionsModal';
-import { invoiceService } from '@services/invoiceService';
-import { printJobService } from '@services/printJobService';
+import { useInvoices, useMarkAsPaid, useDeleteInvoice } from '@services/invoiceService';
+import { usePrintInvoice } from '@services/printService';
 import { useSnackbar } from '@contexts/SnackbarContext';
 import useAuthorized from '@hooks/useAuthorized';
-import { useWebSocket, WEBSOCKET_TOPICS } from '@hooks/useWebSocket';
 import { useNavigate } from 'react-router-dom';
 import InvoiceList from '@/pages/cashier/components/InvoiceList';
 
@@ -20,39 +19,6 @@ const InvoicesPage = () => {
     const { isAuthorized, isLoading: authLoading } = useAuthorized(['CASHIER', 'ADMIN', 'OWNER']);
     const { showSuccess, showError, showInfo } = useSnackbar();
     const navigate = useNavigate();
-
-    const [invoices, setInvoices] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    // WebSocket message handler for real-time updates
-    const handleWebSocketMessage = useCallback((topic, data) => {
-        console.log('Invoices page WebSocket message:', topic, data);
-
-        if (topic === WEBSOCKET_TOPICS.DASHBOARD_INVOICE_CREATED) {
-            showInfo(i18n.language === 'ar'
-                ? `فاتورة جديدة #${data.invoiceId}`
-                : `New invoice #${data.invoiceId}`
-            );
-            // Reload invoices to show the new one
-            loadInvoices();
-        } else if (topic === WEBSOCKET_TOPICS.DASHBOARD_INVOICE_STATUS) {
-            showInfo(i18n.language === 'ar'
-                ? `تم تحديث الفاتورة #${data.invoiceId}`
-                : `Invoice #${data.invoiceId} updated`
-            );
-            loadInvoices();
-        }
-    }, [i18n.language]);
-
-    // WebSocket connection
-    const { connected: wsConnected } = useWebSocket({
-        topics: [
-            WEBSOCKET_TOPICS.DASHBOARD_INVOICE_CREATED,
-            WEBSOCKET_TOPICS.DASHBOARD_INVOICE_STATUS
-        ],
-        onMessage: handleWebSocketMessage,
-        enabled: isAuthorized
-    });
 
     // Filters match InvoiceList expectations
     const [filters, setFilters] = useState({
@@ -68,13 +34,6 @@ const InvoicesPage = () => {
     const [isPrinting, setIsPrinting] = useState(false);
     const [isSendingToFactory, setIsSendingToFactory] = useState(false);
 
-    const [pagination, setPagination] = useState({
-        page: 0,
-        size: 20,
-        totalElements: 0,
-        totalPages: 0
-    });
-
     // Confirmation dialog state
     const [confirmDialog, setConfirmDialog] = useState({
         isOpen: false,
@@ -84,58 +43,65 @@ const InvoicesPage = () => {
         type: 'warning'
     });
 
-    useEffect(() => {
-        if (isAuthorized) {
-            loadInvoices();
-        }
-    }, [isAuthorized, pagination.page, filters]);
+    // Build query args from filters
+    const queryArgs = useMemo(() => {
+        const args = {};
+        if (filters.status) args.status = filters.status;
+        if (filters.startDate) args.startDate = new Date(filters.startDate).getTime();
+        if (filters.endDate) args.endDate = new Date(filters.endDate).getTime();
+        return args;
+    }, [filters.status, filters.startDate, filters.endDate]);
 
-    const loadInvoices = async () => {
-        try {
-            setLoading(true);
+    // Convex paginated query - real-time, auto-updating
+    const { results: invoicesRaw, status: paginationStatus, loadMore } = useInvoices({
+        ...queryArgs,
+        initialNumItems: 20
+    });
 
-            // Filter out empty values
-            const activeFilters = Object.fromEntries(
-                Object.entries(filters).filter(([_, v]) => v !== '')
+    // Convex mutations
+    const markAsPaidMutation = useMarkAsPaid();
+    const deleteInvoiceMutation = useDeleteInvoice();
+    const { printInvoice: doPrintInvoice, printAllStickers } = usePrintInvoice();
+
+    // Derive loading state
+    const loading = paginationStatus === 'LoadingFirstPage';
+
+    // Client-side filtering for invoiceId and customerName (text search)
+    const invoices = useMemo(() => {
+        let filtered = invoicesRaw || [];
+        if (filters.invoiceId) {
+            const idQuery = filters.invoiceId.toLowerCase();
+            filtered = filtered.filter(inv =>
+                String(inv.invoiceNumber || '').includes(idQuery) ||
+                String(inv.readableId || '').toLowerCase().includes(idQuery)
             );
-
-            const params = {
-                page: pagination.page,
-                size: pagination.size,
-                ...activeFilters
-            };
-
-            const response = await invoiceService.listInvoices(params);
-
-            setInvoices(response.content || []);
-            setPagination(prev => ({
-                ...prev,
-                totalElements: response.totalElements || 0,
-                totalPages: response.totalPages || 0
-            }));
-        } catch (err) {
-            console.error('Load invoices error:', err);
-            showError(t('invoices.messages.load_error', 'فشل تحميل الفواتير'));
-        } finally {
-            setLoading(false);
         }
-    };
+        if (filters.customerName) {
+            const nameQuery = filters.customerName.toLowerCase();
+            filtered = filtered.filter(inv =>
+                (inv.customer?.name || inv.customerName || '').toLowerCase().includes(nameQuery)
+            );
+        }
+        return filtered;
+    }, [invoicesRaw, filters.invoiceId, filters.customerName]);
 
     const handleFilterChange = (field, value) => {
         setFilters(prev => ({ ...prev, [field]: value }));
-        setPagination(prev => ({ ...prev, page: 0 }));
     };
 
-    const handlePageChange = (newPage) => {
-        setPagination(prev => ({ ...prev, page: newPage }));
+    const handlePageChange = () => {
+        // With Convex pagination, we use loadMore instead of page-based navigation
+        if (paginationStatus === 'CanLoadMore') {
+            loadMore(20);
+        }
     };
 
     const handleViewDetails = (invoice) => {
-        navigate(`/invoices/${invoice.id}`);
+        navigate(`/invoices/${invoice._id || invoice.id}`);
     };
 
     const handlePrintInvoice = (invoice) => {
-        if (!invoice || !invoice.id) return;
+        if (!invoice || !(invoice._id || invoice.id)) return;
         setInvoiceToPrint(invoice);
         setIsPrintOptionsOpen(true);
     };
@@ -145,12 +111,16 @@ const InvoicesPage = () => {
 
         try {
             setIsPrinting(true);
-            // createSinglePrintJob opens the PDF directly via blob fetch with auth
-            await printJobService.createSinglePrintJob(invoiceToPrint.id, type);
-            showSuccess(`تم فتح ${printJobService.getTypeText(type)} للفاتورة ${invoiceToPrint.id}`);
+            const invoiceId = invoiceToPrint._id || invoiceToPrint.id;
+            if (type === 'STICKER') {
+                await printAllStickers(invoiceId);
+            } else {
+                await doPrintInvoice(invoiceId, type);
+            }
+            showSuccess(t('invoices.printCreated', { type: t(`invoices.printType.${type}`), id: invoiceId }));
         } catch (err) {
             console.error('Print error:', err);
-            showError('فشل في الطباعة');
+            showError(t('invoices.details.printError'));
         } finally {
             setIsPrinting(false);
             setInvoiceToPrint(null);
@@ -158,15 +128,17 @@ const InvoicesPage = () => {
     };
 
     const handleSendToFactory = async (invoice) => {
-        if (!invoice || !invoice.id) {
-            showError('معلومات الفاتورة غير صحيحة');
+        if (!invoice || !(invoice._id || invoice.id)) {
+            showError(t('invoices.invalidInvoice'));
             return;
         }
 
+        const invoiceId = invoice._id || invoice.id;
+
         setConfirmDialog({
             isOpen: true,
-            title: 'إرسال للمصنع',
-            message: `هل تريد إرسال ملصق الفاتورة #${invoice.id} للمصنع؟`,
+            title: t('invoices.details.sendToFactoryConfirmTitle'),
+            message: t('invoices.details.sendToFactoryConfirmMessage', { id: invoice.readableId }),
             type: 'info',
             onConfirm: async () => {
                 await executeSendToFactory(invoice);
@@ -177,35 +149,26 @@ const InvoicesPage = () => {
     const executeSendToFactory = async (invoice) => {
         try {
             setIsSendingToFactory(true);
-
-            const status = await printJobService.getPrintJobStatus(invoice.id);
-            const needsSticker = status.missingJobTypes?.includes('STICKER');
-
-            if (needsSticker) {
-                const stickerResult = await printJobService.createSinglePrintJob(invoice.id, 'STICKER');
-                if (stickerResult.success) {
-                    showSuccess(`تم إرسال ملصق الفاتورة #${invoice.id} للمصنع`);
-                }
-            } else {
-                showInfo('الملصق موجود بالفعل في قائمة المصنع');
-            }
-
+            const invoiceId = invoice._id || invoice.id;
+            await printAllStickers(invoiceId);
+            showSuccess(t('invoices.stickerSentSuccess', { id: invoiceId }));
         } catch (err) {
             console.error('Send to factory error:', err);
-            showError('فشل في إرسال الملصق للمصنع');
+            showError(t('invoices.stickerSentError'));
         } finally {
             setIsSendingToFactory(false);
         }
     };
 
     const handleMarkAsPaid = async (invoice) => {
+        const invoiceId = invoice._id || invoice.id;
         setConfirmDialog({
             isOpen: true,
-            title: 'تسديد الفاتورة',
-            message: `هل تريد تسديد الفاتورة #${invoice.id}؟`,
+            title: t('invoices.payInvoice'),
+            message: t('invoices.payInvoiceConfirm', { id: invoiceId }),
             type: 'warning',
-            confirmText: 'تسديد',
-            cancelText: 'إلغاء',
+            confirmText: t('invoices.payBtn'),
+            cancelText: t('actions.cancel'),
             onConfirm: async () => {
                 await executeMarkAsPaid(invoice);
             }
@@ -214,12 +177,13 @@ const InvoicesPage = () => {
 
     const executeMarkAsPaid = async (invoice) => {
         try {
-            await invoiceService.markAsPaid(invoice.id);
-            showSuccess(`تم تسديد الفاتورة ${invoice.id} بنجاح`);
-            await loadInvoices();
+            const invoiceId = invoice._id || invoice.id;
+            await markAsPaidMutation({ invoiceId });
+            showSuccess(t('invoices.paidSuccess', { id: invoiceId }));
+            // No manual refetch needed - Convex auto-updates
         } catch (err) {
             console.error('Mark as paid error:', err);
-            showError(t('invoices.messages.mark_paid_error', 'فشل تحديث حالة الفاتورة'));
+            showError(t('invoices.paidError'));
         }
     };
 
@@ -228,13 +192,14 @@ const InvoicesPage = () => {
     };
 
     const handleDeleteInvoice = (invoice) => {
+        const invoiceId = invoice._id || invoice.id;
         setConfirmDialog({
             isOpen: true,
-            title: 'حذف الفاتورة',
-            message: `هل أنت متأكد من حذف الفاتورة #${invoice.id}؟ سيتم حذف جميع المدفوعات المرتبطة وتحديث رصيد العميل.`,
+            title: t('invoices.deleteInvoice'),
+            message: t('invoices.deleteConfirmFull', { id: invoiceId }),
             type: 'danger',
-            confirmText: 'حذف',
-            cancelText: 'إلغاء',
+            confirmText: t('actions.delete'),
+            cancelText: t('actions.cancel'),
             onConfirm: async () => {
                 await executeDeleteInvoice(invoice);
             }
@@ -243,12 +208,13 @@ const InvoicesPage = () => {
 
     const executeDeleteInvoice = async (invoice) => {
         try {
-            await invoiceService.deleteInvoice(invoice.id);
-            showSuccess(`تم حذف الفاتورة ${invoice.id} بنجاح`);
-            await loadInvoices();
+            const invoiceId = invoice._id || invoice.id;
+            await deleteInvoiceMutation({ invoiceId });
+            showSuccess(t('invoices.deletedSuccess', { id: invoiceId }));
+            // No manual refetch needed - Convex auto-updates
         } catch (err) {
             console.error('Delete invoice error:', err);
-            showError('فشل حذف الفاتورة');
+            showError(t('invoices.deletedError'));
         }
     };
 
@@ -283,20 +249,6 @@ const InvoicesPage = () => {
                 ]}
                 action={
                     <div className="flex items-center gap-3">
-                        {/* WebSocket Connection Status */}
-                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
-                            wsConnected
-                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                        }`}>
-                            {wsConnected ? <FiWifi size={14} /> : <FiWifiOff size={14} />}
-                            <span className="text-xs font-medium">
-                                {wsConnected
-                                    ? (i18n.language === 'ar' ? 'مباشر' : 'Live')
-                                    : (i18n.language === 'ar' ? 'غير متصل' : 'Offline')
-                                }
-                            </span>
-                        </div>
                         <Button
                             onClick={handleAddInvoice}
                             className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white"
@@ -308,12 +260,12 @@ const InvoicesPage = () => {
                 }
             />
 
-            {/* Invoice List Component - Replaces previous filters/search/table */}
+            {/* Invoice List Component */}
             <InvoiceList
                 invoices={invoices}
                 loading={loading}
-                currentPage={pagination.page}
-                totalPages={pagination.totalPages}
+                currentPage={0}
+                totalPages={paginationStatus === 'CanLoadMore' ? 2 : 1}
                 onPageChange={handlePageChange}
                 onViewInvoice={handleViewDetails}
                 onPrintInvoice={handlePrintInvoice}
@@ -325,6 +277,27 @@ const InvoicesPage = () => {
                 isPrinting={isPrinting}
                 isSendingToFactory={isSendingToFactory}
             />
+
+            {/* Load More Button */}
+            {paginationStatus === 'CanLoadMore' && (
+                <div className="flex justify-center py-4">
+                    <Button
+                        variant="outline"
+                        onClick={() => loadMore(20)}
+                        className="px-8"
+                    >
+                        {t('common.loadMore', 'تحميل المزيد')}
+                    </Button>
+                </div>
+            )}
+
+            {paginationStatus === 'LoadingMore' && (
+                <div className="flex justify-center py-4">
+                    <div className="text-gray-500 dark:text-gray-400">
+                        {t('common.loading', 'جاري التحميل...')}
+                    </div>
+                </div>
+            )}
 
             {/* Confirmation Dialog */}
             <ConfirmationDialog

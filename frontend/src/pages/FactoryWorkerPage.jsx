@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     FiCheckCircle,
@@ -19,10 +19,9 @@ import {
     Button,
     Badge
 } from '@components';
-import { invoiceService } from '@services/invoiceService';
-import { printJobService } from '@services/printJobService';
+import { useFactoryInvoices, useUpdateLineStatus } from '@services/factoryService';
+import { usePrintInvoice } from '@services/printService';
 import useAuthorized from '@hooks/useAuthorized';
-import { useWebSocket, WEBSOCKET_TOPICS } from '@hooks/useWebSocket';
 import { useSnackbar } from '@contexts/SnackbarContext';
 
 /**
@@ -32,165 +31,80 @@ import { useSnackbar } from '@contexts/SnackbarContext';
  * Features:
  * - Jobs grouped by glass thickness for batch processing
  * - Cutting specifications prominently displayed
- * - Chamfer type, dimensions, quantity clearly visible
+ * - Beveling type, dimensions, quantity clearly visible
  * - View sticker for each job
- * - WebSocket for real-time notifications
+ * - Real-time updates via Convex reactive queries (no WebSocket needed)
  */
 const FactoryWorkerPage = () => {
     const { t, i18n } = useTranslation();
     const { isAuthorized, isLoading: authLoading } = useAuthorized(['WORKER', 'OWNER', 'ADMIN']);
-    const { showSuccess, showError, showInfo } = useSnackbar();
+    const { showSuccess, showError } = useSnackbar();
 
-    // State
-    const [invoices, setInvoices] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
+    // State - UI only
     const [selectedThickness, setSelectedThickness] = useState('ALL');
     const [viewMode, setViewMode] = useState('grouped'); // 'grouped' | 'list'
-    const [hideCompleted, setHideCompleted] = useState(false); // Hide completed jobs
+    const [hideCompleted, setHideCompleted] = useState(true); // Hide completed jobs by default
 
-    // ==================== WebSocket Handlers ====================
+    // Convex reactive query - auto-updates in real-time, no WebSocket or polling needed
+    const { results: factoryInvoicesRaw, status: paginationStatus, loadMore } = useFactoryInvoices();
 
-    const playNotificationSound = useCallback(() => {
-        try {
-            const audio = new Audio('/notification.mp3');
-            audio.volume = 0.5;
-            audio.play().catch(() => {});
-        } catch (e) {}
-    }, []);
+    // Convex mutations
+    const updateLineStatusMutation = useUpdateLineStatus();
+    const { printSticker } = usePrintInvoice();
 
-    const handleLineStatusChange = useCallback((data) => {
-        console.log('Line status changed:', data);
-        setInvoices(prev => prev.map(inv => {
-            if (inv.id === data.invoiceId) {
-                return {
-                    ...inv,
-                    lines: inv.lines.map(line =>
-                        line.id === data.lineId
-                            ? { ...line, status: data.newStatus }
-                            : line
-                    )
-                };
-            }
-            return inv;
-        }));
-    }, []);
-
-    const handleInvoiceWorkStatusChange = useCallback((data) => {
-        console.log('Invoice work status changed:', data);
-        setInvoices(prev => prev.map(inv => {
-            if (inv.id === data.invoiceId) {
-                return {
-                    ...inv,
-                    workStatus: data.newStatus
-                };
-            }
-            return inv;
-        }));
-        showInfo(`${t('factory.invoiceWorkStatusChanged')} #${data.invoiceId}: ${t(`factory.workStatus.${data.newStatus}`)}`);
-    }, [showInfo, t]);
-
-    // ==================== Data Loading ====================
-    // Defined before WebSocket handler to be used in callback
-
-    const loadRecentInvoices = useCallback(async (showLoader = true) => {
-        try {
-            if (showLoader) setLoading(true);
-
-            const response = await invoiceService.listInvoices({
-                page: 0,
-                size: 50,
-                sortBy: 'issueDate',
-                sortDirection: 'DESC'
-            });
-
-            const invoicesWithLines = await Promise.all(
-                (response.content || []).map(async (inv) => {
-                    try {
-                        const fullInvoice = await invoiceService.getInvoice(inv.id);
-                        return {
-                            id: fullInvoice.id,
-                            customerName: fullInvoice.customer?.name || 'عميل',
-                            customerPhone: fullInvoice.customer?.phone || '',
-                            timestamp: fullInvoice.issueDate,
-                            status: fullInvoice.status,
-                            workStatus: fullInvoice.workStatus || 'PENDING',
-                            lines: (fullInvoice.invoiceLines || []).map(line => transformLine(line, fullInvoice))
-                        };
-                    } catch (e) {
-                        console.error('Error loading invoice details:', e);
-                        return null;
-                    }
-                })
-            );
-
-            setInvoices(invoicesWithLines.filter(Boolean));
-
-        } catch (err) {
-            console.error('Load invoices error:', err);
-            showError(t('messages.loadingCuttingJobs'));
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    }, [showError, t]);
+    // Derive loading state
+    const loading = paginationStatus === "LoadingFirstPage";
 
     const transformLine = (line, invoice) => {
-        // Extract chamfer/shatf information from operations
-        let chamferType = null;
-        let chamferFormula = null;
-        const operations = [];
+        // New DB format: operations[].operationType: {code, ar, en}, .calculationMethod?: {code, ar, en}, .price
+        const ops = line.operations || [];
 
-        if (line.operations && line.operations.length > 0) {
-            line.operations.forEach(op => {
-                if (op.type === 'SHATAF' || op.operationType === 'SHATAF') {
-                    chamferType = op.shatafType || op.description || 'شطف';
-                    chamferFormula = op.farmaType || null;
-                }
-                operations.push({
-                    type: op.type || op.operationType,
-                    description: op.description || op.operationType?.arabicName || '',
-                    shatafType: op.shatafType,
-                    farmaType: op.farmaType,
-                    price: op.operationPrice || op.manualPrice
-                });
-            });
+        // Derive beveling info from first non-LASER, non-SANDING operation
+        let bevelingType = null;
+        let bevelingFormula = null;
+        for (const op of ops) {
+            const code = op.operationType?.code;
+            if (code && code !== 'LASER' && code !== 'SANDING') {
+                bevelingType = op.operationType?.ar || code;
+                bevelingFormula = op.calculationMethod?.ar || null;
+                break;
+            }
         }
 
-        // Legacy fallback
-        if (!chamferType && line.shatafType) {
-            chamferType = line.shatafType;
-        }
-        if (!chamferFormula && line.farmaType) {
-            chamferFormula = line.farmaType;
-        }
+        const snapshot = line.glassTypeSnapshot || line.glassType || {};
+        const dims = line.dimensions || {};
+        const thickness = snapshot.thickness || null;
 
         return {
-            id: line.id,
-            invoiceId: invoice.id,
-            customerName: invoice.customer?.name || 'عميل',
+            id: line._id || line.id,
+            invoiceId: invoice._id || invoice.id,
+            invoiceNumber: invoice.readableId || invoice.invoiceNumber || '',
+            customerName: invoice.customer?.name || invoice.customerName || 'عميل',
             // Glass info
-            glassType: line.glassType?.name || 'زجاج',
-            thickness: line.glassType?.thickness || null,
-            thicknessDisplay: line.glassType?.thickness ? `${line.glassType.thickness} مم` : '-',
-            // Dimensions
-            width: line.width,
-            height: line.height,
-            widthCm: line.width, // Backend stores in CM
-            heightCm: line.height,
-            dimensionUnit: line.dimensionUnit || 'CM',
+            glassType: snapshot.name || 'زجاج',
+            thickness,
+            thicknessDisplay: thickness ? `${thickness} مم` : 'غير محدد',
+            // Dimensions (from nested dimensions object)
+            width: dims.width || line.width,
+            height: dims.height || line.height,
+            widthCm: dims.width || line.width,
+            heightCm: dims.height || line.height,
+            dimensionUnit: dims.measuringUnit || 'CM',
             areaM2: line.areaM2,
             // Cutting specifications
-            chamferType: chamferType,
-            chamferFormula: chamferFormula,
-            shatafMeters: line.shatafMeters,
-            cuttingType: line.cuttingType,
+            bevelingType,
+            bevelingFormula,
+            bevelingMeters: line.bevelingMeters,
             // Quantity
             quantity: line.quantity || 1,
             // Status
             status: line.status || 'PENDING',
-            // Operations
-            operations: operations,
+            // Operations — pass through raw DB format
+            operations: ops.map(op => ({
+                description: op.operationType?.ar || op.operationType?.code || '',
+                calcMethod: op.calculationMethod?.ar || '',
+                price: op.price || 0,
+            })),
             // Notes
             notes: line.notes || '',
             // Timestamp
@@ -198,56 +112,19 @@ const FactoryWorkerPage = () => {
         };
     };
 
-    // ==================== WebSocket Connection ====================
-
-    // WebSocket message handler - defined after loadRecentInvoices
-    const handleWebSocketMessage = useCallback((topic, data) => {
-        console.log('Factory WebSocket message:', topic, data);
-
-        if (topic === WEBSOCKET_TOPICS.FACTORY_NEW_INVOICE) {
-            console.log('New cutting job received:', data);
-            playNotificationSound();
-            showSuccess(`${t('factory.newCuttingJob')} #${data.invoiceId} - ${data.customerName}`);
-            loadRecentInvoices(false);
-        } else if (topic === WEBSOCKET_TOPICS.FACTORY_LINE_STATUS) {
-            handleLineStatusChange(data);
-        } else if (topic === WEBSOCKET_TOPICS.FACTORY_INVOICE_WORK_STATUS) {
-            handleInvoiceWorkStatusChange(data);
-        } else if (topic === WEBSOCKET_TOPICS.FACTORY_PRINT_UPDATE) {
-            console.log('Print update received:', data);
-        }
-    }, [playNotificationSound, handleLineStatusChange, handleInvoiceWorkStatusChange, showSuccess, loadRecentInvoices, t]);
-
-    // WebSocket connection using the reusable hook
-    const { connected } = useWebSocket({
-        topics: [
-            WEBSOCKET_TOPICS.FACTORY_NEW_INVOICE,
-            WEBSOCKET_TOPICS.FACTORY_LINE_STATUS,
-            WEBSOCKET_TOPICS.FACTORY_INVOICE_WORK_STATUS,
-            WEBSOCKET_TOPICS.FACTORY_PRINT_UPDATE
-        ],
-        onMessage: handleWebSocketMessage,
-        enabled: isAuthorized
-    });
-
-    // ==================== Lifecycle ====================
-
-    useEffect(() => {
-        if (isAuthorized) {
-            loadRecentInvoices();
-        }
-    }, [isAuthorized, loadRecentInvoices]);
-
-    // Auto-refresh every 60 seconds
-    useEffect(() => {
-        const interval = setInterval(() => {
-            if (isAuthorized && !loading) {
-                loadRecentInvoices(false);
-            }
-        }, 60000);
-
-        return () => clearInterval(interval);
-    }, [isAuthorized, loading, loadRecentInvoices]);
+    // Transform factory invoices data into the format expected by the UI
+    const invoices = useMemo(() => {
+        if (!factoryInvoicesRaw || factoryInvoicesRaw.length === 0) return [];
+        return factoryInvoicesRaw.map(inv => ({
+            id: inv._id || inv.id,
+            customerName: inv.customer?.name || inv.customerName || 'عميل',
+            customerPhone: inv.customer?.phone || inv.customerPhone || '',
+            timestamp: inv.issueDate,
+            status: inv.status,
+            workStatus: inv.workStatus || 'PENDING',
+            lines: (inv.lines || inv.invoiceLines || []).map(line => transformLine(line, inv))
+        }));
+    }, [factoryInvoicesRaw]);
 
     // ==================== Data Processing ====================
 
@@ -325,14 +202,10 @@ const FactoryWorkerPage = () => {
 
     // ==================== Actions ====================
 
-    const handleRefresh = () => {
-        setRefreshing(true);
-        loadRecentInvoices(false);
-    };
-
     const handleViewSticker = async (invoiceId, lineId) => {
         try {
-            await printJobService.openSingleLineStickerPdf(invoiceId, lineId);
+            await printSticker(invoiceId, lineId);
+            showSuccess(t('factory.stickerCreated', 'تم فتح الملصق'));
         } catch (error) {
             console.error('Error opening sticker:', error);
             showError(t('factory.stickerError'));
@@ -344,23 +217,9 @@ const FactoryWorkerPage = () => {
      */
     const handleStatusChange = async (lineId, newStatus, invoiceId) => {
         try {
-            await invoiceService.updateLineStatus(lineId, newStatus);
+            await updateLineStatusMutation({ lineId, status: newStatus });
             showSuccess(t('factory.statusUpdated'));
-
-            // Update local state
-            setInvoices(prevInvoices =>
-                prevInvoices.map(inv => {
-                    if (inv.id === invoiceId) {
-                        return {
-                            ...inv,
-                            invoiceLines: inv.invoiceLines?.map(line =>
-                                line.id === lineId ? { ...line, status: newStatus } : line
-                            )
-                        };
-                    }
-                    return inv;
-                })
-            );
+            // No manual state update needed - Convex auto-updates via reactive query
         } catch (error) {
             console.error('Error updating status:', error);
             showError(t('factory.statusUpdateError'));
@@ -407,15 +266,11 @@ const FactoryWorkerPage = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        {/* Connection status */}
-                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
-                            connected
-                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                        }`}>
+                        {/* Convex is always connected - show real-time indicator */}
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
                             <FiBell size={16} />
                             <span className="text-sm font-medium">
-                                {connected ? t('factory.connected') : t('factory.disconnected')}
+                                {t('factory.connected', 'متصل')}
                             </span>
                         </div>
 
@@ -458,16 +313,6 @@ const FactoryWorkerPage = () => {
                                 {hideCompleted ? t('factory.showCompleted') : t('factory.hideCompleted')}
                             </span>
                         </button>
-
-                        <Button
-                            variant="outline"
-                            onClick={handleRefresh}
-                            disabled={refreshing}
-                            className="flex items-center gap-2"
-                        >
-                            <FiRefreshCw className={refreshing ? 'animate-spin' : ''} size={18} />
-                            <span>{t('factory.refresh')}</span>
-                        </Button>
                     </div>
                 </div>
             </div>
@@ -513,6 +358,23 @@ const FactoryWorkerPage = () => {
                     onStatusChange={handleStatusChange}
                     t={t}
                 />
+            )}
+
+            {/* Load More */}
+            {paginationStatus === "CanLoadMore" && (
+                <div className="flex justify-center mt-6">
+                    <button
+                        onClick={() => loadMore(50)}
+                        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                        {t('common.loadMore', 'تحميل المزيد')}
+                    </button>
+                </div>
+            )}
+            {paginationStatus === "LoadingMore" && (
+                <div className="flex justify-center mt-6">
+                    <div className="text-gray-600 dark:text-gray-400">{t('app.loading')}</div>
+                </div>
             )}
         </div>
     );
@@ -661,10 +523,10 @@ const CuttingJobCard = ({ job, onViewSticker, onStatusChange, showThickness = fa
         }
     };
 
-    const getChamferDisplay = () => {
-        if (job.chamferType) {
-            const formula = job.chamferFormula ? ` (${job.chamferFormula})` : '';
-            return `${job.chamferType}${formula}`;
+    const getBevelingDisplay = () => {
+        if (job.bevelingType) {
+            const formula = job.bevelingFormula ? ` (${job.bevelingFormula})` : '';
+            return `${job.bevelingType}${formula}`;
         }
         return null;
     };
@@ -678,7 +540,7 @@ const CuttingJobCard = ({ job, onViewSticker, onStatusChange, showThickness = fa
                         {job.customerName}
                     </span>
                     <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
-                        #{job.invoiceId}
+                        #{job.invoiceNumber}
                     </span>
                 </div>
             </div>
@@ -724,19 +586,19 @@ const CuttingJobCard = ({ job, onViewSticker, onStatusChange, showThickness = fa
                     <div className="text-xs text-blue-600 dark:text-blue-400">{t('factory.piece')}</div>
                 </div>
 
-                {/* Chamfer/Shatf Type */}
-                {getChamferDisplay() && (
+                {/* Beveling Type */}
+                {getBevelingDisplay() && (
                     <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
                         <div className="flex items-center gap-2 mb-1">
                             <FiScissors className="text-purple-600 dark:text-purple-400" size={14} />
-                            <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">{t('factory.chamferType')}</span>
+                            <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">{t('factory.bevelingType')}</span>
                         </div>
                         <div className="text-sm font-bold text-purple-800 dark:text-purple-300">
-                            {getChamferDisplay()}
+                            {getBevelingDisplay()}
                         </div>
                         {job.shatafMeters > 0 && (
                             <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                                {job.shatafMeters.toFixed(2)} {t('factory.chamferMeters')}
+                                {job.shatafMeters.toFixed(2)} {t('factory.bevelingMeters')}
                             </div>
                         )}
                     </div>

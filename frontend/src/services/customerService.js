@@ -1,203 +1,97 @@
-import { get, post, put, del } from '@/api/axios';
+import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
+import { api } from "@convex/_generated/api";
+
+// ===== QUERY HOOKS =====
 
 /**
- * Customer Service
- * Handles all customer-related API calls
+ * List all customers with pagination
+ * @param {Object} [paginationOpts] - Convex pagination options
+ * @returns {Object} Paginated query result { results, status, loadMore, isLoading }
  */
-export const customerService = {
-    /**
-     * Get all customers
-     * @returns {Promise<Customer[]>}
-     */
-    async getAllCustomers() {
-        try {
-            const response = await get('/customers');
-            return response;
-        } catch (error) {
-            console.error('Get all customers error:', error);
-            throw error;
-        }
-    },
+export function useCustomers(paginationOpts = {}) {
+    return usePaginatedQuery(
+        api.customers.queries.listCustomers,
+        {},
+        paginationOpts.initialNumItems
+            ? { initialNumItems: paginationOpts.initialNumItems }
+            : { initialNumItems: 50 }
+    );
+}
 
-    /**
-     * Search customers by name or phone
-     * @param {string} query - Search query (name or phone)
-     * @returns {Promise<Customer[]>}
-     */
-    async searchCustomers(query) {
-        try {
-            const params = new URLSearchParams({ query });
-            const response = await get(`/customers/search?${params.toString()}`);
-            return response;
-        } catch (error) {
-            console.error('Search customers error:', error);
-            throw error;
-        }
-    },
+/**
+ * Get a single customer by ID
+ * @param {string|undefined} customerId - Convex customer ID
+ * @returns {Object|undefined} Customer object
+ */
+export function useCustomer(customerId) {
+    return useQuery(
+        api.customers.queries.getCustomer,
+        customerId ? { customerId } : "skip"
+    );
+}
 
-    /**
-     * Get customer by ID
-     * @param {string|number} id - Customer ID
-     * @returns {Promise<Customer>}
-     */
-    async getCustomer(id) {
-        try {
-            const response = await get(`/customers/${id}`);
-            return response;
-        } catch (error) {
-            console.error('Get customer error:', error);
-            throw error;
-        }
-    },
+/**
+ * Search customers by name or phone
+ * @param {string|undefined} query - Search query string
+ * @returns {Array|undefined} Matching customers
+ */
+export function useSearchCustomers(query) {
+    return useQuery(
+        api.customers.queries.searchCustomers,
+        query && query.trim().length > 0 ? { searchTerm: query.trim() } : "skip"
+    );
+}
 
-    /**
-     * Create new customer
-     * @param {Object} customerData - Customer data
-     * @param {string} customerData.name - Customer name
-     * @param {string} customerData.phone - Phone number
-     * @param {string} [customerData.email] - Email address
-     * @param {string} [customerData.address] - Address
-     * @param {string} [customerData.notes] - Notes
-     * @returns {Promise<Customer>}
-     */
-    async createCustomer(customerData) {
-        try {
-            const response = await post('/customers', customerData);
-            return response;
-        } catch (error) {
-            console.error('Create customer error:', error);
-            throw error;
-        }
-    },
+/**
+ * Find a customer by phone number
+ * @param {string|undefined} phone - Phone number
+ * @returns {Object|undefined|null} Customer object or null if not found
+ */
+export function useCustomerByPhone(phone) {
+    return useQuery(
+        api.customers.queries.getCustomerByPhone,
+        phone && phone.trim().length > 0 ? { phone: phone.trim() } : "skip"
+    );
+}
 
-    /**
-     * Update customer
-     * @param {string|number} id - Customer ID
-     * @param {Object} customerData - Updated customer data
-     * @returns {Promise<Customer>}
-     */
-    async updateCustomer(id, customerData) {
-        try {
-            const response = await put(`/customers/${id}`, customerData);
-            return response;
-        } catch (error) {
-            console.error('Update customer error:', error);
-            throw error;
-        }
-    },
+/**
+ * Get invoices for a specific customer with pagination
+ * @param {string|undefined} customerId - Convex customer ID
+ * @param {Object} [paginationOpts] - Convex pagination options
+ * @returns {Object} Paginated query result { results, status, loadMore, isLoading }
+ */
+export function useCustomerInvoices(customerId, paginationOpts = {}) {
+    return usePaginatedQuery(
+        api.customers.queries.getCustomerInvoices,
+        customerId ? { customerId } : "skip",
+        paginationOpts.initialNumItems
+            ? { initialNumItems: paginationOpts.initialNumItems }
+            : { initialNumItems: 20 }
+    );
+}
 
-    /**
-     * Delete customer
-     * @param {string|number} id - Customer ID
-     * @returns {Promise<void>}
-     */
-    async deleteCustomer(id) {
-        try {
-            await del(`/customers/${id}`);
-        } catch (error) {
-            console.error('Delete customer error:', error);
-            throw error;
-        }
-    },
+// ===== MUTATION HOOKS =====
 
-    /**
-     * Get customer invoices
-     * @param {string|number} customerId - Customer ID
-     * @param {Object} params - Query parameters
-     * @param {number} [params.page=0] - Page number
-     * @param {number} [params.size=20] - Page size
-     * @returns {Promise<PagedResponse<Invoice>>}
-     */
-    async getCustomerInvoices(customerId, params = {}) {
-        try {
-            const queryParams = new URLSearchParams();
-            if (params.page !== undefined) queryParams.append('page', params.page);
-            if (params.size !== undefined) queryParams.append('size', params.size);
+/**
+ * Create a new customer
+ * @returns {Function} Mutation function - call with { name, phone?, address?, customerType? }
+ */
+export function useCreateCustomer() {
+    return useMutation(api.customers.mutations.createCustomer);
+}
 
-            const response = await get(`/customers/${customerId}/invoices?${queryParams.toString()}`);
-            return response;
-        } catch (error) {
-            console.error('Get customer invoices error:', error);
-            throw error;
-        }
-    },
+/**
+ * Update an existing customer
+ * @returns {Function} Mutation function - call with { customerId, name?, phone?, address?, customerType? }
+ */
+export function useUpdateCustomer() {
+    return useMutation(api.customers.mutations.updateCustomer);
+}
 
-    /**
-     * Get customer statistics
-     * @param {string|number} customerId - Customer ID
-     * @returns {Promise<CustomerStats>}
-     */
-    async getCustomerStats(customerId) {
-        try {
-            const response = await get(`/customers/${customerId}/stats`);
-            return response;
-        } catch (error) {
-            console.error('Get customer stats error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Find customer by phone
-     * @param {string} phone - Phone number
-     * @returns {Promise<Customer|null>}
-     */
-    async findByPhone(phone) {
-        try {
-            const customers = await this.searchCustomers(phone);
-            return customers.length > 0 ? customers[0] : null;
-        } catch (error) {
-            console.error('Find by phone error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Find customers by name
-     * @param {string} name - Customer name
-     * @returns {Promise<Customer[]>}
-     */
-    async findByName(name) {
-        try {
-            const customers = await this.searchCustomers(name);
-            return customers;
-        } catch (error) {
-            console.error('Find by name error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Get customer payment history
-     * @param {string|number} customerId - Customer ID
-     * @returns {Promise<Payment[]>}
-     */
-    async getPaymentHistory(customerId) {
-        try {
-            const response = await get(`/customers/${customerId}/payments`);
-            return response;
-        } catch (error) {
-            console.error('Get payment history error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Export customers list
-     * @param {Object} params - Export parameters
-     * @returns {Promise<Blob>}
-     */
-    async exportCustomers(params = {}) {
-        try {
-            const queryParams = new URLSearchParams(params);
-            const response = await get(`/customers/export?${queryParams.toString()}`, {
-                responseType: 'blob',
-            });
-
-            return response;
-        } catch (error) {
-            console.error('Export customers error:', error);
-            throw error;
-        }
-    },
-};
+/**
+ * Delete a customer
+ * @returns {Function} Mutation function - call with { customerId }
+ */
+export function useDeleteCustomer() {
+    return useMutation(api.customers.mutations.deleteCustomer);
+}

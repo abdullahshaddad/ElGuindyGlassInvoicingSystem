@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth, usePermissions } from '@/contexts/AuthContext';
 import { useTheme } from '@contexts/ThemeContext.jsx';
-import { companyProfileService } from '@services/companyProfileService';
+import { useCompanyProfile } from '@services/companyProfileService';
 import clsx from 'clsx';
 import {
     FiHome,
@@ -51,105 +51,105 @@ const icons = {
 const getSidebarItems = (t) => [
     {
         id: 'main',
-        title: t('navigation.main', 'الرئيسية'),
+        title: t('navigation.main', '\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629'),
         items: [
             {
                 id: 'dashboard',
                 to: '/dashboard',
                 icon: icons.dashboard,
-                label: t('navigation.dashboard', 'لوحة التحكم'),
+                label: t('navigation.dashboard', '\u0644\u0648\u062d\u0629 \u0627\u0644\u062a\u062d\u0643\u0645'),
                 roles: ['OWNER', 'ADMIN']
             }
         ]
     },
     {
         id: 'sales',
-        title: t('navigation.sales', 'المبيعات'),
+        title: t('navigation.sales', '\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a'),
         roles: ['OWNER', 'ADMIN', 'CASHIER'],
         items: [
             {
                 id: 'invoices',
                 to: '/invoices',
                 icon: icons.invoices,
-                label: t('navigation.invoices', 'الفواتير'),
+                label: t('navigation.invoices', '\u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631'),
                 roles: ['OWNER', 'ADMIN', 'CASHIER']
             },
             {
                 id: 'customers',
                 to: '/customers',
                 icon: icons.customers,
-                label: t('navigation.customers', 'العملاء'),
+                label: t('navigation.customers', '\u0627\u0644\u0639\u0645\u0644\u0627\u0621'),
                 roles: ['OWNER', 'ADMIN', 'CASHIER']
             }
         ]
     },
     {
         id: 'cashier',
-        title: t('navigation.cashier', 'الكاشير'),
+        title: t('navigation.cashier', '\u0627\u0644\u0643\u0627\u0634\u064a\u0631'),
         roles: ['OWNER', 'ADMIN', 'CASHIER'],
         items: [
             {
                 id: 'cashier-invoice',
                 to: '/sys-cashier',
                 icon: icons.cashierInvoice,
-                label: t('navigation.cashierInvoice', 'فاتورة الكاشير'),
+                label: t('navigation.cashierInvoice', '\u0641\u0627\u062a\u0648\u0631\u0629 \u0627\u0644\u0643\u0627\u0634\u064a\u0631'),
                 roles: ['OWNER', 'ADMIN', 'CASHIER']
             }
         ]
     },
     {
         id: 'factory',
-        title: t('navigation.factory', 'المصنع'),
+        title: t('navigation.factory', '\u0627\u0644\u0645\u0635\u0646\u0639'),
         roles: ['OWNER', 'ADMIN', 'WORKER'],
         items: [
             {
                 id: 'factory-tasks',
                 to: '/factory',
                 icon: icons.factory,
-                label: t('navigation.factory', 'مهام المصنع'),
+                label: t('navigation.factory', '\u0645\u0647\u0627\u0645 \u0627\u0644\u0645\u0635\u0646\u0639'),
                 roles: ['OWNER', 'ADMIN', 'WORKER']
             }
         ]
     },
     {
         id: 'admin',
-        title: t('navigation.admin', 'الإدارة'),
+        title: t('navigation.admin', '\u0627\u0644\u0625\u062f\u0627\u0631\u0629'),
         roles: ['OWNER', 'ADMIN'],
         items: [
             {
                 id: 'company-profile',
                 to: '/admin/company-profile',
                 icon: icons.companyProfile,
-                label: t('navigation.companyProfile', 'بيانات الشركة'),
+                label: t('navigation.companyProfile', '\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0634\u0631\u0643\u0629'),
                 roles: ['OWNER']
             },
             {
                 id: 'user-management',
                 to: '/admin/users',
                 icon: icons.userManagement,
-                label: t('users.title', 'إدارة المستخدمين'),
+                label: t('users.title', '\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u064a\u0646'),
                 roles: ['OWNER', 'ADMIN']
             },
             {
                 id: 'glass-types',
                 to: '/admin/glass-types',
                 icon: icons.glassTypes,
-                label: t('navigation.glassTypes', 'أنواع الزجاج'),
+                label: t('navigation.glassTypes', '\u0623\u0646\u0648\u0627\u0639 \u0627\u0644\u0632\u062c\u0627\u062c'),
                 roles: ['OWNER', 'ADMIN']
             },
             // {
             //     id: 'cutting-prices',
             //     to: '/admin/cutting-prices',
             //     icon: icons.cuttingPrices,
-            //     label: t('navigation.cuttingPrices', 'أسعار القطع'),
+            //     label: t('navigation.cuttingPrices', '\u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0642\u0637\u0639'),
             //     roles: ['OWNER'],
-            //     badge: 'جديد'
+            //     badge: '\u062c\u062f\u064a\u062f'
             // },
             // {
             //     id: 'operation-prices',
             //     to: '/admin/operation-prices',
             //     icon: icons.operationPrices,
-            //     label: t('navigation.operationPrices', 'أسعار العمليات'),
+            //     label: t('navigation.operationPrices', '\u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a'),
             //     roles: ['OWNER', 'ADMIN']
             // }
         ]
@@ -204,11 +204,16 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
     const { isDarkMode, toggleTheme } = useTheme();
     const location = useLocation();
     const [showUserSettings, setShowUserSettings] = useState(false);
-    const [companyLogo, setCompanyLogo] = useState(null);
-    const [companyName, setCompanyName] = useState(null);
     const popupRef = useRef(null);
 
     const isRTL = i18n.language === 'ar';
+
+    // Convex reactive query for company profile
+    const profileData = useCompanyProfile();
+    const companyLogo = profileData?.logoUrl || null;
+    const companyName = profileData
+        ? (isRTL ? profileData.companyNameArabic : profileData.companyName) || null
+        : null;
 
     // Close popup when clicking outside
     useEffect(() => {
@@ -226,25 +231,6 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         };
     }, [showUserSettings]);
     const isActive = (path) => location.pathname === path;
-
-    // Fetch company profile for logo
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const profile = await companyProfileService.getProfile();
-                if (profile?.logoUrl) {
-                    // Logo URL is now a data URL (base64) directly from backend
-                    setCompanyLogo(profile.logoUrl);
-                }
-                if (profile?.companyNameArabic || profile?.companyName) {
-                    setCompanyName(isRTL ? profile.companyNameArabic : profile.companyName);
-                }
-            } catch (error) {
-                console.error('Failed to fetch company profile:', error);
-            }
-        };
-        fetchProfile();
-    }, [isRTL]);
 
     const toggleLanguage = () => {
         const newLang = i18n.language === 'ar' ? 'en' : 'ar';
@@ -304,7 +290,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                             {companyLogo ? (
                                 <img
                                     src={companyLogo}
-                                    alt={companyName || t('app.name', 'الجيندي للزجاج')}
+                                    alt={companyName || t('app.name', '\u0627\u0644\u062c\u064a\u0646\u062f\u064a \u0644\u0644\u0632\u062c\u0627\u062c')}
                                     className="w-10 h-10 rounded-xl object-contain"
                                     onError={(e) => {
                                         e.target.style.display = 'none';
@@ -324,7 +310,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                             {!isCollapsed && (
                                 <div className="min-w-0 flex-1">
                                     <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">
-                                        {companyName || t('app.name', 'الجيندي للزجاج')}
+                                        {companyName || t('app.name', '\u0627\u0644\u062c\u064a\u0646\u062f\u064a \u0644\u0644\u0632\u062c\u0627\u062c')}
                                     </h1>
                                 </div>
                             )}
@@ -341,8 +327,8 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                                     'hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'
                                 )}
                                 title={isCollapsed
-                                    ? (isRTL ? 'توسيع القائمة' : 'Expand sidebar')
-                                    : (isRTL ? 'طي القائمة' : 'Collapse sidebar')
+                                    ? (isRTL ? '\u062a\u0648\u0633\u064a\u0639 \u0627\u0644\u0642\u0627\u0626\u0645\u0629' : 'Expand sidebar')
+                                    : (isRTL ? '\u0637\u064a \u0627\u0644\u0642\u0627\u0626\u0645\u0629' : 'Collapse sidebar')
                                 }
                             >
                                 {isCollapsed
@@ -428,7 +414,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                                 <div className="flex items-center gap-3">
                                     {isDarkMode ? <FiMoon className="w-4 h-4" /> : <FiSun className="w-4 h-4" />}
                                     <span className="text-sm font-medium">
-                                        {isDarkMode ? t('theme.dark', 'الوضع الليلي') : t('theme.light', 'الوضع النهاري')}
+                                        {isDarkMode ? t('theme.dark', '\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0644\u064a\u0644\u064a') : t('theme.light', '\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0646\u0647\u0627\u0631\u064a')}
                                     </span>
                                 </div>
                                 <div className={clsx(
@@ -451,7 +437,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                             >
                                 <div className="flex items-center gap-3">
                                     <FiGlobe className="w-4 h-4" />
-                                    <span className="text-sm font-medium">{t('language.title', 'اللغة')}</span>
+                                    <span className="text-sm font-medium">{t('language.title', '\u0627\u0644\u0644\u063a\u0629')}</span>
                                 </div>
                                 <span className="px-2 py-0.5 bg-gray-200 dark:bg-gray-600 rounded text-xs font-medium">
                                     {i18n.language === 'ar' ? 'AR' : 'EN'}
@@ -466,7 +452,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                             >
                                 <FiLogOut className="w-4 h-4" />
-                                <span className="text-sm font-medium">{t('auth.logout', 'تسجيل الخروج')}</span>
+                                <span className="text-sm font-medium">{t('auth.logout', '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c')}</span>
                             </button>
                         </div>
                     )}

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 import Input from './Input';
 import Select from './Select';
 import Button from './Button';
 import { FiDollarSign, FiCreditCard, FiCheck } from 'react-icons/fi';
-import paymentService from '@/services/paymentService';
+import { useRecordPayment, getPaymentMethodOptions } from '@/services/paymentService';
 
 /**
  * Payment Modal Component
@@ -27,7 +28,10 @@ const PaymentModal = ({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const paymentMethods = paymentService.getPaymentMethodOptions();
+    const { t } = useTranslation();
+
+    const recordPayment = useRecordPayment();
+    const paymentMethods = getPaymentMethodOptions();
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -36,17 +40,17 @@ const PaymentModal = ({
 
     const validateForm = () => {
         if (!formData.amount || formData.amount <= 0) {
-            setError('يجب إدخال مبلغ الدفع');
+            setError(t('paymentModal.amountRequired'));
             return false;
         }
 
         if (invoice && formData.amount > invoice.remainingBalance) {
-            setError(`المبلغ المدفوع لا يمكن أن يتجاوز الرصيد المتبقي (${formatCurrency(invoice.remainingBalance)})`);
+            setError(t('paymentModal.exceedsBalance', { amount: formatCurrency(invoice.remainingBalance) }));
             return false;
         }
 
         if (customer?.balance && formData.amount > customer.balance) {
-            setError(`المبلغ المدفوع لا يمكن أن يتجاوز رصيد العميل (${formatCurrency(customer.balance)})`);
+            setError(t('paymentModal.exceedsCustomerBalance', { amount: formatCurrency(customer.balance) }));
             return false;
         }
 
@@ -64,23 +68,22 @@ const PaymentModal = ({
         setError(null);
 
         try {
-            const paymentData = {
-                customerId: customer.id,
-                invoiceId: invoice?.id || null,
+            const customerId = customer._id || customer.id;
+            const invoiceId = invoice?._id || invoice?.id || undefined;
+
+            await recordPayment({
+                customerId,
+                invoiceId,
                 amount: parseFloat(formData.amount),
                 paymentMethod: formData.paymentMethod,
-                referenceNumber: formData.referenceNumber || null,
-                notes: formData.notes || null
-            };
+                referenceNumber: formData.referenceNumber || undefined,
+                notes: formData.notes || undefined
+            });
 
-            const result = await paymentService.recordPayment(paymentData);
-
-            // Call success callback
             if (onPaymentRecorded) {
-                onPaymentRecorded(result);
+                onPaymentRecorded();
             }
 
-            // Reset form and close
             setFormData({
                 amount: '',
                 paymentMethod: 'CASH',
@@ -90,21 +93,21 @@ const PaymentModal = ({
             onClose();
         } catch (err) {
             console.error('Payment recording error:', err);
-            setError(err.response?.data?.error || 'حدث خطأ أثناء تسجيل الدفعة');
+            setError(err.message || t('paymentModal.error'));
         } finally {
             setLoading(false);
         }
     };
 
     const formatCurrency = (amount) => {
-        return `${parseFloat(amount || 0).toFixed(2)} ج.م`;
+        return `${parseFloat(amount || 0).toFixed(2)} ${t('common.currency')}`;
     };
 
     return (
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="تسجيل دفعة"
+            title={t('paymentModal.title')}
             maxWidth="md"
             footer={(
                 <div className="flex gap-3 justify-end w-full">
@@ -114,7 +117,7 @@ const PaymentModal = ({
                         onClick={onClose}
                         disabled={loading}
                     >
-                        إلغاء
+                        {t('actions.cancel')}
                     </Button>
                     <Button
                         form="payment-form"
@@ -123,7 +126,7 @@ const PaymentModal = ({
                         loading={loading}
                         icon={FiDollarSign}
                     >
-                        تسجيل الدفعة
+                        {t('paymentModal.recordPayment')}
                     </Button>
                 </div>
             )}
@@ -132,7 +135,7 @@ const PaymentModal = ({
                 {/* Customer Info */}
                 <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
                     <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        العميل
+                        {t('paymentModal.customer')}
                     </div>
                     <div className="font-semibold text-gray-900 dark:text-white">
                         {customer?.name}
@@ -144,7 +147,7 @@ const PaymentModal = ({
                     )}
                     {customer?.balance > 0 && (
                         <div className="mt-2 text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">الرصيد المستحق: </span>
+                            <span className="text-gray-600 dark:text-gray-400">{t('paymentModal.outstandingBalance')} </span>
                             <span className="font-semibold text-red-600 dark:text-red-400">
                                 {formatCurrency(customer.balance)}
                             </span>
@@ -156,23 +159,23 @@ const PaymentModal = ({
                 {invoice && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                         <div className="text-sm text-blue-600 dark:text-blue-400 mb-2">
-                            الفاتورة #{invoice.id}
+                            {t('paymentModal.invoiceLabel', { id: invoice.readableId || invoice.invoiceNumber || invoice._id })}
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-sm">
                             <div>
-                                <span className="text-gray-600 dark:text-gray-400">المبلغ الإجمالي: </span>
+                                <span className="text-gray-600 dark:text-gray-400">{t('paymentModal.totalAmount')} </span>
                                 <span className="font-semibold text-gray-900 dark:text-white">
                                     {formatCurrency(invoice.totalPrice)}
                                 </span>
                             </div>
                             <div>
-                                <span className="text-gray-600 dark:text-gray-400">المدفوع: </span>
+                                <span className="text-gray-600 dark:text-gray-400">{t('paymentModal.paid')} </span>
                                 <span className="font-semibold text-green-600 dark:text-green-400">
                                     {formatCurrency(invoice.amountPaidNow || 0)}
                                 </span>
                             </div>
                             <div className="col-span-2">
-                                <span className="text-gray-600 dark:text-gray-400">المتبقي: </span>
+                                <span className="text-gray-600 dark:text-gray-400">{t('paymentModal.remaining')} </span>
                                 <span className="font-semibold text-red-600 dark:text-red-400">
                                     {formatCurrency(invoice.remainingBalance)}
                                 </span>
@@ -184,7 +187,7 @@ const PaymentModal = ({
                 {/* Payment Amount */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        مبلغ الدفع
+                        {t('paymentModal.paymentAmount')}
                         <span className="text-red-500 mr-1">*</span>
                     </label>
                     <Input
@@ -193,7 +196,7 @@ const PaymentModal = ({
                         min="0"
                         value={formData.amount}
                         onChange={(e) => handleChange('amount', e.target.value)}
-                        placeholder="أدخل المبلغ"
+                        placeholder={t('paymentModal.enterAmount')}
                         icon={FiDollarSign}
                         disabled={loading}
                         required
@@ -205,7 +208,7 @@ const PaymentModal = ({
                             className="text-xs text-primary-600 dark:text-primary-400 hover:underline mt-1"
                             disabled={loading}
                         >
-                            دفع المبلغ المتبقي كاملاً
+                            {t('paymentModal.payFullRemaining')}
                         </button>
                     )}
                 </div>
@@ -213,7 +216,7 @@ const PaymentModal = ({
                 {/* Payment Method */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        طريقة الدفع
+                        {t('paymentModal.paymentMethod')}
                         <span className="text-red-500 mr-1">*</span>
                     </label>
                     <Select
@@ -234,13 +237,13 @@ const PaymentModal = ({
                 {formData.paymentMethod !== 'CASH' && (
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            رقم المرجع
+                            {t('paymentModal.referenceNumber')}
                         </label>
                         <Input
                             type="text"
                             value={formData.referenceNumber}
                             onChange={(e) => handleChange('referenceNumber', e.target.value)}
-                            placeholder="رقم الشيك، رقم التحويل، إلخ..."
+                            placeholder={t('paymentModal.referencePlaceholder')}
                             icon={FiCheck}
                             disabled={loading}
                         />
@@ -250,12 +253,12 @@ const PaymentModal = ({
                 {/* Notes */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        ملاحظات
+                        {t('paymentModal.notes')}
                     </label>
                     <textarea
                         value={formData.notes}
                         onChange={(e) => handleChange('notes', e.target.value)}
-                        placeholder="ملاحظات إضافية..."
+                        placeholder={t('paymentModal.notesPlaceholder')}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
                                  bg-white dark:bg-gray-700 text-gray-900 dark:text-white
                                  focus:ring-2 focus:ring-primary-500 focus:border-transparent

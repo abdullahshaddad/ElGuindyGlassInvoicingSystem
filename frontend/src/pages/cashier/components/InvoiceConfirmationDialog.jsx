@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { FiAlertCircle, FiCheckCircle, FiInfo } from 'react-icons/fi';
 import Modal from '@components/ui/Modal.jsx';
 import Button from '@components/ui/Button.jsx';
@@ -20,6 +21,8 @@ const InvoiceConfirmationDialog = ({
 }) => {
     if (!customer) return null;
 
+    const { t } = useTranslation();
+
     const isCashCustomer = customer.customerType === 'CASH';
     const isPaidInFull = remainingBalance === 0;
     const newCustomerBalance = (customer.balance || 0) + remainingBalance;
@@ -28,7 +31,7 @@ const InvoiceConfirmationDialog = ({
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="تأكيد إنشاء الفاتورة"
+            title={t('confirmation.title')}
             size="md"
         >
             <div className="space-y-6" dir="rtl">
@@ -37,23 +40,23 @@ const InvoiceConfirmationDialog = ({
                 <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                         <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                            معلومات العميل
+                            {t('confirmation.customerInfo')}
                         </h4>
                         <Badge
                             variant={isCashCustomer ? 'success' : 'info'}
                             className="text-xs"
                         >
-                            {isCashCustomer ? 'عميل نقدي' : customer.customerType === 'COMPANY' ? 'شركة' : 'عميل'}
+                            {isCashCustomer ? t('confirmation.cashCustomer') : customer.customerType === 'COMPANY' ? t('confirmation.company') : t('confirmation.regularCustomer')}
                         </Badge>
                     </div>
                     <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">الاسم:</span>
+                            <span className="text-gray-600 dark:text-gray-400">{t('confirmation.nameLabel')}</span>
                             <span className="font-medium text-gray-900 dark:text-white">{customer.name}</span>
                         </div>
                         {customer.phone && (
                             <div className="flex justify-between">
-                                <span className="text-gray-600 dark:text-gray-400">الهاتف:</span>
+                                <span className="text-gray-600 dark:text-gray-400">{t('confirmation.phoneLabel')}</span>
                                 <span className="font-mono text-gray-900 dark:text-white" dir="ltr">{customer.phone}</span>
                             </div>
                         )}
@@ -63,44 +66,44 @@ const InvoiceConfirmationDialog = ({
                 {/* Payment Summary */}
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
                     <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                        ملخص الفاتورة
+                        {t('confirmation.invoiceSummary')}
                     </h4>
 
                     <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">إجمالي الفاتورة:</span>
+                            <span className="text-gray-600 dark:text-gray-400">{t('confirmation.invoiceTotal')}</span>
                             <span className="font-bold text-gray-900 dark:text-white">
-                                {totalAmount.toFixed(2)} جنيه
+                                {totalAmount.toFixed(2)} {t('common.currency')}
                             </span>
                         </div>
 
                         <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">المبلغ المدفوع الآن:</span>
+                            <span className="text-gray-600 dark:text-gray-400">{t('confirmation.amountPaidNow')}</span>
                             <span className="font-semibold text-green-600 dark:text-green-400">
-                                {amountPaidNow.toFixed(2)} جنيه
+                                {amountPaidNow.toFixed(2)} {t('common.currency')}
                             </span>
                         </div>
 
                         {!isCashCustomer && (
                             <>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">المبلغ المتبقي:</span>
+                                    <span className="text-gray-600 dark:text-gray-400">{t('confirmation.remainingAmount')}</span>
                                     <span className={`font-semibold ${remainingBalance > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
-                                        {remainingBalance.toFixed(2)} جنيه
+                                        {remainingBalance.toFixed(2)} {t('common.currency')}
                                     </span>
                                 </div>
 
                                 <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600 dark:text-gray-400">الرصيد الحالي:</span>
+                                        <span className="text-gray-600 dark:text-gray-400">{t('confirmation.currentBalance')}</span>
                                         <span className="font-mono text-sm text-gray-700 dark:text-gray-300">
-                                            {customer.balance?.toFixed(2) || '0.00'} جنيه
+                                            {customer.balance?.toFixed(2) || '0.00'} {t('common.currency')}
                                         </span>
                                     </div>
                                     <div className="flex justify-between mt-1">
-                                        <span className="text-gray-900 dark:text-white font-semibold">الرصيد الجديد:</span>
+                                        <span className="text-gray-900 dark:text-white font-semibold">{t('confirmation.newBalance')}</span>
                                         <span className="font-bold text-blue-700 dark:text-blue-300">
-                                            {newCustomerBalance.toFixed(2)} جنيه
+                                            {newCustomerBalance.toFixed(2)} {t('common.currency')}
                                         </span>
                                     </div>
                                 </div>
@@ -126,29 +129,28 @@ const InvoiceConfirmationDialog = ({
                             {isCashCustomer ? (
                                 <>
                                     <h5 className="font-semibold text-green-900 dark:text-green-100 mb-1">
-                                        فاتورة مدفوعة بالكامل
+                                        {t('confirmation.paidInFull')}
                                     </h5>
                                     <p className="text-sm text-green-800 dark:text-green-200">
-                                        سيتم تسجيل الفاتورة كمدفوعة بالكامل. العميل النقدي لا يمكن أن يكون له رصيد مستحق.
+                                        {t('confirmation.cashPaidMessage')}
                                     </p>
                                 </>
                             ) : isPaidInFull ? (
                                 <>
                                     <h5 className="font-semibold text-green-900 dark:text-green-100 mb-1">
-                                        فاتورة مدفوعة بالكامل
+                                        {t('confirmation.paidInFull')}
                                     </h5>
                                     <p className="text-sm text-green-800 dark:text-green-200">
-                                        سيتم تسجيل الفاتورة كمدفوعة بالكامل. لن يتم إضافة أي رصيد على العميل.
+                                        {t('confirmation.regularPaidMessage')}
                                     </p>
                                 </>
                             ) : (
                                 <>
                                     <h5 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                                        رصيد متبقي على العميل
+                                        {t('confirmation.outstandingBalance')}
                                     </h5>
                                     <p className="text-sm text-blue-800 dark:text-blue-200">
-                                        سيتم إضافة المبلغ المتبقي ({remainingBalance.toFixed(2)} جنيه) إلى رصيد العميل.
-                                        الرصيد الجديد سيكون {newCustomerBalance.toFixed(2)} جنيه.
+                                        {t('confirmation.balanceWillBeAdded', { amount: remainingBalance.toFixed(2) })}
                                     </p>
                                 </>
                             )}
@@ -162,7 +164,7 @@ const InvoiceConfirmationDialog = ({
                         <div className="flex items-start gap-2">
                             <FiAlertCircle className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" size={16} />
                             <p className="text-xs text-amber-800 dark:text-amber-200">
-                                تأكد من أن العميل على علم بالمبلغ المتبقي وموافق على تسجيله في رصيده.
+                                {t('confirmation.balanceWarning')}
                             </p>
                         </div>
                     </div>
@@ -177,7 +179,7 @@ const InvoiceConfirmationDialog = ({
                         loading={isCreating}
                         className="flex-1"
                     >
-                        {isCreating ? 'جاري إنشاء الفاتورة...' : 'تأكيد وإنشاء الفاتورة'}
+                        {isCreating ? t('confirmation.creating') : t('confirmation.confirmCreate')}
                     </Button>
                     <Button
                         variant="outline"
@@ -185,7 +187,7 @@ const InvoiceConfirmationDialog = ({
                         disabled={isCreating}
                         className="flex-1"
                     >
-                        إلغاء
+                        {t('actions.cancel')}
                     </Button>
                 </div>
             </div>

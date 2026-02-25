@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -23,11 +23,10 @@ import LoadingSpinner from '@components/ui/LoadingSpinner';
 import { ConfirmationDialog } from '@components/ui/ConfirmationDialog';
 import PrintOptionsModal from '@components/ui/PrintOptionsModal';
 import PaymentModal from '@components/ui/PaymentModal';
-import { invoiceService } from '@services/invoiceService';
-import { printJobService } from '@services/printJobService';
+import { useInvoice, useDeleteInvoice } from '@services/invoiceService';
+import { usePrintInvoice } from '@services/printService';
 import { useSnackbar } from '@contexts/SnackbarContext';
 import { usePermissions } from '@/contexts/AuthContext';
-import { SHATAF_TYPES } from '@/constants/shatafTypes';
 
 const InvoiceDetailsPage = () => {
     const { id } = useParams();
@@ -36,8 +35,14 @@ const InvoiceDetailsPage = () => {
     const { showSuccess, showError, showInfo } = useSnackbar();
     const { canDeleteInvoices } = usePermissions();
 
-    const [invoice, setInvoice] = useState(null);
-    const [loading, setLoading] = useState(true);
+    // Convex reactive query - auto-updates in real-time
+    const invoice = useInvoice(id);
+
+    // Convex mutations
+    const deleteInvoiceMutation = useDeleteInvoice();
+    const { printInvoice: doPrintInvoice, printAllStickers } = usePrintInvoice();
+
+    // UI state only
     const [isPrintOptionsOpen, setIsPrintOptionsOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState({
@@ -48,31 +53,17 @@ const InvoiceDetailsPage = () => {
         type: 'warning'
     });
 
-    useEffect(() => {
-        loadInvoice();
-    }, [id]);
-
-    const loadInvoice = async () => {
-        try {
-            setLoading(true);
-            const data = await invoiceService.getInvoice(id);
-            setInvoice(data);
-        } catch (err) {
-            console.error('Load invoice error:', err);
-            showError(t('invoices.details.loadError'));
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Derive loading state from Convex (undefined means still loading)
+    const loading = invoice === undefined;
 
     const handlePrint = async (type) => {
         try {
             if (type === 'STICKER') {
-                await printJobService.openStickerPdf(id);
+                await printAllStickers(id);
             } else {
-                await printJobService.openInvoicePdf(id);
+                await doPrintInvoice(id, type);
             }
-            showSuccess(t('invoices.details.printSuccess', { type: printJobService.getTypeText(type) }));
+            showSuccess(t('invoices.details.printSuccess', { type }));
         } catch (err) {
             console.error('Print error:', err);
             showError(t('invoices.details.printError'));
@@ -87,7 +78,7 @@ const InvoiceDetailsPage = () => {
             type: 'info',
             onConfirm: async () => {
                 try {
-                    await printJobService.openStickerPdf(id);
+                    await printAllStickers(id);
                     showSuccess(t('invoices.details.stickerOpened'));
                 } catch (err) {
                     showError(t('invoices.details.stickerOpenError'));
@@ -105,7 +96,7 @@ const InvoiceDetailsPage = () => {
             confirmText: t('actions.delete'),
             onConfirm: async () => {
                 try {
-                    await invoiceService.deleteInvoice(id);
+                    await deleteInvoiceMutation({ invoiceId: id });
                     showSuccess(t('invoices.details.deleteSuccess'));
                     navigate('/invoices');
                 } catch (err) {
@@ -172,17 +163,19 @@ const InvoiceDetailsPage = () => {
         );
     }
 
+    const invoiceDisplayId = invoice.readableId || String(invoice.invoiceNumber ?? invoice._id ?? '');
+
     const breadcrumbs = [
         { label: t('navigation.home'), href: '/' },
         { label: t('invoices.title'), href: '/invoices' },
-        { label: `#${invoice.id}` }
+        { label: invoiceDisplayId }
     ];
 
     return (
         <div className="space-y-6">
             {/* Header */}
             <PageHeader
-                title={`${t('invoices.invoice')} #${invoice.id}`}
+                title={`${t('invoices.invoice')} ${invoiceDisplayId}`}
                 subtitle={new Date(invoice.issueDate).toLocaleDateString(undefined, {
                     weekday: 'long',
                     year: 'numeric',
@@ -253,7 +246,7 @@ const InvoiceDetailsPage = () => {
                                 <p className="font-medium text-gray-900 dark:text-white">
                                     {['REGULAR', 'COMPANY'].includes(invoice.customer?.customerType) ? (
                                         <Link
-                                            to={`/customers/${invoice.customer.id}`}
+                                            to={`/customers/${invoice.customer._id || invoice.customer.id}`}
                                             className="text-blue-600 hover:underline"
                                         >
                                             {invoice.customer?.name || t('common.unspecified')}
@@ -293,14 +286,14 @@ const InvoiceDetailsPage = () => {
                         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 <FiPackage className="text-green-600" />
-                                {t('invoices.details.invoiceItems')} ({invoice.invoiceLines?.length || 0} {t('invoices.details.invoiceItem')})
+                                {t('invoices.details.invoiceItems')} ({invoice.lines?.length || 0} {t('invoices.details.invoiceItem')})
                             </h2>
                         </div>
 
                         <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                            {invoice.invoiceLines && invoice.invoiceLines.length > 0 ? (
-                                invoice.invoiceLines.map((line, index) => (
-                                    <div key={line.id || index} className="p-6">
+                            {invoice.lines && invoice.lines.length > 0 ? (
+                                invoice.lines.map((line, index) => (
+                                    <div key={line._id || line.id || index} className="p-6">
                                         {/* Line Header */}
                                         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
                                             <div>
@@ -364,7 +357,7 @@ const InvoiceDetailsPage = () => {
                                             </div>
                                             {line.shatafMeters > 0 && (
                                                 <div>
-                                                    <div className="text-xs text-gray-500 dark:text-gray-400">{t('invoices.details.chamferMeters')}</div>
+                                                    <div className="text-xs text-gray-500 dark:text-gray-400">{t('invoices.details.bevelingMeters')}</div>
                                                     <div className="font-mono font-medium text-purple-600 dark:text-purple-400">
                                                         {line.shatafMeters?.toFixed(2)} {t('common.meter')}
                                                     </div>
@@ -372,7 +365,7 @@ const InvoiceDetailsPage = () => {
                                             )}
                                         </div>
 
-                                        {/* Operations - Only SHATF (Chamfer) and LASER */}
+                                        {/* Operations - Beveling and LASER */}
                                         {line.operations && line.operations.length > 0 && (
                                             <div className="mt-4">
                                                 <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
@@ -381,23 +374,8 @@ const InvoiceDetailsPage = () => {
                                                 </div>
                                                 <div className="flex flex-wrap gap-2">
                                                     {line.operations.map((op, idx) => {
-                                                        const opType = op.operationType || op.type;
-                                                        // Get display name for the operation
-                                                        let displayName = '';
-                                                        if (opType === 'SHATAF' || opType === 'SHATF') {
-                                                            // SHATF/Chamfer - show the shatafType (chamfer type)
-                                                            displayName = op.shatafType
-                                                                ? (SHATAF_TYPES[op.shatafType]?.arabicName || op.shatafType)
-                                                                : 'شطف';
-                                                            // Append formula type if exists (farmaType is the calculation formula)
-                                                            if (op.farmaType) {
-                                                                displayName += ` - ${op.farmaType}`;
-                                                            }
-                                                        } else if (opType === 'LASER') {
-                                                            displayName = op.laserType || 'ليزر';
-                                                        } else {
-                                                            displayName = op.description || opType || 'عملية';
-                                                        }
+                                                        const displayName = op.operationType?.ar || op.operationType?.code || '—';
+                                                        const calcLabel = op.calculationMethod?.ar;
 
                                                         return (
                                                             <div
@@ -405,10 +383,10 @@ const InvoiceDetailsPage = () => {
                                                                 className="flex items-center gap-2 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800"
                                                             >
                                                                 <span className="text-sm font-medium text-purple-800 dark:text-purple-300">
-                                                                    {displayName}
+                                                                    {displayName}{calcLabel && ` - ${calcLabel}`}
                                                                 </span>
                                                                 <span className="text-sm text-purple-600 dark:text-purple-400">
-                                                                    {formatCurrency(op.operationPrice || op.manualPrice || 0)}
+                                                                    {formatCurrency(op.price || 0)}
                                                                 </span>
                                                             </div>
                                                         );
@@ -440,7 +418,7 @@ const InvoiceDetailsPage = () => {
                             <div className="space-y-3 pb-4 border-b border-gray-200 dark:border-gray-700">
                                 <div className="flex justify-between text-sm">
                                     <span className="text-gray-600 dark:text-gray-400">{t('invoices.invoiceNumber')}</span>
-                                    <span className="font-mono font-bold text-gray-900 dark:text-white">#{invoice.id}</span>
+                                    <span className="font-mono font-bold text-gray-900 dark:text-white">#{invoiceDisplayId}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-gray-600 dark:text-gray-400">{t('invoices.date')}</span>
@@ -450,7 +428,7 @@ const InvoiceDetailsPage = () => {
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-gray-600 dark:text-gray-400">{t('invoices.itemsCount')}</span>
-                                    <span className="text-gray-900 dark:text-white">{invoice.invoiceLines?.length || 0}</span>
+                                    <span className="text-gray-900 dark:text-white">{invoice.lines?.length || 0}</span>
                                 </div>
                                 <div className="flex justify-between text-sm items-center">
                                     <span className="text-gray-600 dark:text-gray-400">{t('invoices.workStatus')}</span>
@@ -534,7 +512,7 @@ const InvoiceDetailsPage = () => {
                     invoice={invoice}
                     onPaymentRecorded={() => {
                         setIsPaymentModalOpen(false);
-                        loadInvoice(); // Reload invoice to get updated payment info
+                        // No manual refetch needed - Convex auto-updates the invoice reactively
                     }}
                 />
             )}

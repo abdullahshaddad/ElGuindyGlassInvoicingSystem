@@ -1,9 +1,9 @@
 export const invoiceUtils = {
     // Unit conversion constants
     UNITS: {
-        MM: { toMeters: 0.001, label: 'مم' },
-        CM: { toMeters: 0.01, label: 'سم' },
-        M: { toMeters: 1.0, label: 'م' }
+        MM: { toMeters: 0.001, label: '\u0645\u0645' },
+        CM: { toMeters: 0.01, label: '\u0633\u0645' },
+        M: { toMeters: 1.0, label: '\u0645' }
     },
 
     /**
@@ -47,9 +47,9 @@ export const invoiceUtils = {
             if (line.cuttingType === 'LASER' && line.manualCuttingPrice) {
                 operationsPrice = parseFloat(line.manualCuttingPrice);
             } else if (line.cuttingType === 'SHATF') {
-                // Use legacy cuttingUtils
-                // NOTE: This assumes Normal Shataf logic. 
-                operationsPrice = calculateShatafWithCustomRates(
+                // Use legacy cuttingUtils for beveling calculation
+                const { calculateBevelingWithCustomRates } = require('@utils/cuttingUtils');
+                operationsPrice = calculateBevelingWithCustomRates(
                     glassType.thickness,
                     line.width,
                     line.height,
@@ -112,7 +112,7 @@ export const invoiceUtils = {
             areaM2,
             lengthM,
             quantity,
-            quantityUnit: calculationMethod === 'LENGTH' ? 'متر طولي' : 'متر مربع',
+            quantityUnit: calculationMethod === 'LENGTH' ? '\u0645\u062a\u0631 \u0637\u0648\u0644\u064a' : '\u0645\u062a\u0631 \u0645\u0631\u0628\u0639',
             glassPrice,
             cuttingPrice, // Represents total operations price now
             lineTotal: glassPrice + cuttingPrice
@@ -147,15 +147,15 @@ export const invoiceUtils = {
      * Format currency for display
      */
     formatCurrency(amount) {
-        return `${parseFloat(amount || 0).toFixed(2)} ج.م`;
+        return `${parseFloat(amount || 0).toFixed(2)} \u062c.\u0645`;
     },
 
     /**
      * Format dimensions for display with unit
      */
     formatDimensions(width, height, unit = 'CM') {
-        const unitLabel = this.UNITS[unit]?.label || 'سم';
-        return `${width} × ${height} ${unitLabel}`;
+        const unitLabel = this.UNITS[unit]?.label || '\u0633\u0645';
+        return `${width} \u00d7 ${height} ${unitLabel}`;
     },
 
     /**

@@ -18,6 +18,7 @@ export default defineConfig({
             '@styles': path.resolve(__dirname, './src/styles'),
             '@i18n': path.resolve(__dirname, './src/i18n'),
             '@types': path.resolve(__dirname, './src/types'),
+            '@convex': path.resolve(__dirname, '../convex'),
         },
     },
     css: {
@@ -30,13 +31,6 @@ export default defineConfig({
     server: {
         port: 3000,
         open: true,
-        proxy: {
-            '/api': {
-                target: process.env.VITE_API_URL || 'http://localhost:8080',
-                changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api/, ''),
-            },
-        },
     },
     build: {
         outDir: 'dist',
@@ -47,7 +41,8 @@ export default defineConfig({
                     vendor: ['react', 'react-dom'],
                     router: ['react-router-dom'],
                     i18n: ['react-i18next', 'i18next'],
-                    utils: ['axios', 'dayjs', 'clsx'],
+                    utils: ['dayjs', 'clsx'],
+                    pdf: ['pdf-lib', '@pdf-lib/fontkit', 'arabic-reshaper'],
                 },
             },
         },
@@ -62,11 +57,11 @@ export default defineConfig({
             'react',
             'react-dom',
             'react-router-dom',
-            'axios',
             'dayjs',
             'react-i18next',
             'i18next',
             'clsx',
+            'convex/react',
         ],
     },
 });

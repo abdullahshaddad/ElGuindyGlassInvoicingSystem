@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiEye } from 'react-icons/fi';
@@ -10,7 +10,7 @@ import {
     PageHeader,
     Badge
 } from '@components';
-import { customerService } from '@services/customerService';
+import { useCustomers, useSearchCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer } from '@services/customerService';
 import useAuthorized from '@hooks/useAuthorized';
 
 const CUSTOMER_TYPES = {
@@ -19,19 +19,12 @@ const CUSTOMER_TYPES = {
     COMPANY: 'COMPANY'
 };
 
-const CUSTOMER_TYPE_LABEL = {
-    [CUSTOMER_TYPES.CASH]: 'نقدي',
-    [CUSTOMER_TYPES.REGULAR]: 'عميل',
-    [CUSTOMER_TYPES.COMPANY]: 'شركة'
-};
 
 const CustomersPage = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const { isAuthorized, isLoading: authLoading } = useAuthorized(['CASHIER', 'ADMIN', 'OWNER']);
 
-    const [customers, setCustomers] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [showModal, setShowModal] = useState(false);
@@ -52,44 +45,53 @@ const CustomersPage = () => {
 
     const isRTL = i18n.language === 'ar';
 
-    useEffect(() => {
-        if (isAuthorized) {
-            loadCustomers();
-        }
-    }, [isAuthorized]);
+    // Convex reactive queries - auto-update in real-time
+    const { results: allCustomersRaw, status: paginationStatus, loadMore } = useCustomers({ initialNumItems: 50 });
+    const searchResults = useSearchCustomers(searchQuery);
 
-    const loadCustomers = async () => {
-        try {
-            setLoading(true);
-            setError('');
-            const data = await customerService.getAllCustomers();
-            // defensive normalization (ensure numeric balance)
-            const normalized = (data || []).map(c => ({
+    // Convex mutations
+    const createCustomerMutation = useCreateCustomer();
+    const updateCustomerMutation = useUpdateCustomer();
+    const deleteCustomerMutation = useDeleteCustomer();
+
+    // Derive loading state
+    const loading = paginationStatus === 'LoadingFirstPage';
+
+    // Normalize customers data (ensure numeric balance)
+    const allCustomers = useMemo(() => {
+        return (allCustomersRaw || []).map(c => ({
+            ...c,
+            id: c._id || c.id, // Ensure id field is available for compatibility
+            balance: typeof c.balance === 'number' ? c.balance : Number(c.balance || 0)
+        }));
+    }, [allCustomersRaw]);
+
+    // Use search results when searching, otherwise use all customers
+    const customers = useMemo(() => {
+        const q = (searchQuery || '').trim();
+        if (q.length > 0 && searchResults !== undefined) {
+            return (searchResults || []).map(c => ({
                 ...c,
+                id: c._id || c.id,
                 balance: typeof c.balance === 'number' ? c.balance : Number(c.balance || 0)
             }));
-            setCustomers(normalized);
-        } catch (err) {
-            console.error('Load customers error:', err);
-            setError(t('customers.messages.load_error', 'فشل تحميل العملاء'));
-        } finally {
-            setLoading(false);
         }
-    };
+        return allCustomers;
+    }, [searchQuery, searchResults, allCustomers]);
 
     const validateForm = useCallback(() => {
         const errors = {};
 
         if (!formData.name || formData.name.trim().length < 2) {
-            errors.name = t('validation.name_required', 'الاسم مطلوب ويجب أن يكون على الأقل حرفين');
+            errors.name = t('validation.name_required');
         }
 
         if (!formData.phone || formData.phone.trim().length < 10) {
-            errors.phone = t('validation.phone_required', 'رقم الهاتف مطلوب ويجب أن يكون على الأقل 10 أرقام');
+            errors.phone = t('validation.phone_required');
         }
 
         if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            errors.email = t('validation.email_invalid', 'البريد الإلكتروني غير صحيح');
+            errors.email = t('validation.email_invalid');
         }
 
         setFormErrors(errors);
@@ -121,19 +123,34 @@ const CustomersPage = () => {
             setError('');
 
             if (editingCustomer) {
-                await customerService.updateCustomer(editingCustomer.id, formData);
+                await updateCustomerMutation({
+                    customerId: editingCustomer._id || editingCustomer.id,
+                    name: formData.name,
+                    phone: formData.phone,
+                    email: formData.email || undefined,
+                    address: formData.address || undefined,
+                    notes: formData.notes || undefined,
+                    customerType: formData.customerType
+                });
             } else {
-                await customerService.createCustomer(formData);
+                await createCustomerMutation({
+                    name: formData.name,
+                    phone: formData.phone,
+                    email: formData.email || undefined,
+                    address: formData.address || undefined,
+                    notes: formData.notes || undefined,
+                    customerType: formData.customerType
+                });
             }
 
-            await loadCustomers();
+            // No manual refetch needed - Convex auto-updates
             handleCloseModal();
         } catch (err) {
             console.error('Submit error:', err);
             setError(
                 editingCustomer
-                    ? t('customers.messages.update_error', 'فشل تحديث العميل')
-                    : t('customers.messages.create_error', 'فشل إنشاء العميل')
+                    ? t('customers.messages.update_error')
+                    : t('customers.messages.create_error')
             );
         } finally {
             setIsSubmitting(false);
@@ -148,7 +165,7 @@ const CustomersPage = () => {
             email: '',
             address: '',
             notes: '',
-            customerType: CUSTOMER_TYPES.REGULAR // default
+            customerType: CUSTOMER_TYPES.REGULAR
         });
         setFormErrors({});
         setShowModal(true);
@@ -169,19 +186,16 @@ const CustomersPage = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm(t('customers.messages.delete_confirm', 'هل أنت متأكد من حذف هذا العميل؟'))) {
+        if (!window.confirm(t('customers.messages.deleteConfirm'))) {
             return;
         }
 
         try {
-            setLoading(true);
-            await customerService.deleteCustomer(id);
-            await loadCustomers();
+            await deleteCustomerMutation({ customerId: id });
+            // No manual refetch needed - Convex auto-updates
         } catch (err) {
             console.error('Delete error:', err);
-            setError(t('customers.messages.delete_error', 'فشل حذف العميل'));
-        } finally {
-            setLoading(false);
+            setError(t('customers.messages.delete_error'));
         }
     };
 
@@ -207,8 +221,8 @@ const CustomersPage = () => {
 
     // Helper functions for rendering & formatting (avoids inline functions)
     const getCustomerTypeLabel = useCallback((type) => {
-        return CUSTOMER_TYPE_LABEL[type] || CUSTOMER_TYPE_LABEL[CUSTOMER_TYPES.REGULAR];
-    }, []);
+        return t(`customers.types.${type}`, t('customers.types.REGULAR'));
+    }, [t]);
 
     const getCustomerTypeBadgeVariant = useCallback((type) => {
         switch (type) {
@@ -227,8 +241,8 @@ const CustomersPage = () => {
         const bal = typeof customer.balance === 'number' ? customer.balance : Number(customer.balance || 0);
         const safe = Number.isFinite(bal) ? bal : 0;
         const formatted = safe.toFixed(2);
-        return `${formatted} جنيه`;
-    }, []);
+        return `${formatted} ${t('common.currency')}`;
+    }, [t]);
 
     const balanceColorClass = useCallback((customer) => {
         if (!customer) return '';
@@ -237,24 +251,6 @@ const CustomersPage = () => {
         if (!Number.isFinite(bal) || bal <= 0) return 'text-green-600';
         return 'text-orange-600';
     }, []);
-
-    // search includes name, phone, email, and customerType label
-    const filteredCustomers = useMemo(() => {
-        const q = (searchQuery || '').trim().toLowerCase();
-        if (!q) return customers;
-        return customers.filter(customer => {
-            const name = (customer.name || '').toLowerCase();
-            const phone = (customer.phone || '').toLowerCase();
-            const email = (customer.email || '').toLowerCase();
-            const typeLabel = (getCustomerTypeLabel(customer.customerType) || '').toLowerCase();
-            return (
-                name.includes(q) ||
-                phone.includes(q) ||
-                email.includes(q) ||
-                typeLabel.includes(q)
-            );
-        });
-    }, [customers, searchQuery, getCustomerTypeLabel]);
 
     // Column renderers (named functions to avoid inline lambdas)
     const renderNameCell = useCallback((customer) => (
@@ -293,7 +289,9 @@ const CustomersPage = () => {
 
     const renderCreatedAtCell = useCallback((customer) => (
         <div className="text-sm text-gray-500 dark:text-gray-400">
-            {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString('ar-EG') : '-'}
+            {customer.createdAt || customer._creationTime
+                ? new Date(customer.createdAt || customer._creationTime).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US')
+                : '-'}
         </div>
     ), []);
 
@@ -307,7 +305,7 @@ const CustomersPage = () => {
                     handleEdit(customer);
                 }}
                 className="text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
-                title={t('common.actions.edit', 'تعديل')}
+                title={t('actions.edit')}
             >
                 <FiEdit2 size={16} />
             </Button>
@@ -316,10 +314,10 @@ const CustomersPage = () => {
                 size="sm"
                 onClick={(e) => {
                     e.stopPropagation();
-                    handleDelete(customer.id);
+                    handleDelete(customer._id || customer.id);
                 }}
                 className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                title={t('common.actions.delete', 'حذف')}
+                title={t('actions.delete')}
             >
                 <FiTrash2 size={16} />
             </Button>
@@ -329,32 +327,32 @@ const CustomersPage = () => {
     const columns = [
         {
             key: 'name',
-            header: 'اسم العميل',
+            header: t('customers.fields.name'),
             render: (_, customer) => renderNameCell(customer)
         },
         {
             key: 'phone',
-            header: 'الهاتف',
+            header: t('customers.fields.phone'),
             render: (_, customer) => renderPhoneCell(customer)
         },
         {
             key: 'balance',
-            header: 'الرصيد المستحق',
+            header: t('customers.fields.outstandingBalance'),
             render: (_, customer) => renderBalanceCell(customer)
         },
         {
             key: 'email',
-            header: t('customers.fields.email', 'البريد الإلكتروني'),
+            header: t('customers.fields.email'),
             render: (_, customer) => renderEmailCell(customer)
         },
         {
             key: 'createdAt',
-            header: t('customers.fields.created_at', 'تاريخ الإضافة'),
+            header: t('customers.fields.created_at'),
             render: (_, customer) => renderCreatedAtCell(customer)
         },
         {
             key: 'actions',
-            header: t('common.actions.actions', 'الإجراءات'),
+            header: t('common.actionsColumn'),
             sortable: false,
             render: (_, customer) => renderActionsCell(customer)
         }
@@ -365,7 +363,7 @@ const CustomersPage = () => {
         return (
             <div className="flex items-center justify-center   dark:bg-gray-900">
                 <div className="text-gray-600 dark:text-gray-400">
-                    {t('common.loading', 'جاري التحميل...')}
+                    {t('common.loading')}
                 </div>
             </div>
         );
@@ -375,7 +373,7 @@ const CustomersPage = () => {
         return (
             <div className="flex items-center justify-center min-h-screen  dark:bg-gray-900">
                 <div className="text-red-600 dark:text-red-400">
-                    {t('common.unauthorized', 'غير مصرح لك بالوصول')}
+                    {t('common.unauthorized')}
                 </div>
             </div>
         );
@@ -384,11 +382,11 @@ const CustomersPage = () => {
     return (
         <div className="space-y-6 p-6  dark:bg-gray-900 ">
             <PageHeader
-                title={t('customers.title', 'إدارة العملاء')}
-                subtitle={t('customers.subtitle', 'عرض وإدارة بيانات العملاء')}
+                title={t('customers.title')}
+                subtitle={t('customers.subtitle')}
                 breadcrumbs={[
-                    { label: t('navigation.home', 'الرئيسية'), href: '/' },
-                    { label: t('customers.title', 'العملاء') }
+                    { label: t('navigation.home'), href: '/' },
+                    { label: t('customers.title') }
                 ]}
                 actions={
                     <Button
@@ -397,7 +395,7 @@ const CustomersPage = () => {
                         className="flex items-center gap-2"
                     >
                         <FiPlus size={20} />
-                        <span>{t('customers.add_customer', 'إضافة عميل')}</span>
+                        <span>{t('customers.addCustomer')}</span>
                     </Button>
                 }
             />
@@ -416,7 +414,7 @@ const CustomersPage = () => {
                     />
                     <Input
                         type="text"
-                        placeholder={t('customers.search_placeholder', 'البحث في العملاء...')}
+                        placeholder={t('customers.searchPlaceholder')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className={`w-full ${isRTL ? 'pr-10' : 'pl-10'} bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white`}
@@ -425,19 +423,32 @@ const CustomersPage = () => {
             </div>
 
             <DataTable
-                data={filteredCustomers}
+                data={customers}
                 columns={columns}
                 loading={loading}
-                emptyMessage={t('customers.no_customers_found', 'لا توجد عملاء')}
-                loadingMessage={t('customers.messages.loading', 'جاري تحميل العملاء...')}
+                emptyMessage={t('customers.noCustomers')}
+                loadingMessage={t('customers.messages.loading')}
                 className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
-                onRowClick={(customer) => navigate(`/customers/${customer.id}`)}
+                onRowClick={(customer) => navigate(`/customers/${customer._id || customer.id}`)}
             />
+
+            {/* Load More for paginated customers */}
+            {paginationStatus === 'CanLoadMore' && !searchQuery && (
+                <div className="flex justify-center py-4">
+                    <Button
+                        variant="outline"
+                        onClick={() => loadMore(50)}
+                        className="px-8"
+                    >
+                        {t('common.loadMore')}
+                    </Button>
+                </div>
+            )}
 
             <Modal
                 isOpen={showModal}
                 onClose={handleCloseModal}
-                title={editingCustomer ? t('customers.edit_customer', 'تعديل العميل') : t('customers.create_customer', 'إضافة عميل جديد')}
+                title={editingCustomer ? t('customers.editCustomer') : t('customers.addCustomer')}
                 size="md"
                 className="dark:bg-gray-800 dark:border-gray-700"
                 footer={(
@@ -450,10 +461,10 @@ const CustomersPage = () => {
                             className="flex-1"
                         >
                             {isSubmitting
-                                ? t('common.loading', 'جاري الحفظ...')
+                                ? t('common.loading')
                                 : editingCustomer
-                                    ? t('common.actions.update', 'تحديث')
-                                    : t('common.actions.create', 'إنشاء')
+                                    ? t('actions.update')
+                                    : t('actions.create')
                             }
                         </Button>
                         <Button
@@ -463,7 +474,7 @@ const CustomersPage = () => {
                             disabled={isSubmitting}
                             className="flex-1"
                         >
-                            {t('common.actions.cancel', 'إلغاء')}
+                            {t('actions.cancel')}
                         </Button>
                     </div>
                 )}
@@ -472,7 +483,7 @@ const CustomersPage = () => {
                     <form id="customer-form" onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                {t('customers.fields.name', 'الاسم')} *
+                                {t('customers.fields.name')} *
                             </label>
                             <Input
                                 type="text"
@@ -490,7 +501,7 @@ const CustomersPage = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                {t('customers.fields.phone', 'رقم الهاتف')} *
+                                {t('customers.fields.phone')} *
                             </label>
                             <Input
                                 type="tel"
@@ -509,7 +520,7 @@ const CustomersPage = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                {t('customers.fields.email', 'البريد الإلكتروني')}
+                                {t('customers.fields.email')}
                             </label>
                             <Input
                                 type="email"
@@ -527,7 +538,7 @@ const CustomersPage = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                {t('customers.fields.address', 'العنوان')}
+                                {t('customers.fields.address')}
                             </label>
                             <Input
                                 type="text"
@@ -540,7 +551,7 @@ const CustomersPage = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                {t('customers.fields.notes', 'ملاحظات')}
+                                {t('customers.fields.notes')}
                             </label>
                             <textarea
                                 name="notes"
@@ -553,7 +564,7 @@ const CustomersPage = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                {t('customers.fields.type', 'نوع العميل')}
+                                {t('customers.fields.type')}
                             </label>
                             <select
                                 name="customerType"
@@ -561,9 +572,9 @@ const CustomersPage = () => {
                                 onChange={handleSelectCustomerType}
                                 className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-gray-900 dark:text-white"
                             >
-                                <option value={CUSTOMER_TYPES.REGULAR}>{t('customers.type.regular', CUSTOMER_TYPE_LABEL[CUSTOMER_TYPES.REGULAR])}</option>
-                                <option value={CUSTOMER_TYPES.CASH}>{t('customers.type.cash', CUSTOMER_TYPE_LABEL[CUSTOMER_TYPES.CASH])}</option>
-                                <option value={CUSTOMER_TYPES.COMPANY}>{t('customers.type.company', CUSTOMER_TYPE_LABEL[CUSTOMER_TYPES.COMPANY])}</option>
+                                <option value={CUSTOMER_TYPES.REGULAR}>{t('customers.types.REGULAR')}</option>
+                                <option value={CUSTOMER_TYPES.CASH}>{t('customers.types.CASH')}</option>
+                                <option value={CUSTOMER_TYPES.COMPANY}>{t('customers.types.COMPANY')}</option>
                             </select>
                         </div>
 
@@ -576,7 +587,7 @@ const CustomersPage = () => {
             <Modal
                 isOpen={showDetailsModal}
                 onClose={() => setShowDetailsModal(false)}
-                title={t('customers.customer_details', 'تفاصيل العميل')}
+                title={t('customers.customerDetails')}
                 size="lg"
                 className="dark:bg-gray-800 dark:border-gray-700"
             >
@@ -585,7 +596,7 @@ const CustomersPage = () => {
                         <div className="flex items-center justify-between gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                    {t('customers.fields.name', 'الاسم')}
+                                    {t('customers.fields.name')}
                                 </label>
                                 <p className="text-gray-900 dark:text-white font-medium">{selectedCustomer.name}</p>
                             </div>
@@ -599,27 +610,29 @@ const CustomersPage = () => {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                    {t('customers.fields.phone', 'رقم الهاتف')}
+                                    {t('customers.fields.phone')}
                                 </label>
                                 <p className="text-gray-900 dark:text-white font-mono" dir="ltr">{selectedCustomer.phone}</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                    {t('customers.fields.email', 'البريد الإلكتروني')}
+                                    {t('customers.fields.email')}
                                 </label>
                                 <p className="text-gray-900 dark:text-white" dir="ltr">{selectedCustomer.email || '-'}</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                    {t('customers.fields.created_at', 'تاريخ الإضافة')}
+                                    {t('customers.fields.created_at')}
                                 </label>
                                 <p className="text-gray-900 dark:text-white">
-                                    {selectedCustomer.createdAt ? new Date(selectedCustomer.createdAt).toLocaleDateString('ar-EG') : '-'}
+                                    {(selectedCustomer.createdAt || selectedCustomer._creationTime)
+                                        ? new Date(selectedCustomer.createdAt || selectedCustomer._creationTime).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US')
+                                        : '-'}
                                 </p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                    {t('customers.fields.balance', 'الرصيد الحالي')}
+                                    {t('customers.fields.balance')}
                                 </label>
                                 <p className={`text-lg font-mono ${balanceColorClass(selectedCustomer)}`}>
                                     {selectedCustomer.customerType === CUSTOMER_TYPES.CASH ? '-' : formatBalance(selectedCustomer)}
@@ -630,7 +643,7 @@ const CustomersPage = () => {
                         {selectedCustomer.address && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                    {t('customers.fields.address', 'العنوان')}
+                                    {t('customers.fields.address')}
                                 </label>
                                 <p className="text-gray-900 dark:text-white">{selectedCustomer.address}</p>
                             </div>
@@ -639,7 +652,7 @@ const CustomersPage = () => {
                         {selectedCustomer.notes && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                    {t('customers.fields.notes', 'ملاحظات')}
+                                    {t('customers.fields.notes')}
                                 </label>
                                 <p className="text-gray-900 dark:text-white whitespace-pre-wrap">{selectedCustomer.notes}</p>
                             </div>

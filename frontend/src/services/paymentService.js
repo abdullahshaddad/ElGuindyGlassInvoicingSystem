@@ -1,162 +1,103 @@
-import { get, post, put, del } from '@/api/axios';
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@convex/_generated/api";
+
+// ===== QUERY HOOKS =====
 
 /**
- * Payment Service
- * Handles all payment-related API operations
+ * Get a single payment by ID
+ * @param {string|undefined} paymentId - Convex payment ID
+ * @returns {Object|undefined} Payment object
  */
-const paymentService = {
-    /**
-     * Record a new payment
-     * @param {Object} paymentData - Payment information
-     * @param {number} paymentData.customerId - Customer ID
-     * @param {number} [paymentData.invoiceId] - Optional invoice ID
-     * @param {number} paymentData.amount - Payment amount
-     * @param {string} paymentData.paymentMethod - Payment method (CASH, CARD, BANK_TRANSFER, CHECK, OTHER)
-     * @param {string} [paymentData.referenceNumber] - Optional reference number
-     * @param {string} [paymentData.notes] - Optional notes
-     * @returns {Promise<Object>}
-     */
-    async recordPayment(paymentData) {
-        try {
-            const response = await post('/payments', paymentData);
-            return response;
-        } catch (error) {
-            console.error('Record payment error:', error);
-            throw error;
-        }
-    },
+export function usePayment(paymentId) {
+    return useQuery(
+        api.payments.queries.getPayment,
+        paymentId ? { paymentId } : "skip"
+    );
+}
 
-    /**
-     * Get payment by ID
-     * @param {string|number} paymentId - Payment ID
-     * @returns {Promise<Object>}
-     */
-    async getPaymentById(paymentId) {
-        try {
-            const response = await get(`/payments/${paymentId}`);
-            return response;
-        } catch (error) {
-            console.error('Get payment error:', error);
-            throw error;
-        }
-    },
+/**
+ * Get all payments for a customer
+ * @param {string|undefined} customerId - Convex customer ID
+ * @returns {Array|undefined} Customer payments
+ */
+export function useCustomerPayments(customerId) {
+    return useQuery(
+        api.payments.queries.getCustomerPayments,
+        customerId ? { customerId } : "skip"
+    );
+}
 
-    /**
-     * Get all payments for a customer
-     * @param {string|number} customerId - Customer ID
-     * @returns {Promise<Array>}
-     */
-    async getCustomerPayments(customerId) {
-        try {
-            const response = await get(`/payments/customer/${customerId}`);
-            return response;
-        } catch (error) {
-            console.error('Get customer payments error:', error);
-            throw error;
-        }
-    },
+/**
+ * Get all payments for an invoice
+ * @param {string|undefined} invoiceId - Convex invoice ID
+ * @returns {Array|undefined} Invoice payments
+ */
+export function useInvoicePayments(invoiceId) {
+    return useQuery(
+        api.payments.queries.getInvoicePayments,
+        invoiceId ? { invoiceId } : "skip"
+    );
+}
 
-    /**
-     * Get all payments for an invoice
-     * @param {string|number} invoiceId - Invoice ID
-     * @returns {Promise<Array>}
-     */
-    async getInvoicePayments(invoiceId) {
-        try {
-            const response = await get(`/payments/invoice/${invoiceId}`);
-            return response;
-        } catch (error) {
-            console.error('Get invoice payments error:', error);
-            throw error;
-        }
-    },
+/**
+ * Get payments within a date range
+ * @param {number|undefined} startDate - Start date timestamp
+ * @param {number|undefined} endDate - End date timestamp
+ * @returns {Array|undefined} Payments in range
+ */
+export function usePaymentsBetweenDates(startDate, endDate) {
+    return useQuery(
+        api.payments.queries.getPaymentsBetweenDates,
+        startDate && endDate ? { startDate, endDate } : "skip"
+    );
+}
 
-    /**
-     * Get payments within date range
-     * @param {Date|string} startDate - Start date
-     * @param {Date|string} endDate - End date
-     * @returns {Promise<Array>}
-     */
-    async getPaymentsInRange(startDate, endDate) {
-        try {
-            const params = new URLSearchParams({
-                startDate: new Date(startDate).toISOString(),
-                endDate: new Date(endDate).toISOString()
-            });
-            const response = await get(`/payments/range?${params.toString()}`);
-            return response;
-        } catch (error) {
-            console.error('Get payments in range error:', error);
-            throw error;
-        }
-    },
+// ===== MUTATION HOOKS =====
 
-    /**
-     * Get customer payments within date range
-     * @param {string|number} customerId - Customer ID
-     * @param {Date|string} startDate - Start date
-     * @param {Date|string} endDate - End date
-     * @returns {Promise<Array>}
-     */
-    async getCustomerPaymentsInRange(customerId, startDate, endDate) {
-        try {
-            const params = new URLSearchParams({
-                startDate: new Date(startDate).toISOString(),
-                endDate: new Date(endDate).toISOString()
-            });
-            const response = await get(`/payments/customer/${customerId}/range?${params.toString()}`);
-            return response;
-        } catch (error) {
-            console.error('Get customer payments in range error:', error);
-            throw error;
-        }
-    },
+/**
+ * Record a new payment
+ * @returns {Function} Mutation function - call with { customerId, invoiceId?, amount, paymentMethod, referenceNumber?, notes? }
+ */
+export function useRecordPayment() {
+    return useMutation(api.payments.mutations.recordPayment);
+}
 
-    /**
-     * Delete a payment (admin only)
-     * @param {string|number} paymentId - Payment ID
-     * @returns {Promise<void>}
-     */
-    async deletePayment(paymentId) {
-        try {
-            await del(`/payments/${paymentId}`);
-        } catch (error) {
-            console.error('Delete payment error:', error);
-            throw error;
-        }
-    },
+/**
+ * Delete a payment (admin only)
+ * @returns {Function} Mutation function - call with { paymentId }
+ */
+export function useDeletePayment() {
+    return useMutation(api.payments.mutations.deletePayment);
+}
 
-    /**
-     * Format payment method for display
-     * @param {string} method - Payment method enum
-     * @returns {string} - Arabic display name
-     */
-    formatPaymentMethod(method) {
-        const methods = {
-            CASH: 'نقدي',
-            CARD: 'بطاقة',
-            BANK_TRANSFER: 'تحويل بنكي',
-            CHECK: 'شيك',
-            VODAFONE_CASH: 'فودافون كاش',
-            OTHER: 'أخرى'
-        };
-        return methods[method] || method;
-    },
+// ===== UTILITY FUNCTIONS =====
 
-    /**
-     * Get payment method options for select dropdown
-     * @returns {Array<{value: string, label: string}>}
-     */
-    getPaymentMethodOptions() {
-        return [
-            { value: 'CASH', label: 'نقدي' },
-            { value: 'CARD', label: 'بطاقة' },
-            { value: 'BANK_TRANSFER', label: 'تحويل بنكي' },
-            { value: 'CHECK', label: 'شيك' },
-            { value: 'VODAFONE_CASH', label: 'فودافون كاش' },
-            { value: 'OTHER', label: 'أخرى' }
-        ];
-    }
+/**
+ * Format payment method enum to Arabic display name
+ * @param {string} method - Payment method enum value
+ * @returns {string} Arabic display name
+ */
+export const formatPaymentMethod = (method) => {
+    const methodMap = {
+        CASH: 'نقدي',
+        CARD: 'بطاقة',
+        BANK_TRANSFER: 'تحويل بنكي',
+        CHECK: 'شيك',
+        VODAFONE_CASH: 'فودافون كاش',
+        OTHER: 'أخرى',
+    };
+    return methodMap[method] || method;
 };
 
-export default paymentService;
+/**
+ * Get payment method options for select dropdowns
+ * @returns {Array<{value: string, label: string}>}
+ */
+export const getPaymentMethodOptions = () => [
+    { value: 'CASH', label: 'نقدي' },
+    { value: 'CARD', label: 'بطاقة' },
+    { value: 'BANK_TRANSFER', label: 'تحويل بنكي' },
+    { value: 'CHECK', label: 'شيك' },
+    { value: 'VODAFONE_CASH', label: 'فودافون كاش' },
+    { value: 'OTHER', label: 'أخرى' },
+];

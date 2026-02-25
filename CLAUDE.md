@@ -4,34 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ElGuindy Glass Invoicing System is a full-stack web application for managing glass cutting and invoicing operations. The system handles customer management, invoice generation, glass type configurations, cutting rate calculations, and print job management with real-time WebSocket notifications.
+ElGuindy Glass Invoicing System is a full-stack web application for managing glass cutting and invoicing operations. The system handles customer management, invoice generation, glass type configurations, cutting rate calculations, and print job management with real-time updates.
 
 **Tech Stack:**
-- **Backend:** Spring Boot 3.5.5 with Java 21, PostgreSQL, JWT authentication, Lombok
-- **Frontend:** React 18 with Vite, TailwindCSS, React Router, React Query, i18next (Arabic RTL support)
-- **Infrastructure:** Docker Compose (PostgreSQL, MinIO for S3-compatible storage)
+- **Backend:** Convex (serverless backend with document DB, real-time subscriptions)
+- **Authentication:** Clerk (user management, sign-in/sign-up)
+- **Frontend:** React 18 with Vite, TailwindCSS, React Router, Convex React hooks, i18next (Arabic RTL support)
+- **PDF Generation:** pdf-lib with @pdf-lib/fontkit (Arabic text support)
 
 ## Development Commands
 
-### Backend (Spring Boot + Maven Wrapper)
+### Convex Backend
 
 ```bash
-cd backend
+# Start Convex dev server (watches for changes, syncs schema/functions)
+npx convex dev
 
-# Run locally (requires PostgreSQL on localhost:5432)
-./mvnw spring-boot:run
+# Deploy to production
+npx convex deploy
 
-# Build
-./mvnw clean package
-
-# Run tests
-./mvnw test
-
-# Run a single test class
-./mvnw test -Dtest=InvoiceServiceTest
-
-# Skip tests during build
-./mvnw clean package -DskipTests
+# Open Convex dashboard
+npx convex dashboard
 ```
 
 ### Frontend (React + Vite)
@@ -51,166 +44,144 @@ npm run build
 # Run tests
 npm test
 
-# Run a single test file
-npm test -- CustomerService.test.js
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
-
 # Lint code
 npm run lint
 ```
 
-### Docker Compose
+### Combined Development
 
 ```bash
-# Start all services (backend, PostgreSQL, MinIO)
-docker compose up -d
-
-# Rebuild backend container
-docker compose up --build backend
-
-# Stop all services
-docker compose down
-
-# View backend logs
-docker compose logs -f backend
+# From project root - start both Convex and frontend dev servers
+npm run dev
 ```
 
 ## Architecture
 
-### Backend Structure
+### Convex Backend Structure (`convex/`)
 
-Hybrid layered/DDD architecture with domain modules:
+Serverless functions organized by domain:
 
-- **`controllers/`** - REST API endpoints
-- **`services/`** - Business logic layer
-  - `InvoiceService` - Invoice CRUD, validation, management
-  - `InvoiceCreationService` - Invoice creation with line/operation processing
-  - `OperationCalculationService` - Calculates operation pricing (cutting, polishing, etc.)
-  - `PrintJobService` - PDF generation and print job management
-  - `PdfGenerationService` - PDF document generation with iText
-  - `ReadableIdGeneratorService` - Generates human-readable invoice IDs
-  - `StorageService` - Abstraction for MinIO/S3 storage
-  - `ExportService` - Data export functionality
-  - `cutting/` - Cutting rate calculations (`CuttingRateService`, `ShatafRateService`, `CuttingContext`)
-  - `storage/` - Storage provider implementations
-- **`domain/`** - Domain-Driven Design modules (evolving)
-  - `customer/`, `glass/`, `invoice/`, `payment/`, `shataf/`, `shared/`
-  - Each module contains: `model/`, `repository/`, `service/`, `exception/`
-- **`infrastructure/`** - Infrastructure concerns
-  - `adapter/` - External service adapters
-  - `mapper/` - Entity-DTO mappers
-- **`repositories/`** - Spring Data JPA repositories
-- **`models/`** - JPA entities
-  - Core: `Invoice`, `InvoiceLine`, `InvoiceLineOperation`, `Customer`, `GlassType`, `PrintJob`, `Payment`
-  - Supporting: `CuttingRate`, `ShatafRate`, `OperationPrice`, `CompanyProfile`
-  - `enums/` - `InvoiceStatus`, `LineStatus`, `PrintStatus`, `PaymentMethod`, `CuttingType`, `ShatafType`, `OperationType`
-  - `customer/` - Customer entity, `user/` - User/Role entities, `notification/` - Notification entity
-- **`dto/`** - Data Transfer Objects (`invoice/` subdirectory for invoice-related DTOs)
-- **`application/dto/`** - Application layer DTOs (being migrated)
-- **`config/`** - Application configuration
-  - `security/` - JWT authentication (`JwtAuthenticationFilter`, `JwtService`, `SecurityConfiguration`)
-  - `WebSocket/` - WebSocket configuration and handlers
-- **`authentication/`** - Authentication-related components
-- **`monitoring/`** - `PrintJobMonitor` and health monitoring
-- **`exceptions/`** - Custom exception hierarchy (`customer/`, `invoice/`, `printjob/`, `websocket/`)
+- **`schema.ts`** - Full database schema with 14 tables, enum validators, and indexes
+- **`auth.config.ts`** - Clerk authentication provider configuration
+- **`crons.ts`** - Scheduled tasks (print job monitoring, cleanup)
+- **`helpers/`** - Shared utilities
+  - `auth.ts` - `requireAuth()`, `requireRole()`, `getCurrentUser()` helpers
+  - `idGenerator.ts` - Atomic counter-based readable ID generation ("INV-YYYY-NNN")
+  - `dimensionUtils.ts` - Unit conversion (MM/CM/M to meters)
+  - `enums.ts` - All enum union types
+- **`lib/`** - Core business logic
+  - `bevelingFormulas.ts` - 13 perimeter formulas for beveling calculation types
+  - `operationCalculation.ts` - Beveling/Beveling Calculation/LASER operation pricing
+  - `invoiceCreation.ts` - Invoice creation flow with validation
+  - `paymentLogic.ts` - Payment recording and balance updates
+  - `pdfInvoice.ts` - Invoice PDF generation (pdf-lib)
+  - `pdfSticker.ts` - Sticker PDF generation (pdf-lib)
+- **Domain modules** (each with `queries.ts` and `mutations.ts`):
+  - `invoices/` - Invoice CRUD, preview calculation, revenue queries
+  - `customers/` - Customer management with search
+  - `payments/` - Payment recording and history
+  - `glassTypes/` - Glass type configuration
+  - `cuttingRates/` - Laser cutting rate management
+  - `bevelingRates/` - Beveling rate management
+  - `operationPrices/` - Operation price configuration
+  - `printJobs/` - Print job lifecycle management
+  - `dashboard/` - Analytics and statistics queries
+  - `factory/` - Factory worker invoice views
+  - `users/` - User management (synced with Clerk)
+  - `notifications/` - Real-time notification system
+  - `companyProfile/` - Company profile management
+- **`migrations/`** - Data migration helpers (PostgreSQL → Convex)
 
 **Key Backend Concepts:**
 
-1. **Invoice Creation Flow:** `InvoiceService.createInvoice()` validates dimensions, calculates pricing via `OperationCalculationService`, and persists invoice with lines and operations.
+1. **Convex Queries** are automatically reactive - any `useQuery()` subscription on the frontend updates in real-time when data changes. No WebSocket or polling needed.
 
-2. **Cutting Calculations:** Strategy pattern via `CuttingContext` for cutting type (SHATF, LASER). Rates configurable per dimension range via `CuttingRate` and `ShatafRate` entities.
+2. **Convex Mutations** are transactional - all database operations within a mutation are atomic.
 
-3. **Operations:** Each invoice line can have multiple operations (cutting, polishing, etc.) tracked via `InvoiceLineOperation`. Prices managed in `OperationPrice` table.
+3. **Authentication** uses Clerk tokens validated via `ctx.auth.getUserIdentity()`. The `requireRole()` helper checks the `users` table for role authorization.
 
-4. **Authentication:** JWT-based with roles (OWNER, ADMIN, CASHIER, WORKER). Config in `SecurityConfiguration.java`.
+4. **File Storage** uses Convex's built-in `_storage` table for PDFs and logos.
 
-5. **WebSocket:** Real-time notifications for invoice/print job updates via `/ws/**` endpoints.
-
-6. **Storage:** Configurable via `storage.type` property (minio, s3, or disabled) for PDF storage.
-
-### Frontend Structure
+### Frontend Structure (`frontend/src/`)
 
 React SPA with role-based routing and Arabic (RTL) internationalization:
 
 - **`pages/`** - Page components organized by role
-  - `auth/` - Login page
-  - `admin/` - Admin pages (`GlassTypesPage`, `UserManagementPage`, `CuttingPricesConfigPage`, `OperationPricesPage`, `CompanyProfilePage`)
-  - `cashier/` - Cashier interface (`CashierInvoicePage`, `components/` with invoice creation UI)
+  - `auth/` - Login page (Clerk `<SignIn />` component)
+  - `admin/` - Admin pages (GlassTypes, Users, CuttingPrices, OperationPrices, CompanyProfile)
+  - `cashier/` - Cashier POS interface with cart, customer search, invoice creation
   - Root-level: `DashboardPage`, `CustomersPage`, `InvoicesPage`, `FactoryWorkerPage`
-  - `errors/` - `NotFoundPage`, `UnauthorizedPage`
+  - `errors/` - NotFoundPage, UnauthorizedPage
 - **`components/`** - Reusable UI components
-  - `layout/` - Layout wrappers (`Layout`, `CashierLayout`)
-  - `ui/` - UI primitives
-  - `AppRouter.jsx` - Main routing with role-based protection
-- **`contexts/`** - React contexts (`AuthContext`, `ThemeContext`, `SnackbarContext`)
-- **`services/`** - API service modules (axios-based): `invoiceService`, `customerService`, `glassTypeService`, `paymentService`, `printJobService`, `operationPriceService`, etc.
-- **`api/`** - Axios configuration and interceptors
-- **`hooks/`** - Custom React hooks
+  - `layout/` - Layout wrappers (Sidebar, Layout)
+  - `ui/` - UI primitives (Button, Input, Modal, Select, etc.)
+  - `AppRouter.jsx` - Main routing with role-based `RoleRoute` protection
+  - `InvoiceViewModal.jsx` - Invoice detail modal
+- **`contexts/`** - React contexts
+  - `AuthContext.jsx` - Wraps Clerk + Convex user data, provides `useAuth()` hook with role checking
+  - `ThemeContext.jsx` - Dark mode toggle
+  - `SnackbarContext.jsx` - Toast notifications
+- **`services/`** - Convex hook wrappers (one per domain)
+  - Each file exports React hooks: `useInvoices()`, `useCreateInvoice()`, etc.
+  - Also exports utility functions: `formatCurrency()`, `getStatusText()`, etc.
 - **`constants/`** - Application constants and enums
 - **`i18n/`** - Internationalization (Arabic translations)
-- **`styles/`** - Global styles and SCSS variables
-- **`tests/`** - Test files and mocks
-- **`types/`** - TypeScript type definitions
-- **`utils/`** - Utility functions (`dimensionUtils`, `invoiceUtils`, etc.)
+- **`styles/`** - Global styles
+- **`utils/`** - Utility functions (dimensionUtils, invoiceUtils, bevelingUtils)
 
 **Key Frontend Concepts:**
 
-1. **Routing & Roles:** `AppRouter.jsx` defines role-based routes via `RoleRoute` component. Roles: `OWNER`, `ADMIN`, `CASHIER`, `WORKER`.
+1. **Data Fetching:** Uses `useQuery()` from `convex/react` for reactive queries and `useMutation()` for writes. No manual refetch needed after mutations.
 
-2. **Authentication:** `AuthContext` manages auth state. Login redirects to role-appropriate pages (dashboard for OWNER/ADMIN, /cashier for CASHIER, /factory for WORKER).
+2. **Pagination:** Uses `usePaginatedQuery()` with cursor-based pagination and "Load More" pattern.
 
-3. **Path Aliases:** Use Vite aliases (`@/`, `@components`, `@pages`, `@services`, `@hooks`, `@utils`, `@contexts`, `@styles`, `@i18n`, `@types`) instead of relative imports.
+3. **Authentication:** `AuthContext` combines Clerk's `useUser()`/`useAuth()` with a Convex `users` query for app-level roles. Provides `hasRole()`, `hasAnyRole()`, `canAccess()` helpers.
 
-4. **State Management:** React Query for server state, React Context for global UI state.
+4. **Path Aliases:** Vite aliases: `@/` (src), `@components`, `@pages`, `@services`, `@hooks`, `@utils`, `@contexts`, `@styles`, `@i18n`, `@types`, `@convex` (../convex).
 
 5. **Styling:** TailwindCSS with dark mode via `ThemeContext`. RTL support for Arabic.
 
-6. **API Proxy:** Dev server proxies `/api` to backend (localhost:8080, configurable via `VITE_API_URL`). **Note:** The proxy rewrites paths, stripping the `/api` prefix (e.g., `/api/invoices` → `/invoices` on backend).
+6. **Real-Time:** All data is reactive via Convex subscriptions. Factory page, dashboard, and invoice lists auto-update when data changes.
 
-### Database Schema
+### Database Schema (Convex)
 
-Main entities:
-- **Invoice** - Header with customer, total, status, readable ID, timestamps
-- **InvoiceLine** - Line items with glass dimensions, quantity, unit price, status
-- **InvoiceLineOperation** - Operations per line (cutting, polishing, etc.) with calculated costs
-- **Customer** - Customer records with type (INDIVIDUAL, COMPANY, GOVERNMENT)
-- **GlassType** - Glass types with base price per square meter
-- **OperationPrice** - Configurable prices for operations (by operation type)
-- **CuttingRate** - Laser cutting rates by dimension ranges
-- **ShatafRate** - Shataf cutting rates by dimension ranges
-- **PrintJob** - PDF generation jobs linked to invoices with status tracking
-- **Payment** - Payment records with method and amount
-- **User** - User accounts with roles and JWT authentication
-- **CompanyProfile** - Company information for invoices/receipts
+14 tables defined in `convex/schema.ts`:
 
-Database auto-managed via JPA (`spring.jpa.hibernate.ddl-auto=update`).
+| Table | Purpose | Key Indexes |
+|-------|---------|-------------|
+| `customers` | Customer records (CASH/REGULAR/COMPANY) | by_phone, by_name, search_name |
+| `glassTypes` | Glass configurations with pricing | by_active, by_name |
+| `invoices` | Invoice headers with readable IDs | by_readableId, by_customerId, by_status, by_issueDate |
+| `invoiceLines` | Line items with dimensions and pricing | by_invoiceId, by_status |
+| `invoiceLineOperations` | Operations per line (Beveling/Beveling Calc/LASER) | by_invoiceLineId |
+| `payments` | Payment records | by_customerId, by_invoiceId, by_paymentDate |
+| `printJobs` | PDF generation jobs | by_invoiceId, by_status |
+| `cuttingRates` | Laser cutting rates by thickness | by_cuttingType_active |
+| `shatafRates` | Beveling rates by type and thickness | by_shatafType_active |
+| `operationPrices` | Operation price references | by_operationType_subtype |
+| `companyProfile` | Company info (singleton) | — |
+| `users` | Users synced with Clerk | by_clerkUserId, by_username |
+| `notifications` | Real-time notifications | by_targetUserId, by_createdAt |
+| `idCounters` | Readable ID counters | by_prefix |
 
 ## Configuration
 
-### Backend (`application.properties`)
+### Environment Variables
 
-Key configuration sections:
-- **Database:** PostgreSQL (localhost:5432 for local dev, overridden by compose.yaml in Docker)
-- **JWT:** `jwt.secret`, `jwt.expiration` (env vars: `JWT_SECRET`, `JWT_EXPIRATION`)
-- **Storage:** `storage.type` (minio/s3/disabled), MinIO config (`minio.*`), AWS S3 config (`aws.s3.*`)
-- **Print Jobs:** `app.print-jobs.*` (retries, timeout, PDF storage)
-- **Cutting Rates:** `app.cutting-rates.*` (defaults, overlap detection)
-- **WebSocket:** `app.websocket.*` (heartbeat, timeout)
-- **Logging:** File logging to `logs/elguindy-backend.log` (rolling, 10MB max, 30 days retention)
+**Frontend (`frontend/.env.local`):**
+```
+VITE_CONVEX_URL=https://your-deployment.convex.cloud
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
+```
 
-Docker deployment uses `compose.yaml` environment variables to override database and MinIO settings.
+**Convex Dashboard:**
+- Clerk domain and secret key configured in Convex environment variables
 
 ### Frontend (`vite.config.js`)
 
-- Path aliases for imports (see "Path Aliases" above)
-- Dev server on port 3000 with proxy to backend
+- Path aliases for imports (see above)
+- Dev server on port 3000
 - Code splitting: vendor, router, i18n, utils chunks
-- Environment variable `VITE_API_URL` to change backend URL
 
 ## Role-Based Access
 
@@ -221,24 +192,40 @@ Docker deployment uses `compose.yaml` environment variables to override database
 | CASHIER | Sales only (invoice creation at `/cashier`) |
 | WORKER | Factory operations (view invoices at `/factory`) |
 
-Frontend enforces via `RoleRoute` component. Backend protects endpoints via JWT + Spring Security.
+Frontend enforces via `RoleRoute` component. Backend protects via `requireRole()` in Convex functions.
 
 ## Invoice Creation Flow
 
-**Backend (`InvoiceService.createInvoice()`):**
+**Convex Backend (`convex/invoices/mutations.ts` → `convex/lib/invoiceCreation.ts`):**
 1. Validate customer exists
 2. Validate invoice lines (dimensions, glass types)
-3. Calculate operations via `OperationCalculationService`
-4. Calculate cutting costs via `CuttingContext` (SHATF or LASER strategy)
-5. Generate readable ID via `ReadableIdGeneratorService`
-6. Persist invoice, lines, and operations
+3. Calculate operations via `operationCalculation.ts`
+4. Calculate cutting costs (Beveling rates, LASER rates, or manual pricing)
+5. Generate readable ID via `idGenerator.ts` (atomic counter)
+6. Persist invoice, lines, and operations in a single transaction
 
 **Frontend (Cashier UI):**
 1. Customer selection/creation (`CustomerSelection.jsx`)
 2. Product entry with dimensions, glass type, operations (`EnhancedProductEntry.jsx`)
 3. Payment entry (`PaymentPanel.jsx`)
 4. Preview and confirm (`InvoiceConfirmationDialog.jsx`)
-5. Submit to backend, optionally create print job
+5. Submit via `useCreateInvoice()` mutation, optionally create print job
+
+## Data Migration
+
+Scripts for migrating from PostgreSQL (legacy Spring Boot backend) to Convex:
+
+```bash
+# 1. Export from PostgreSQL
+mkdir -p scripts/data
+psql -d elguindy -f scripts/export-postgres.sql
+
+# 2. Deploy migration mutation
+npx convex deploy
+
+# 3. Run import
+node scripts/migrate-to-convex.mjs
+```
 
 ## Internationalization
 

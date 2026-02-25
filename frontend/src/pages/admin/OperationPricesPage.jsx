@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { operationPriceService } from '@services/operationPriceService.js';
+import { useOperationPrices, useCreateOperationPrice, useUpdateOperationPrice, useDeleteOperationPrice } from '@services/operationPriceService';
 import {
     Button,
     Input,
@@ -16,8 +16,16 @@ import { useAuth } from '@contexts/AuthContext.jsx';
 const OperationPricesPage = () => {
     const { t } = useTranslation();
     const { user } = useAuth();
-    const [operationPrices, setOperationPrices] = useState([]);
-    const [loading, setLoading] = useState(true);
+
+    // Convex reactive query - returns undefined while loading, then array
+    const operationPrices = useOperationPrices();
+    const loading = operationPrices === undefined;
+
+    // Convex mutations
+    const createOperationPrice = useCreateOperationPrice();
+    const updateOperationPrice = useUpdateOperationPrice();
+    const deleteOperationPrice = useDeleteOperationPrice();
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
 
@@ -39,52 +47,21 @@ const OperationPricesPage = () => {
 
     // Operation type options
     const operationTypeOptions = [
-        { value: 'LASER', label: 'ليزر - Laser' },
-        { value: 'SHATAF', label: 'شطف - Shataf' },
-        { value: 'FARMA', label: 'فارمة - Farma' }
+        { value: 'LASER', label: `${t('operationPrices.types.LASER')} - Laser` },
+        { value: 'SHATAF', label: `${t('operationPrices.types.SHATAF')} - Beveling` },
+        { value: 'FARMA', label: `${t('operationPrices.types.FARMA')} - Beveling Calculation` }
     ];
 
     // Unit options
     const unitOptions = [
-        { value: 'per piece', label: 'للقطعة' },
-        { value: 'per meter', label: 'للمتر' },
-        { value: 'per cm', label: 'للسنتيمتر' },
-        { value: 'per m²', label: 'للمتر المربع' }
+        { value: 'per piece', label: t('operationPrices.units.perPiece') },
+        { value: 'per meter', label: t('operationPrices.units.perMeter') },
+        { value: 'per cm', label: t('operationPrices.units.perCm') },
+        { value: 'per m\u00b2', label: t('operationPrices.units.perM2') }
     ];
 
-    // Load operation prices on component mount
-    useEffect(() => {
-        loadOperationPrices();
-    }, []);
-
-    const loadOperationPrices = async () => {
-        try {
-            setLoading(true);
-            const data = await operationPriceService.getAllOperationPrices();
-            setOperationPrices(data);
-        } catch (error) {
-            console.error('Error loading operation prices:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Initialize default prices
-    const handleInitializeDefaults = async () => {
-        if (!window.confirm('هل أنت متأكد من إضافة الأسعار الافتراضية؟ سيتم تخطي الأسعار الموجودة بالفعل.')) return;
-
-        try {
-            await operationPriceService.initializeDefaultPrices();
-            await loadOperationPrices();
-            alert('تم تهيئة الأسعار الافتراضية بنجاح');
-        } catch (error) {
-            console.error('Error initializing default prices:', error);
-            alert('حدث خطأ أثناء تهيئة الأسعار الافتراضية');
-        }
-    };
-
     // Filter and search operation prices
-    const filteredOperationPrices = operationPrices.filter(item => {
+    const filteredOperationPrices = (operationPrices || []).filter(item => {
         const matchesSearch = !searchQuery ||
             item.arabicName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.englishName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -100,19 +77,19 @@ const OperationPricesPage = () => {
         const newErrors = {};
 
         if (!formData.operationType) {
-            newErrors.operationType = 'نوع العملية مطلوب';
+            newErrors.operationType = t('operationPrices.typeRequired');
         }
 
         if (!formData.subtype.trim()) {
-            newErrors.subtype = 'النوع الفرعي مطلوب';
+            newErrors.subtype = t('operationPrices.subtypeRequired');
         }
 
         if (!formData.arabicName.trim()) {
-            newErrors.arabicName = 'الاسم بالعربية مطلوب';
+            newErrors.arabicName = t('operationPrices.arabicNameRequired');
         }
 
         if (!formData.basePrice || isNaN(formData.basePrice) || parseFloat(formData.basePrice) < 0) {
-            newErrors.basePrice = 'السعر يجب أن يكون رقم موجب أو صفر';
+            newErrors.basePrice = t('operationPrices.priceRequired');
         }
 
         setErrors(newErrors);
@@ -130,35 +107,39 @@ const OperationPricesPage = () => {
                 operationType: formData.operationType,
                 subtype: formData.subtype.toUpperCase().trim(),
                 arabicName: formData.arabicName.trim(),
-                englishName: formData.englishName?.trim() || null,
+                englishName: formData.englishName?.trim() || undefined,
                 basePrice: parseFloat(formData.basePrice),
                 unit: formData.unit || 'per piece',
-                description: formData.description?.trim() || null,
+                description: formData.description?.trim() || undefined,
                 active: formData.active !== false
             };
 
-            console.log('Sending data to backend:', operationPriceData);
-
             if (editingItem) {
-                await operationPriceService.updateOperationPrice(editingItem.id, operationPriceData);
+                await updateOperationPrice({
+                    priceId: editingItem._id,
+                    ...operationPriceData
+                });
             } else {
-                await operationPriceService.createOperationPrice(operationPriceData);
+                await createOperationPrice(operationPriceData);
             }
 
-            await loadOperationPrices();
+            // No manual reload needed - Convex auto-updates
             handleCloseModal();
         } catch (error) {
             console.error('Error saving operation price:', error);
-            const errorMessage = error.response?.data || error.message || 'حدث خطأ أثناء الحفظ';
+            const errorMessage = error.message || t('operationPrices.saveError');
             alert(errorMessage);
         }
     };
 
     // Handle toggle active status
-    const handleToggleActive = async (id) => {
+    const handleToggleActive = async (item) => {
         try {
-            await operationPriceService.toggleActiveStatus(id);
-            await loadOperationPrices();
+            await updateOperationPrice({
+                priceId: item._id,
+                active: !item.active
+            });
+            // No manual reload needed
         } catch (error) {
             console.error('Error toggling active status:', error);
         }
@@ -166,14 +147,14 @@ const OperationPricesPage = () => {
 
     // Handle delete
     const handleDelete = async (id) => {
-        if (!window.confirm('هل أنت متأكد من حذف هذا السعر؟')) return;
+        if (!window.confirm(t('operationPrices.deleteConfirm'))) return;
 
         try {
-            await operationPriceService.deleteOperationPrice(id);
-            await loadOperationPrices();
+            await deleteOperationPrice({ priceId: id });
+            // No manual reload needed
         } catch (error) {
             console.error('Error deleting operation price:', error);
-            alert('حدث خطأ أثناء الحذف');
+            alert(t('operationPrices.deleteError'));
         }
     };
 
@@ -241,9 +222,9 @@ const OperationPricesPage = () => {
     // Get operation type badge color
     const getOperationTypeBadge = (type) => {
         const badges = {
-            LASER: { color: 'blue', label: 'ليزر' },
-            SHATAF: { color: 'green', label: 'شطف' },
-            FARMA: { color: 'purple', label: 'فارمة' }
+            LASER: { color: 'blue', label: t('operationPrices.laser') },
+            SHATAF: { color: 'green', label: t('operationPrices.shataf') },
+            FARMA: { color: 'purple', label: t('operationPrices.farma') }
         };
         const badge = badges[type] || { color: 'gray', label: type };
         return (
@@ -257,13 +238,13 @@ const OperationPricesPage = () => {
     const columns = [
         {
             key: 'operationType',
-            header: 'نوع العملية',
+            header: t('operationPrices.operationType'),
             align: 'center',
             render: (value) => getOperationTypeBadge(value)
         },
         {
             key: 'subtype',
-            header: 'النوع الفرعي',
+            header: t('operationPrices.subtype'),
             align: 'center',
             render: (value) => (
                 <Badge variant="outline" size="sm">
@@ -273,31 +254,31 @@ const OperationPricesPage = () => {
         },
         {
             key: 'arabicName',
-            header: 'الاسم بالعربية',
+            header: t('operationPrices.arabicName'),
             render: (value) => (
                 <div className="font-medium text-gray-900 dark:text-white">{value}</div>
             )
         },
         {
             key: 'englishName',
-            header: 'الاسم بالإنجليزية',
+            header: t('operationPrices.englishName'),
             render: (value) => value || '-'
         },
         {
             key: 'basePrice',
-            header: 'السعر',
+            header: t('operationPrices.price'),
             align: 'center',
             render: (value, row) => (
                 <div className="text-center">
                     <div className="font-medium text-green-600 dark:text-green-400">
-                        {value?.toFixed(2)} ج.م
+                        {value?.toFixed(2)} {t('common.currency')}
                     </div>
                     {row.unit && (
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {row.unit === 'per piece' && 'للقطعة'}
-                            {row.unit === 'per meter' && 'للمتر'}
-                            {row.unit === 'per cm' && 'للسنتيمتر'}
-                            {row.unit === 'per m²' && 'للمتر المربع'}
+                            {row.unit === 'per piece' && t('operationPrices.units.perPiece')}
+                            {row.unit === 'per meter' && t('operationPrices.units.perMeter')}
+                            {row.unit === 'per cm' && t('operationPrices.units.perCm')}
+                            {row.unit === 'per m\u00b2' && t('operationPrices.units.perM2')}
                         </div>
                     )}
                 </div>
@@ -305,7 +286,7 @@ const OperationPricesPage = () => {
         },
         {
             key: 'active',
-            header: 'الحالة',
+            header: t('operationPrices.statusLabel'),
             align: 'center',
             render: (value, row) => (
                 <div className="flex items-center justify-center">
@@ -313,7 +294,7 @@ const OperationPricesPage = () => {
                         <input
                             type="checkbox"
                             checked={value}
-                            onChange={() => handleToggleActive(row.id)}
+                            onChange={() => handleToggleActive(row)}
                             className="sr-only peer"
                         />
                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
@@ -323,7 +304,7 @@ const OperationPricesPage = () => {
         },
         {
             key: 'actions',
-            header: 'الإجراءات',
+            header: t('operationPrices.actionsLabel'),
             align: 'center',
             sortable: false,
             render: (_, row) => (
@@ -333,7 +314,7 @@ const OperationPricesPage = () => {
                         variant="ghost"
                         onClick={() => handleOpenModal(row)}
                         className="text-blue-600 hover:text-blue-800"
-                        title="تعديل"
+                        title={t('actions.edit')}
                     >
                         <Icon name="edit" size="sm" />
                     </Button>
@@ -342,9 +323,9 @@ const OperationPricesPage = () => {
                         <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleDelete(row.id)}
+                            onClick={() => handleDelete(row._id)}
                             className="text-red-600 hover:text-red-800"
-                            title="حذف"
+                            title={t('actions.delete')}
                         >
                             <Icon name="delete" size="sm" />
                         </Button>
@@ -358,31 +339,21 @@ const OperationPricesPage = () => {
         <div className="space-y-6">
             {/* Page Header */}
             <PageHeader
-                title="إدارة أسعار العمليات"
-                subtitle="إدارة أسعار عمليات الليزر والشطف والفارمة"
+                title={t('operationPrices.title')}
+                subtitle={t('operationPrices.subtitle')}
                 breadcrumbs={[
-                    { label: 'الرئيسية', href: '/' },
-                    { label: 'أسعار العمليات' }
+                    { label: t('navigation.home'), href: '/' },
+                    { label: t('navigation.operationPrices') }
                 ]}
                 actions={
                     <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                        {user?.role === 'OWNER' && (
-                            <Button
-                                variant="outline"
-                                onClick={handleInitializeDefaults}
-                                className="flex items-center space-x-2 rtl:space-x-reverse"
-                            >
-                                <Icon name="refresh" size="sm" />
-                                <span>تهيئة الأسعار الافتراضية</span>
-                            </Button>
-                        )}
                         <Button
                             variant="primary"
                             onClick={() => handleOpenModal()}
                             className="flex items-center space-x-2 rtl:space-x-reverse"
                         >
                             <Icon name="add" size="sm" />
-                            <span>إضافة سعر جديد</span>
+                            <span>{t('operationPrices.addNewPrice')}</span>
                         </Button>
                     </div>
                 }
@@ -393,7 +364,7 @@ const OperationPricesPage = () => {
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1">
                         <Input
-                            placeholder="البحث في الأسعار..."
+                            placeholder={t('operationPrices.searchPlaceholder')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full"
@@ -405,7 +376,7 @@ const OperationPricesPage = () => {
                             onChange={(e) => setFilterType(e.target.value)}
                             className="w-full"
                         >
-                            <option value="">كل الأنواع</option>
+                            <option value="">{t('operationPrices.allTypes')}</option>
                             {operationTypeOptions.map(option => (
                                 <option key={option.value} value={option.value}>
                                     {option.label}
@@ -421,15 +392,15 @@ const OperationPricesPage = () => {
                 data={filteredOperationPrices}
                 columns={columns}
                 loading={loading}
-                emptyMessage="لا توجد أسعار عمليات"
-                loadingMessage="جاري تحميل أسعار العمليات..."
+                emptyMessage={t('operationPrices.noOperationPrices')}
+                loadingMessage={t('operationPrices.loadingPrices')}
             />
 
             {/* Modal for Add/Edit */}
             <Modal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
-                title={editingItem ? 'تعديل سعر العملية' : 'إضافة سعر عملية جديد'}
+                title={editingItem ? t('operationPrices.editPrice') : t('operationPrices.addPrice')}
                 size="lg"
             >
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -438,7 +409,7 @@ const OperationPricesPage = () => {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    نوع العملية *
+                                    {t('operationPrices.operationType')} *
                                 </label>
                                 <Select
                                     name="operationType"
@@ -459,7 +430,7 @@ const OperationPricesPage = () => {
                             </div>
 
                             <Input
-                                label="النوع الفرعي *"
+                                label={`${t('operationPrices.subtype')} *`}
                                 name="subtype"
                                 value={formData.subtype}
                                 onChange={handleInputChange}
@@ -473,18 +444,18 @@ const OperationPricesPage = () => {
                         {/* Arabic and English Names */}
                         <div className="grid grid-cols-2 gap-4">
                             <Input
-                                label="الاسم بالعربية *"
+                                label={`${t('operationPrices.arabicName')} *`}
                                 name="arabicName"
                                 value={formData.arabicName}
                                 onChange={handleInputChange}
                                 error={!!errors.arabicName}
                                 helperText={errors.arabicName}
                                 required
-                                placeholder="ليزر عادي"
+                                placeholder={t('operationPrices.laser')}
                             />
 
                             <Input
-                                label="الاسم بالإنجليزية"
+                                label={t('operationPrices.englishName')}
                                 name="englishName"
                                 value={formData.englishName}
                                 onChange={handleInputChange}
@@ -495,7 +466,7 @@ const OperationPricesPage = () => {
                         {/* Price and Unit */}
                         <div className="grid grid-cols-2 gap-4">
                             <Input
-                                label="السعر (ج.م) *"
+                                label={`${t('operationPrices.priceEGP')} *`}
                                 name="basePrice"
                                 type="number"
                                 step="0.01"
@@ -510,7 +481,7 @@ const OperationPricesPage = () => {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    الوحدة
+                                    {t('operationPrices.unit')}
                                 </label>
                                 <Select
                                     name="unit"
@@ -530,7 +501,7 @@ const OperationPricesPage = () => {
                         {/* Description */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                الوصف
+                                {t('operationPrices.description')}
                             </label>
                             <textarea
                                 name="description"
@@ -538,7 +509,7 @@ const OperationPricesPage = () => {
                                 onChange={handleInputChange}
                                 rows={3}
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                                placeholder="وصف العملية..."
+                                placeholder={t('operationPrices.descriptionPlaceholder')}
                             />
                         </div>
 
@@ -552,7 +523,7 @@ const OperationPricesPage = () => {
                                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                             />
                             <label className="ms-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                                فعّال
+                                {t('operationPrices.activeLabel')}
                             </label>
                         </div>
                     </div>
@@ -563,13 +534,13 @@ const OperationPricesPage = () => {
                             variant="outline"
                             onClick={handleCloseModal}
                         >
-                            إلغاء
+                            {t('actions.cancel')}
                         </Button>
                         <Button
                             type="submit"
                             variant="primary"
                         >
-                            {editingItem ? 'تحديث' : 'إضافة'}
+                            {editingItem ? t('actions.update') : t('actions.add')}
                         </Button>
                     </div>
                 </form>

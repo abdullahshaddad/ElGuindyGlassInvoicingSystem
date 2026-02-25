@@ -33,8 +33,9 @@ const InvoiceList = ({
     showControls = true,
     onDeleteInvoice
 }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { canDeleteInvoices } = usePermissions();
+    const dateLocale = i18n.language === 'ar' ? 'ar-EG' : 'en-US';
 
     // Table columns for invoice list
     const columns = [
@@ -44,7 +45,7 @@ const InvoiceList = ({
             sortable: true,
             render: (value, invoice) => (
                 <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold">#{invoice.id}</span>
+                    <span className="font-mono font-bold">{invoice.readableId || invoice.invoiceNumber || invoice._id}</span>
                 </div>
             )
         },
@@ -55,31 +56,31 @@ const InvoiceList = ({
             render: (value, invoice) => (
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        {['REGULAR', 'COMPANY'].includes(invoice.customer?.customerType) ? (
+                        {['REGULAR', 'COMPANY'].includes(invoice.customerType) ? (
                             <Link
-                                to={`/customers/${invoice.customer.id}`}
+                                to={`/customers/${invoice.customerId}`}
                                 className="font-medium text-primary-600 hover:underline dark:text-primary-400"
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                {invoice.customer?.name || t('common.unspecified')}
+                                {invoice.customerName || t('common.unspecified')}
                             </Link>
                         ) : (
-                            <span className="font-medium">{invoice.customer?.name || t('common.unspecified')}</span>
+                            <span className="font-medium">{invoice.customerName || t('common.unspecified')}</span>
                         )}
                         <Badge
                             variant={
-                                invoice.customer?.customerType === 'CASH' ? 'success' :
-                                    invoice.customer?.customerType === 'COMPANY' ? 'info' : 'default'
+                                invoice.customerType === 'CASH' ? 'success' :
+                                    invoice.customerType === 'COMPANY' ? 'info' : 'default'
                             }
                             className="text-xs"
                         >
-                            {invoice.customer?.customerType === 'CASH' ? t('customers.types.CASH') :
-                                invoice.customer?.customerType === 'COMPANY' ? t('customers.types.COMPANY') : t('customers.customer')}
+                            {invoice.customerType === 'CASH' ? t('customers.types.CASH') :
+                                invoice.customerType === 'COMPANY' ? t('customers.types.COMPANY') : t('customers.customer')}
                         </Badge>
                     </div>
-                    {invoice.customer?.phone && (
+                    {invoice.customerPhone && (
                         <span className="text-xs text-gray-500 font-mono" dir="ltr">
-                            {invoice.customer.phone}
+                            {invoice.customerPhone}
                         </span>
                     )}
                 </div>
@@ -119,10 +120,10 @@ const InvoiceList = ({
             render: (value, invoice) => (
                 <div className="text-sm">
                     <div className="text-gray-900 dark:text-white">
-                        {new Date(value).toLocaleDateString('ar-EG')}
+                        {new Date(value).toLocaleDateString(dateLocale)}
                     </div>
                     <div className="text-gray-500 dark:text-gray-400">
-                        {new Date(value).toLocaleTimeString('ar-EG', {
+                        {new Date(value).toLocaleTimeString(dateLocale, {
                             hour: '2-digit',
                             minute: '2-digit'
                         })}
@@ -271,7 +272,7 @@ const InvoiceList = ({
                         </div>
                         <div className="hidden sm:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                             <FiClock />
-                            <span>{new Date().toLocaleTimeString('ar-EG', {
+                            <span>{new Date().toLocaleTimeString(dateLocale, {
                                 hour: '2-digit',
                                 minute: '2-digit'
                             })}</span>

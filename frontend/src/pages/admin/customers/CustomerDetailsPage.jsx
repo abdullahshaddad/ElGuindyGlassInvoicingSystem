@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FiUser, FiPhone, FiMapPin, FiCreditCard, FiClock, FiDollarSign } from 'react-icons/fi';
@@ -7,106 +7,46 @@ import DataTable from '@/components/ui/DataTable';
 import PageHeader from '@/components/ui/PageHeader';
 import Tabs from '@/components/ui/Tabs';
 import InvoiceViewModal from '@/components/InvoiceViewModal';
-import { customerService } from '@/services/customerService';
-import paymentService from '@/services/paymentService';
-import invoiceService from '@/services/invoiceService';
+import { useCustomer, useCustomerInvoices } from '@/services/customerService';
+import { useCustomerPayments, formatPaymentMethod } from '@/services/paymentService';
 import PaymentModal from '@/components/ui/PaymentModal';
 import InvoiceList from '@/pages/cashier/components/InvoiceList';
 
 const CustomerDetailsPage = () => {
     const { t } = useTranslation();
     const { id } = useParams();
-    const navigate = useNavigate(); // Still useful if we need programmatic navigation
-    const [customer, setCustomer] = useState(null);
-    const [payments, setPayments] = useState([]);
-    const [invoices, setInvoices] = useState([]);
-    const [invoicesLoading, setInvoicesLoading] = useState(true);
-    const [invoicePage, setInvoicePage] = useState(0);
-    const [invoiceTotalPages, setInvoiceTotalPages] = useState(0);
+    const navigate = useNavigate();
+
+    // Convex reactive queries
+    const customer = useCustomer(id);
+    const payments = useCustomerPayments(id);
+    const {
+        results: invoices,
+        status: invoicesPaginationStatus,
+        loadMore: loadMoreInvoices,
+        isLoading: invoicesLoading
+    } = useCustomerInvoices(id, { initialNumItems: 10 });
+
+    const loading = customer === undefined;
 
     const [activeTab, setActiveTab] = useState('invoices');
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
-
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
-    useEffect(() => {
-        fetchCustomerDetails();
-    }, [id]);
-
-    const fetchCustomerDetails = async () => {
-        setLoading(true);
-        try {
-            const customerData = await customerService.getCustomer(id);
-            setCustomer(customerData);
-
-            try {
-                const paymentsData = await paymentService.getCustomerPayments(id);
-                setPayments(paymentsData);
-            } catch (err) {
-                console.error("Failed to fetch payments", err);
-            }
-
-            fetchInvoices(id, invoicePage);
-
-        } catch (err) {
-            setError(t('customers.details.loadError'));
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchInvoices = async (customerId, page) => {
-        setInvoicesLoading(true);
-        try {
-            const response = await invoiceService.listInvoices({
-                customerId: customerId,
-                page: page,
-                size: 5
-            });
-            setInvoices(response.content);
-            setInvoiceTotalPages(response.totalPages);
-        } catch (err) {
-            console.error("Failed to fetch invoices", err);
-        } finally {
-            setInvoicesLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        if (customer) { // Only fetch if we have customer ID and it changed (handled by main useEffect dependency)
-            // But we need to handle page changes.
-            // Actually, better to just call fetchInvoices when page changes
-        }
-    }, [invoicePage]); // This might conflict with initial load.
-
-    // Better approach:
-    // 1. Initial load gets everything.
-    // 2. Page change triggers specific fetch.
-
-    useEffect(() => {
-        if (id) {
-            fetchInvoices(id, invoicePage);
-        }
-    }, [invoicePage, id]);
-
     if (loading) return <div className="p-8 text-center">{t('app.loading')}</div>;
-    if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
     if (!customer) return <div className="p-8 text-center">{t('customers.details.notFound')}</div>;
 
     const paymentColumns = [
         {
-            key: 'id',
+            key: '_id',
             header: t('customers.details.paymentId'),
-            render: (value) => `#${value}`
+            render: (value) => `#${String(value).slice(-6)}`
         },
         {
             key: 'paymentDate',
             header: t('customers.details.paymentDate'),
-            render: (value) => new Date(value).toLocaleDateString()
+            render: (value) => value ? new Date(value).toLocaleDateString() : '-'
         },
         {
             key: 'amount',
@@ -116,12 +56,12 @@ const CustomerDetailsPage = () => {
         {
             key: 'paymentMethod',
             header: t('customers.details.paymentMethod'),
-            render: (value) => t(`payment.methods.${value}`, paymentService.formatPaymentMethod(value))
+            render: (value) => t(`payment.methods.${value}`, formatPaymentMethod(value))
         },
         {
-            key: 'invoice',
+            key: 'invoiceId',
             header: t('customers.details.paymentInvoice'),
-            render: (_, row) => row.invoiceId ? `#${row.invoiceId}` : '-'
+            render: (value) => value ? `#${String(value).slice(-6)}` : '-'
         },
         {
             key: 'referenceNumber',
@@ -136,6 +76,10 @@ const CustomerDetailsPage = () => {
         { label: t('customers.title'), href: '/customers' },
         { label: customer.name }
     ];
+
+    // Convert paginated invoices into a format compatible with InvoiceList
+    // InvoiceList expects currentPage/totalPages style pagination
+    const canLoadMore = invoicesPaginationStatus === 'CanLoadMore';
 
     return (
         <div className="flex flex-col dark:bg-gray-900">
@@ -206,7 +150,7 @@ const CustomerDetailsPage = () => {
                             )}
                             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
                                 <FiClock className="text-gray-400" />
-                                <span className="text-sm">{t('customers.details.registrationDate')}: {new Date(customer.createdAt || Date.now()).toLocaleDateString()}</span>
+                                <span className="text-sm">{t('customers.details.registrationDate')}: {new Date(customer._creationTime || Date.now()).toLocaleDateString()}</span>
                             </div>
                         </div>
                     </div>
@@ -226,11 +170,13 @@ const CustomerDetailsPage = () => {
                                     content: (
                                         <div className="mt-4">
                                             <InvoiceList
-                                                invoices={invoices}
+                                                invoices={invoices || []}
                                                 loading={invoicesLoading}
-                                                currentPage={invoicePage}
-                                                totalPages={invoiceTotalPages}
-                                                onPageChange={setInvoicePage}
+                                                currentPage={0}
+                                                totalPages={canLoadMore ? 2 : 1}
+                                                onPageChange={() => {
+                                                    if (canLoadMore) loadMoreInvoices(10);
+                                                }}
                                                 onViewInvoice={(invoice) => {
                                                     setSelectedInvoice(invoice);
                                                     setIsInvoiceModalOpen(true);
@@ -244,6 +190,16 @@ const CustomerDetailsPage = () => {
                                                 onFilterChange={() => { }}
                                                 showControls={false}
                                             />
+                                            {canLoadMore && (
+                                                <div className="flex justify-center mt-4">
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={() => loadMoreInvoices(10)}
+                                                    >
+                                                        {t('actions.loadMore', '\u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0645\u0632\u064a\u062f')}
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     )
                                 },
@@ -254,9 +210,10 @@ const CustomerDetailsPage = () => {
                                     content: (
                                         <div className="mt-4">
                                             <DataTable
-                                                data={payments}
+                                                data={payments || []}
                                                 columns={paymentColumns}
                                                 emptyMessage={t('customers.details.noPayments')}
+                                                loading={payments === undefined}
                                             />
                                         </div>
                                     )
@@ -278,11 +235,9 @@ const CustomerDetailsPage = () => {
                     invoice={selectedInvoice}
                     onPrint={(invoice, type) => {
                         console.log('Printing', type, invoice);
-                        // Implement print logic or reuse existing service
                     }}
                     onSendToFactory={(invoice) => {
                         console.log('Sending to factory', invoice);
-                        // Implement logic
                     }}
                 />
             )}
@@ -297,7 +252,7 @@ const CustomerDetailsPage = () => {
                         customer={customer}
                         onPaymentRecorded={() => {
                             setIsPaymentModalOpen(false);
-                            fetchCustomerDetails();
+                            // No manual refetch needed - Convex auto-updates
                         }}
                     />
                 )

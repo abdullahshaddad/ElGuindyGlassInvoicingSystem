@@ -1,0 +1,18 @@
+{
+  "name": "elguindy-glass-invoicing-system",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "convex:dev": "convex dev",
+    "convex:deploy": "convex deploy",
+    "frontend:dev": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run convex:dev\" \"npm run frontend:dev\""
+  },
+  "dependencies": {
+    "convex": "^1.32.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "typescript": "^5.9.3"
+  }
+}

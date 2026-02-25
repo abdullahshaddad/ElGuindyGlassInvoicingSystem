@@ -1,19 +1,19 @@
 // src/pages/admin/UserManagementPage.jsx - WITH FULL DARK MODE SUPPORT
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FiPlus, FiSearch, FiUserCheck, FiUserX } from 'react-icons/fi';
 
 // Import existing components
 import { Badge, Button, DataTable, Input, Modal, PageHeader, Select } from '@components';
 
-// Import services and hooks
-import { userService } from '@services/userService.js';
+// Import Convex hooks and utilities from rewritten service
+import { useUsers, useCreateUser, useUpdateUser, validateUserData, getRoleInfo } from '@services/userService';
 import useAuthorized from "@hooks/useAuthorized.js";
 
 const UserManagementPage = () => {
     const { t, i18n } = useTranslation();
 
-    // Step 1 — Access Control: OWNER and ADMIN only
+    // Step 1 -- Access Control: OWNER and ADMIN only
     const {
         isAuthorized,
         isLoading: authLoading,
@@ -21,15 +21,21 @@ const UserManagementPage = () => {
         isOwner
     } = useAuthorized(['OWNER', 'ADMIN']);
 
-    // State management
-    const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // Convex reactive query - returns undefined while loading, then array
+    const users = useUsers();
+    const loading = users === undefined;
+
+    // Convex mutations
+    const createUser = useCreateUser();
+    const updateUser = useUpdateUser();
+
+    // Local UI state
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Step 2 — Add User Form State
+    // Step 2 -- Add User Form State
     const [formData, setFormData] = useState({
         username: '',
         firstName: '',
@@ -41,38 +47,15 @@ const UserManagementPage = () => {
     // RTL support
     const isRTL = i18n.language === 'ar';
 
-    // Load users on component mount
-    useEffect(() => {
-        if (isAuthorized) {
-            loadUsers();
-        }
-    }, [isAuthorized]);
-
-    // Step 3 — User List Table Functions
-    const loadUsers = async () => {
-        try {
-            setLoading(true);
-            setError('');
-            const data = await userService.getAll();
-            console.log('Users loaded:', data);
-            setUsers(data);
-        } catch (err) {
-            console.error('Load users error:', err);
-            setError(err.message || t('users.messages.create_error'));
-        } finally {
-            setLoading(false);
-        }
-    };
-
     // Filter users based on search query
-    const filteredUsers = users.filter(user =>
+    const filteredUsers = (users || []).filter(user =>
         !searchQuery ||
         user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (user.lastName && user.lastName.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
-    // Step 2 — Form Handlers
+    // Step 2 -- Form Handlers
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -93,9 +76,17 @@ const UserManagementPage = () => {
         e.preventDefault();
 
         // Validate form data
-        const validation = userService.validateUserData(formData);
+        const validation = validateUserData(formData);
         if (!validation.isValid) {
-            setFormErrors(validation.errors);
+            // Convert errors array to field-level errors for display
+            const fieldErrors = {};
+            validation.errors.forEach(err => {
+                if (err.includes('\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645')) fieldErrors.username = err;
+                else if (err.includes('\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u0648\u0644')) fieldErrors.firstName = err;
+                else if (err.includes('\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631')) fieldErrors.password = err;
+                else if (err.includes('\u062f\u0648\u0631')) fieldErrors.role = err;
+            });
+            setFormErrors(fieldErrors);
             return;
         }
 
@@ -103,10 +94,15 @@ const UserManagementPage = () => {
             setIsSubmitting(true);
             setError('');
 
-            // Step 2 — Call userService.create(userDto)
-            await userService.create(formData);
+            // Call Convex mutation
+            await createUser({
+                username: formData.username,
+                firstName: formData.firstName,
+                password: formData.password,
+                role: formData.role
+            });
 
-            // Step 2 — Success: Show Arabic confirmation + refresh list
+            // Success: Reset form and close modal
             setFormData({
                 username: '',
                 firstName: '',
@@ -116,10 +112,7 @@ const UserManagementPage = () => {
             setFormErrors({});
             setShowCreateModal(false);
 
-            // Refresh user list
-            await loadUsers();
-
-            // Show success message (you can implement toast notification here)
+            // No manual reload needed - Convex auto-updates
             console.log(t('users.messages.create_success'));
 
         } catch (err) {
@@ -134,21 +127,17 @@ const UserManagementPage = () => {
         }
     };
 
-    // Step 3 — Toggle User Status (Active/Inactive)
+    // Step 3 -- Toggle User Status (Active/Inactive)
     const handleToggleUserStatus = async (user) => {
         try {
             setError('');
 
-            if (user.isActive) {
-                // Call setInactive
-                await userService.setInactive(user.id);
-            } else {
-                // Call setActive
-                await userService.setActive(user.id);
-            }
+            await updateUser({
+                userId: user._id,
+                isActive: !user.isActive
+            });
 
-            // Refresh list after update
-            await loadUsers();
+            // No manual reload needed - Convex auto-updates
 
         } catch (err) {
             console.error('Toggle user status error:', err);
@@ -156,7 +145,7 @@ const UserManagementPage = () => {
         }
     };
 
-    // Step 3 — Table Columns Configuration - WITH DARK MODE SUPPORT
+    // Step 3 -- Table Columns Configuration - WITH DARK MODE SUPPORT
     const columns = [
         {
             key: 'username',
@@ -189,7 +178,7 @@ const UserManagementPage = () => {
             header: t('users.fields.role'),
             align: 'center',
             render: (value, row) => {
-                const roleInfo = userService.getRoleInfo(row.role);
+                const roleInfo = getRoleInfo(row.role);
                 // Enhanced role badges with dark mode colors
                 const getRoleBadgeClasses = (role) => {
                     switch (role) {
@@ -235,7 +224,7 @@ const UserManagementPage = () => {
         },
         {
             key: 'actions',
-            header: t('actions.actions', 'الإجراءات'),
+            header: t('actions.actions', '\u0627\u0644\u0625\u062c\u0631\u0627\u0621\u0627\u062a'),
             align: 'center',
             sortable: false,
             render: (_, row) => (
@@ -290,7 +279,7 @@ const UserManagementPage = () => {
 
     return (
         <div className="space-y-6 bg-gray-50 dark:bg-gray-900 " dir={isRTL ? 'rtl' : 'ltr'}>
-            {/* Step 4 — RTL + Arabic-first Page Header */}
+            {/* Step 4 -- RTL + Arabic-first Page Header */}
             <PageHeader
                 title={t('users.title')}
                 subtitle={t('users.subtitle')}
@@ -333,7 +322,7 @@ const UserManagementPage = () => {
                 </div>
             </div>
 
-            {/* Step 3 — User List Table */}
+            {/* Step 3 -- User List Table */}
             <DataTable
                 data={filteredUsers}
                 columns={columns}
@@ -343,7 +332,7 @@ const UserManagementPage = () => {
                 className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
             />
 
-            {/* Step 2 — Add User Modal */}
+            {/* Step 2 -- Add User Modal */}
             <Modal
                 isOpen={showCreateModal}
                 onClose={() => {

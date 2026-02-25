@@ -1,36 +1,42 @@
-import { get, post } from '@/api/axios';
+import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
+import { api } from "@convex/_generated/api";
+
+// ===== QUERY HOOKS =====
 
 /**
- * Factory Service
- * Handles factory operations for workers
+ * Get all factory invoices (invoices visible to factory workers)
+ * @param {Object} [options] - Optional filter options
+ * @param {string} [options.workStatus] - Filter by work status
+ * @returns {{ results: Array, status: string, loadMore: Function }}
  */
-export const factoryService = {
-    /**
-     * Get recent invoices for today
-     * @returns {Promise<Invoice[]>}
-     */
-    async getRecentInvoices() {
-        try {
-            const response = await get('/factory/invoices/recent');
-            return response;
-        } catch (error) {
-            console.error('Get recent invoices error:', error);
-            throw error;
-        }
-    },
+export function useFactoryInvoices(options = {}) {
+    const args = {};
+    if (options.workStatus) args.workStatus = options.workStatus;
+    return usePaginatedQuery(
+        api.factory.queries.getFactoryInvoices,
+        args,
+        { initialNumItems: 50 }
+    );
+}
 
-    /**
-     * Print sticker for invoice
-     * @param {string|number} invoiceId - Invoice ID
-     * @returns {Promise<PrintJob>}
-     */
-    async printSticker(invoiceId) {
-        try {
-            const response = await post(`/factory/print-sticker/${invoiceId}`);
-            return response;
-        } catch (error) {
-            console.error('Print sticker error:', error);
-            throw error;
-        }
-    },
-};
+/**
+ * Get detailed factory invoice by ID
+ * @param {string|undefined} invoiceId - Convex invoice ID
+ * @returns {Object|undefined} Detailed factory invoice object
+ */
+export function useFactoryInvoiceDetail(invoiceId) {
+    return useQuery(
+        api.factory.queries.getFactoryInvoiceDetail,
+        invoiceId ? { invoiceId } : "skip"
+    );
+}
+
+// ===== MUTATION HOOKS =====
+
+/**
+ * Update invoice line status (for factory workers)
+ * @returns {Function} Mutation function - call with { lineId, status }
+ */
+export function useUpdateLineStatus() {
+    return useMutation(api.factory.mutations.updateLineStatus);
+}

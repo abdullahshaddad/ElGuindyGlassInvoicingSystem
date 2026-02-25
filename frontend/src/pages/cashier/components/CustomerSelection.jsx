@@ -155,7 +155,7 @@ const CustomerSelection = ({
 
                                 return (
                                     <div
-                                        key={customer.id}
+                                        key={customer._id || customer.id}
                                         onClick={() => onSelectCustomer(customer)}
                                         className="p-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer border-b border-gray-100 dark:border-gray-800 last:border-b-0 transition-colors"
                                     >

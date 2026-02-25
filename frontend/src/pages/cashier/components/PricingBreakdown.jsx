@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     FiChevronDown,
     FiChevronUp,
@@ -8,106 +9,68 @@ import {
     FiTrendingUp
 } from 'react-icons/fi';
 import Button from '@/components/ui/Button';
-import { invoiceService } from '@/services/invoiceService';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { convertToMeters, DIMENSION_UNITS } from '@/utils/dimensionUtils';
+import { BEVELING_TYPES } from '@/constants/bevelingTypes.js';
+
+/**
+ * Resolve a display name for an operation.
+ * Works with:
+ *   - Cart item internal format: { bevelingType: 'KHARZAN', calcMethod: 'STRAIGHT', ... }
+ *   - Backend DB format: { operationType: { code, ar, en }, calculationMethod?: { code, ar, en }, price }
+ *   - Backend preview format: { operationTypeCode, calculationMethodCode, calculatedPrice }
+ */
+const getOperationLabel = (op) => {
+    // Backend DB format (embedded bilingual labels)
+    if (op.operationType?.ar) return op.operationType.ar;
+    // Backend preview format
+    if (op.operationTypeCode) return BEVELING_TYPES[op.operationTypeCode]?.arabicName || op.operationTypeCode;
+    // Cart internal format
+    if (op.bevelingType) return BEVELING_TYPES[op.bevelingType]?.arabicName || op.bevelingType;
+    return '—';
+};
+
+const getOperationPrice = (op) =>
+    op.calculatedPrice ?? op.price ?? op.manualPrice ?? 0;
 
 const PricingBreakdown = ({ item, glassTypes, isDetailed = false, onRemove, onUpdate, className = "" }) => {
+    const { t } = useTranslation();
     const [isExpanded, setIsExpanded] = useState(false);
-    const [calculations, setCalculations] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
 
-    // Find glass type details
-    const glassType = glassTypes?.find(gt => gt.id == item.glassTypeId) || item.glassType;
+    const glassType = glassTypes?.find(gt => (gt._id || gt.id) == item.glassTypeId) || item.glassType;
 
-    // Fetch backend preview or use local cart data
-    useEffect(() => {
-        const fetchPreview = async () => {
-            // Case 1: Item has pre-calculated data (e.g. from Cart)
-            if (item.lineTotal !== undefined && item.operations) {
-                const dimUnit = item.dimensionUnit || 'MM';
-                const multiplier = dimUnit === 'MM' ? 0.001 : dimUnit === 'CM' ? 0.01 : 1;
-                const wM = item.width * multiplier;
-                const hM = item.height * multiplier;
-                const perim = 2 * (wM + hM); // Rough estimate
+    // Cart items always have pre-calculated data
+    const hasPreCalcData = item.lineTotal !== undefined;
 
-                setCalculations({
-                    lineTotal: item.lineTotal,
-                    glassPrice: item.glassPrice,
-                    cuttingPrice: item.operationsPrice, // total operations price
-                    width: wM,
-                    height: hM,
-                    areaM2: item.areaM2,
-                    perimeter: perim,
-                    quantityForPricing: item.areaM2,
-                    glassUnitPrice: item.glassType?.pricePerMeter || 0,
-                    quantityUnit: 'م²', // Assuming area
-                    operations: item.operations // Pass full operations
-                });
-                return;
-            }
+    const calculations = useMemo(() => {
+        if (!hasPreCalcData) return null;
 
-            // Case 2: Legacy/Single operation fetch from backend
-            // [Existing logic for fetching preview]
-            // UPDATED: Support both old cuttingType and new shatafType/farmaType fields
-            const hasOldFields = item.cuttingType;
-            const hasNewFields = item.shatafType;
+        const dimUnit = item.dimensionUnit || 'CM';
+        const multiplier = dimUnit === 'MM' ? 0.001 : dimUnit === 'CM' ? 0.01 : 1;
+        const wM = item.width * multiplier;
+        const hM = item.height * multiplier;
+        const perim = 2 * (wM + hM);
+        const preview = item.backendPreview;
 
-            if (!item.glassTypeId || !item.width || !item.height || (!hasOldFields && !hasNewFields)) {
-                setCalculations(null);
-                return;
-            }
-
-            // Validate manual price for manual types
-            if (hasOldFields && item.cuttingType === 'LASER' && !item.manualCuttingPrice) {
-                setCalculations(null);
-                return;
-            }
-            const manualShatafTypes = ['LASER', 'ROTATION', 'TABLEAUX'];
-            if (hasNewFields && manualShatafTypes.includes(item.shatafType) && !item.manualCuttingPrice) {
-                setCalculations(null);
-                return;
-            }
-
-            // Validate diameter for WHEEL_CUT farma type
-            if (hasNewFields && item.farmaType === 'WHEEL_CUT' && !item.diameter) {
-                setCalculations(null);
-                return;
-            }
-
-            setIsLoading(true);
-            setError(null);
-
-            try {
-                const preview = await invoiceService.previewLineCalculation({
-                    glassTypeId: item.glassTypeId,
-                    width: parseFloat(item.width),
-                    height: parseFloat(item.height),
-                    dimensionUnit: item.dimensionUnit || 'MM',
-                    shatafType: item.shatafType || (item.cuttingType === 'LASER' ? 'LASER' : 'KHARAZAN'),
-                    farmaType: item.farmaType || 'NORMAL_SHATAF',
-                    diameter: item.diameter ? parseFloat(item.diameter) : null,
-                    manualCuttingPrice: item.manualCuttingPrice ? parseFloat(item.manualCuttingPrice) : null
-                });
-
-                setCalculations(preview);
-            } catch (err) {
-                console.error('Preview calculation error:', err);
-                setError('فشل في حساب المعاينة');
-                setCalculations(null);
-            } finally {
-                setIsLoading(false);
-            }
+        return {
+            lineTotal: item.lineTotal,
+            glassPrice: item.glassPrice,
+            operationsPrice: item.operationsPrice ?? 0,
+            width: wM,
+            height: hM,
+            areaM2: item.areaM2,
+            perimeter: perim,
+            quantityForPricing: preview?.quantityForPricing ?? item.areaM2,
+            glassUnitPrice: preview?.glassUnitPrice ?? glassType?.pricePerMeter ?? 0,
+            pricingMethod: preview?.pricingMethod ?? 'AREA',
+            quantityUnit: preview?.pricingMethod === 'LENGTH' ? t('common.meter') : t('common.squareMeter'),
+            quantity: item.quantity || 1,
+            operations: preview?.operationsPreviews ?? item.operations ?? [],
         };
-
-        fetchPreview();
-    }, [item, item.glassTypeId, item.width, item.height, item.cuttingType, item.manualCuttingPrice, item.dimensionUnit]);
+    }, [hasPreCalcData, item]);
 
     if (!glassType) return null;
 
-    // Format currency
-    const formatCurrency = (amount) => `${parseFloat(amount || 0).toFixed(2)} ج.م`;
+    const formatCurrency = (amount) => `${parseFloat(amount || 0).toFixed(2)} ${t('common.currency')}`;
 
     return (
         <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg ${className}`}>
@@ -122,27 +85,25 @@ const PricingBreakdown = ({ item, glassTypes, isDetailed = false, onRemove, onUp
                             <div className="flex items-center gap-2">
                                 <h4 className="font-medium text-gray-900 dark:text-white">{glassType.name}</h4>
                                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    {item.width} × {item.height} {item.dimensionUnit || 'MM'}
+                                    {item.width} × {item.height} {item.dimensionUnit || 'CM'}
+                                    {item.quantity > 1 && ` × ${item.quantity}`}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2 mt-1">
-                                {calculations?.operations ? (
-                                    // Multi-operation badges
+                                {calculations?.operations?.length > 0 ? (
                                     <div className="flex flex-wrap gap-1">
                                         {calculations.operations.map((op, idx) => (
                                             <span key={idx} className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
-                                                {op.type === 'SHATAF' ? 'شطف' : op.type === 'LASER' ? 'ليزر' : 'فرما'}
+                                                {getOperationLabel(op)}
                                             </span>
                                         ))}
                                     </div>
                                 ) : (
-                                    <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
-                                        {item.cuttingType === 'SHATF' ? 'شطف' : item.cuttingType === 'LASER' ? 'ليزر' : 'شطف'}
-                                    </span>
+                                    <span className="text-xs text-gray-400">{t('product.noOperationsYet')}</span>
                                 )}
                                 {glassType.thickness && (
                                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                                        {glassType.thickness} مم
+                                        {glassType.thickness} {t('common.mm')}
                                     </span>
                                 )}
                             </div>
@@ -150,25 +111,18 @@ const PricingBreakdown = ({ item, glassTypes, isDetailed = false, onRemove, onUp
                     </div>
 
                     <div className="flex items-center gap-3">
-                        {isLoading ? (
-                            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                                <LoadingSpinner size="sm" />
-                                <span>جاري الحساب...</span>
-                            </div>
-                        ) : error ? (
-                            <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
-                        ) : calculations && calculations.lineTotal !== undefined ? (
+                        {calculations && calculations.lineTotal !== undefined ? (
                             <div className="text-left">
                                 <div className="font-bold text-gray-900 dark:text-white">
                                     {formatCurrency(calculations.lineTotal)}
                                 </div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    زجاج: {formatCurrency(calculations.glassPrice)} +
-                                    عمليات: {formatCurrency(calculations.cuttingPrice)}
+                                    {t('pricing.glassColon')} {formatCurrency(calculations.glassPrice)} +
+                                    {t('pricing.operationsColon')} {formatCurrency(calculations.operationsPrice)}
                                 </div>
                             </div>
                         ) : (
-                            <span className="text-sm text-gray-400 dark:text-gray-500">لم يتم الحساب</span>
+                            <span className="text-sm text-gray-400 dark:text-gray-500">{t('pricing.notCalculated')}</span>
                         )}
 
                         {isDetailed && (
@@ -193,29 +147,29 @@ const PricingBreakdown = ({ item, glassTypes, isDetailed = false, onRemove, onUp
                 </div>
             </div>
 
-            {/* Detailed breakdown - only shown when expanded */}
+            {/* Detailed breakdown */}
             {isDetailed && isExpanded && calculations && calculations.lineTotal !== undefined && (
                 <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
                     <div className="space-y-3">
-                        {/* Dimensions & Quantity */}
+                        {/* Dimensions */}
                         <div className="bg-white dark:bg-gray-700 rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-2">
                                 <FiInfo className="text-blue-600 dark:text-blue-400" />
-                                <span className="font-medium text-sm text-gray-900 dark:text-white">المقاسات والكمية</span>
+                                <span className="font-medium text-sm text-gray-900 dark:text-white">{t('pricing.dimensionsAndQuantity')}</span>
                             </div>
                             <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
-                                <div className="flex justify-between">
-                                    <span>الأبعاد:</span>
-                                    <span className="font-mono">{calculations.width.toFixed(3)} × {calculations.height.toFixed(3)} متر</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>المساحة:</span>
-                                    <span className="font-mono">{calculations.areaM2.toFixed(3)} م²</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>المحيط (تقريبي):</span>
-                                    <span className="font-mono">{calculations.perimeter.toFixed(3)} متر</span>
-                                </div>
+                                {calculations.width && (
+                                    <div className="flex justify-between">
+                                        <span>{t('pricing.dimensions')}</span>
+                                        <span className="font-mono">{calculations.width.toFixed(3)} × {calculations.height.toFixed(3)} {t('pricing.meter')}</span>
+                                    </div>
+                                )}
+                                {calculations.areaM2 && (
+                                    <div className="flex justify-between">
+                                        <span>{t('pricing.area')}</span>
+                                        <span className="font-mono">{calculations.areaM2.toFixed(3)} {t('common.squareMeter')}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -223,88 +177,71 @@ const PricingBreakdown = ({ item, glassTypes, isDetailed = false, onRemove, onUp
                         <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-2">
                                 <FiCreditCard className="text-emerald-600 dark:text-emerald-400" />
-                                <span className="font-medium text-sm text-emerald-900 dark:text-emerald-100">سعر الزجاج</span>
+                                <span className="font-medium text-sm text-emerald-900 dark:text-emerald-100">{t('pricing.glassPrice')}</span>
                             </div>
                             <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
-                                <div className="flex justify-between">
-                                    <span>السعر:</span>
-                                    <span className="font-mono">{formatCurrency(calculations.glassUnitPrice)}/وحدة</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>الكمية:</span>
-                                    <span className="font-mono">{calculations.quantityForPricing.toFixed(3)}</span>
-                                </div>
+                                {calculations.glassUnitPrice !== undefined && (
+                                    <div className="flex justify-between">
+                                        <span>{t('pricing.price')}</span>
+                                        <span className="font-mono">{formatCurrency(calculations.glassUnitPrice)}{t('pricing.perUnit')}</span>
+                                    </div>
+                                )}
+                                {calculations.quantity > 1 && (
+                                    <div className="flex justify-between">
+                                        <span>{t('pricing.quantity')}</span>
+                                        <span className="font-mono">{calculations.quantity} {t('invoices.details.piece')}</span>
+                                    </div>
+                                )}
                                 <div className="border-t border-emerald-200 dark:border-emerald-800 pt-1">
                                     <div className="flex justify-between font-medium text-emerald-800 dark:text-emerald-200">
-                                        <span>الإجمالي:</span>
+                                        <span>{t('pricing.total')}</span>
                                         <span className="font-mono">{formatCurrency(calculations.glassPrice)}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Operations Price (Replaces Cutting Price) */}
-                        <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3">
-                            <div className="flex items-center gap-2 mb-2">
-                                <FiTrendingUp className="text-orange-600 dark:text-orange-400" />
-                                <span className="font-medium text-sm text-orange-900 dark:text-orange-100">تفاصيل العمليات</span>
-                            </div>
-                            <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
-                                {calculations.operations ? (
-                                    // New Operations List
-                                    calculations.operations.map((op, idx) => (
+                        {/* Operations Price */}
+                        {calculations.operations.length > 0 && (
+                            <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <FiTrendingUp className="text-orange-600 dark:text-orange-400" />
+                                    <span className="font-medium text-sm text-orange-900 dark:text-orange-100">{t('pricing.operationDetails')}</span>
+                                </div>
+                                <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
+                                    {calculations.operations.map((op, idx) => (
                                         <div key={idx} className="flex justify-between py-1 border-b border-orange-100 dark:border-orange-800 last:border-0">
-                                            <span>
-                                                {op.type === 'SHATAF' && `شطف: ${op.shatafType}`}
-                                                {op.type === 'FARMA' && `فارمة: ${op.farmaType}`}
-                                                {op.type === 'LASER' && `ليزر: ${op.laserType}`}
-                                                {op.diameter && ` (Ø ${op.diameter})`}
-                                            </span>
-                                            <span className="font-mono">{formatCurrency(op.calculatedPrice || op.manualPrice || op.manualCuttingPrice)}</span>
+                                            <span>{getOperationLabel(op)}</span>
+                                            <span className="font-mono">{formatCurrency(getOperationPrice(op))}</span>
                                         </div>
-                                    ))
-                                ) : (
-                                    // Legacy Single Cutting
-                                    <>
-                                        <div className="flex justify-between">
-                                            <span>نوع القطع:</span>
-                                            <span>{calculations.cuttingType === 'SHATF' ? 'شطف' : 'ليزر'}</span>
+                                    ))}
+                                    <div className="border-t border-orange-200 dark:border-orange-800 pt-1 mt-1">
+                                        <div className="flex justify-between font-medium text-orange-800 dark:text-orange-200">
+                                            <span>{t('pricing.operationsTotal')}</span>
+                                            <span className="font-mono">{formatCurrency(calculations.operationsPrice)}</span>
                                         </div>
-                                        {calculations.cuttingType === 'SHATF' && calculations.cuttingRate && (
-                                            <div className="flex justify-between">
-                                                <span>السعر:</span>
-                                                <span className="font-mono">{formatCurrency(calculations.cuttingRate)}/متر</span>
-                                            </div>
-                                        )}
-                                    </>
-                                )}
-
-                                <div className="border-t border-orange-200 dark:border-orange-800 pt-1 mt-1">
-                                    <div className="flex justify-between font-medium text-orange-800 dark:text-orange-200">
-                                        <span>إجمالي العمليات:</span>
-                                        <span className="font-mono">{formatCurrency(calculations.cuttingPrice)}</span>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Final Total */}
                         <div className="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-3">
                             <div className="grid grid-cols-3 gap-4 text-xs">
                                 <div className="text-center">
-                                    <div className="text-gray-500 dark:text-gray-400">زجاج</div>
+                                    <div className="text-gray-500 dark:text-gray-400">{t('pricing.glass')}</div>
                                     <div className="font-mono text-emerald-600 dark:text-emerald-400 font-medium">
                                         {formatCurrency(calculations.glassPrice)}
                                     </div>
                                 </div>
                                 <div className="text-center">
-                                    <div className="text-gray-500 dark:text-gray-400">عمليات</div>
+                                    <div className="text-gray-500 dark:text-gray-400">{t('pricing.operations')}</div>
                                     <div className="font-mono text-orange-600 dark:text-orange-400 font-medium">
-                                        {formatCurrency(calculations.cuttingPrice)}
+                                        {formatCurrency(calculations.operationsPrice)}
                                     </div>
                                 </div>
                                 <div className="text-center">
-                                    <div className="text-gray-500 dark:text-gray-400">المجموع</div>
+                                    <div className="text-gray-500 dark:text-gray-400">{t('pricing.totalLabel')}</div>
                                     <div className="font-mono font-bold text-sm text-gray-900 dark:text-white">
                                         {formatCurrency(calculations.lineTotal)}
                                     </div>

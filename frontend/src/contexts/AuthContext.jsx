@@ -1,101 +1,43 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import {authService} from "@services/authService.jsx";
+import React, { createContext, useContext, useMemo } from 'react';
+import { useUser, useAuth as useClerkAuth } from '@clerk/clerk-react';
+import { useQuery } from 'convex/react';
+import { api } from '@convex/_generated/api';
 
 // Create the context
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [token, setToken] = useState(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const { t } = useTranslation();
+    const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+    const { isSignedIn, signOut } = useClerkAuth();
 
-    // Function to handle login
-    const login = async (credentials) => {
-        try {
-            setError(null);
+    // Fetch app user from Convex (role, isActive, etc.)
+    const convexUser = useQuery(
+        api.users.queries.getCurrentUser,
+        isSignedIn ? {} : "skip"
+    );
 
-            const response = await authService.login(credentials);
-            const { token: jwtToken, user: userData } = response;
+    const isLoading = !isClerkLoaded || (isSignedIn && convexUser === undefined);
 
-            // Save token to localStorage
-            localStorage.setItem('auth_token', jwtToken);
-            if (response.refreshToken) {
-                localStorage.setItem('refresh_token', response.refreshToken);
-            }
+    // Build user object matching the old interface
+    const user = useMemo(() => {
+        if (!isSignedIn || !convexUser) return null;
+        return {
+            id: convexUser._id,
+            clerkUserId: convexUser.clerkUserId,
+            username: convexUser.username,
+            firstName: convexUser.firstName || clerkUser?.firstName || '',
+            lastName: convexUser.lastName || clerkUser?.lastName || '',
+            displayName: `${convexUser.firstName || ''} ${convexUser.lastName || ''}`.trim(),
+            role: convexUser.role,
+            isActive: convexUser.isActive,
+        };
+    }, [isSignedIn, convexUser, clerkUser]);
 
-            // Save user info to localStorage for persistence
-            localStorage.setItem('user_info', JSON.stringify(userData));
+    const isAuthenticated = isSignedIn && !!convexUser;
 
-            // Update state
-            setToken(jwtToken);
-            setUser(userData);
-            setIsAuthenticated(true);
-
-            return { success: true, user: userData };
-        } catch (error) {
-            console.error('Login error:', error);
-            const errorMessage = error.response?.data?.message || error.message || 'Login failed';
-            setError(errorMessage);
-            return { success: false, error: errorMessage };
-        }
-    };
-
-    // Function to handle logout
+    // Logout
     const logout = async () => {
-        try {
-            // Call server-side logout if available
-            await authService.logout();
-        } catch (error) {
-            console.warn('Server logout failed, continuing with local logout:', error);
-        } finally {
-            // Always clear local storage and state
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('refresh_token');
-            localStorage.removeItem('token_expiry');
-            localStorage.removeItem('user_info');
-
-            setToken(null);
-            setUser(null);
-            setIsAuthenticated(false);
-            setError(null);
-        }
-    };
-
-    // Function to refresh token
-    const refreshToken = async () => {
-        try {
-            const refreshToken = localStorage.getItem('refresh_token');
-            if (!refreshToken) {
-                throw new Error('No refresh token available');
-            }
-
-            const response = await authService.refreshToken(refreshToken);
-            const { token: newToken } = response;
-
-            localStorage.setItem('auth_token', newToken);
-            setToken(newToken);
-
-            return newToken;
-        } catch (error) {
-            console.error('Token refresh failed:', error);
-            await logout();
-            throw error;
-        }
-    };
-
-    // Function to update user data
-    const updateUser = (userData) => {
-        setUser(userData);
-        localStorage.setItem('user_info', JSON.stringify(userData));
-    };
-
-    // Clear error function
-    const clearError = () => {
-        setError(null);
+        await signOut();
     };
 
     // Role checking functions
@@ -109,7 +51,7 @@ export const AuthProvider = ({ children }) => {
         return requiredRoles.includes(user.role);
     };
 
-    // Permission checking function
+    // Permission checking function (preserved from original)
     const canAccess = (resource, action = 'read') => {
         if (!user) return false;
 
@@ -157,63 +99,15 @@ export const AuthProvider = ({ children }) => {
         return allowedRoles?.includes(role) || false;
     };
 
-    // Initialize auth state from localStorage on mount - NO API CALLS
-    useEffect(() => {
-        const initializeAuth = () => {
-            try {
-                const storedToken = localStorage.getItem('auth_token');
-                const storedUserInfo = localStorage.getItem('user_info');
-
-                if (storedToken && storedUserInfo) {
-                    // Parse stored user info
-                    const userData = JSON.parse(storedUserInfo);
-
-                    // Set authenticated state immediately
-                    setToken(storedToken);
-                    setUser(userData);
-                    setIsAuthenticated(true);
-                } else {
-                    // No stored auth data
-                    setIsAuthenticated(false);
-                }
-            } catch (error) {
-                console.error('Error parsing stored auth data:', error);
-
-                // Clear invalid data
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('refresh_token');
-                localStorage.removeItem('token_expiry');
-                localStorage.removeItem('user_info');
-
-                setToken(null);
-                setUser(null);
-                setIsAuthenticated(false);
-            } finally {
-                // Always set loading to false
-                setIsLoading(false);
-            }
-        };
-
-        initializeAuth();
-    }, []);
-
     // Context value
     const value = {
         // State
         user,
-        token,
         isAuthenticated,
         isLoading,
-        error,
 
         // Authentication methods
-        login,
         logout,
-        refreshToken,
-
-        // User management
-        updateUser,
-        clearError,
 
         // Utility methods
         hasRole,

@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 import Layout from '@/components/layout/Layout';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import GlassTypesPage from "@pages/admin/GlassTypesPage.jsx";
@@ -20,7 +21,6 @@ const AdminGlassTypesPage = React.lazy(() => import('@/pages/admin/GlassTypesPag
 const CustomersPage = React.lazy(() => import('@/pages/CustomersPage'));
 const NotFoundPage = React.lazy(() => import('@/pages/errors/NotFoundPage'));
 const UnauthorizedPage = React.lazy(() => import('@/pages/errors/UnauthorizedPage'));
-// Added Company Profile Page
 const CompanyProfilePage = React.lazy(() => import('@/pages/admin/CompanyProfilePage'));
 
 // Loading fallback component

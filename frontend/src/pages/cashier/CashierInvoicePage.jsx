@@ -1,26 +1,25 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { useConvex } from 'convex/react';
+import { api } from '@convex/_generated/api';
 import {
     FiCheck,
     FiShoppingCart,
     FiPlus,
     FiX,
-    FiDollarSign,
-    FiWifi,
-    FiWifiOff
+    FiDollarSign
 } from 'react-icons/fi';
 import Button from '@components/ui/Button.jsx';
 import LoadingSpinner from '@components/ui/LoadingSpinner.jsx';
 import { ConfirmationDialog } from '@components/ui/ConfirmationDialog.jsx';
-import { invoiceService } from '@services/invoiceService.js';
-import { customerService } from '@services/customerService.js';
-import { glassTypeService } from '@services/glassTypeService.js';
-import { printJobService } from '@services/printJobService.js';
+import { useGlassTypes } from '@services/glassTypeService';
+import { useSearchCustomers, useCreateCustomer } from '@services/customerService';
+import { useInvoices, useCreateInvoice, useMarkAsPaid } from '@services/invoiceService';
+import { usePrintInvoice } from '@services/printService';
 import { invoiceUtils, getErrorMessage, getErrorDetails } from '@utils';
 import { PageHeader } from "@components";
 import { useSnackbar } from "@contexts/SnackbarContext.jsx";
-import { useWebSocket, WEBSOCKET_TOPICS } from '@hooks/useWebSocket';
 
 // Import sub-components
 import PricingBreakdown from './components/PricingBreakdown.jsx';
@@ -29,59 +28,116 @@ import CustomerSelection from './components/CustomerSelection';
 import ShoppingCart from './components/ShoppingCart';
 import NewCustomerForm from './components/NewCustomerForm';
 import InvoiceList from './components/InvoiceList';
-import PrintJobStatusModal from './components/PrintJobStatusModal';
 
 // Import NEW ENHANCED components
 import EnhancedProductEntry from './components/EnhancedProductEntry.jsx';
 import PaymentPanel from './components/PaymentPanel.jsx';
 import InvoiceConfirmationDialog from './components/InvoiceConfirmationDialog.jsx';
+import { BEVELING_TYPES } from '@/constants/bevelingTypes.js';
+import { BEVELING_CALCULATIONS } from '@/constants/bevelingCalculations.js';
+
+/**
+ * Maps a frontend operation object to the backend's bilingual label format.
+ * { bevelingType, calcMethod, manualMeters, manualPrice, diameter }
+ *   → { operationType: {code, ar, en}, calculationMethod?: {code, ar, en}, manualMeters?, manualPrice? }
+ */
+const mapOperationToBackend = (op) => {
+    const bType = BEVELING_TYPES[op.bevelingType];
+    const result = {
+        operationType: {
+            code: op.bevelingType,
+            ar: bType?.arabicName || op.bevelingType,
+            en: bType?.englishName || op.bevelingType,
+        },
+    };
+    if (op.calcMethod) {
+        const cType = BEVELING_CALCULATIONS[op.calcMethod];
+        result.calculationMethod = {
+            code: op.calcMethod,
+            ar: cType?.arabicName || op.calcMethod,
+            en: cType?.englishName || op.calcMethod,
+        };
+    }
+    if (op.manualMeters != null && op.manualMeters !== '') {
+        result.manualMeters = parseFloat(op.manualMeters);
+    }
+    if (op.manualPrice != null && op.manualPrice !== '') {
+        result.manualPrice = parseFloat(op.manualPrice);
+    }
+    return result;
+};
 
 const CashierInvoicesPage = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
+    const convex = useConvex();
     const { showSuccess, showError, showInfo, showWarning } = useSnackbar();
 
     // Main states
     const [currentMode, setCurrentMode] = useState('list'); // 'list', 'create', 'addCustomer'
-    const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(false);
 
-    // WebSocket message handler for real-time updates
-    const handleWebSocketMessage = useCallback((topic, data) => {
-        console.log('Cashier WebSocket message:', topic, data);
+    // Convex reactive query for glass types (active only)
+    const glassTypes = useGlassTypes(true);
 
-        if (topic === WEBSOCKET_TOPICS.DASHBOARD_INVOICE_CREATED) {
-            // Only show notification if we're in list mode (not creating our own invoice)
-            if (currentMode === 'list') {
-                showInfo(i18n.language === 'ar'
-                    ? `فاتورة جديدة #${data.invoiceId}`
-                    : `New invoice #${data.invoiceId}`
-                );
-                loadInvoices(currentPage);
-            }
-        } else if (topic === WEBSOCKET_TOPICS.DASHBOARD_PRINT_UPDATE) {
-            console.log('Print job update received:', data);
+    // Customer search - debounce the query string in state
+    const [customerSearch, setCustomerSearch] = useState('');
+    const [debouncedCustomerSearch, setDebouncedCustomerSearch] = useState('');
+    const customerResults = useSearchCustomers(debouncedCustomerSearch.length >= 2 ? debouncedCustomerSearch : undefined);
+    const isSearchingCustomers = debouncedCustomerSearch.length >= 2 && customerResults === undefined;
+
+    // Customer search debouncing
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            setDebouncedCustomerSearch(customerSearch);
+        }, 300);
+        return () => clearTimeout(timeoutId);
+    }, [customerSearch]);
+
+    // Convex mutations
+    const createInvoice = useCreateInvoice();
+    const createCustomer = useCreateCustomer();
+    const markAsPaid = useMarkAsPaid();
+    const { printInvoice: doPrintInvoice, printAllStickers } = usePrintInvoice();
+
+    // Invoice list with Convex paginated query
+    const [filters, setFilters] = useState({
+        customerName: '',
+        invoiceId: '',
+        startDate: '',
+        status: ''
+    });
+
+    // Build query args for the invoices paginated query
+    const invoiceQueryArgs = {};
+    if (filters.status) invoiceQueryArgs.status = filters.status;
+
+    const {
+        results: invoices,
+        status: invoicePaginationStatus,
+        loadMore: loadMoreInvoices,
+        isLoading: invoicesLoading
+    } = useInvoices({
+        ...invoiceQueryArgs,
+        initialNumItems: 20
+    });
+
+    // Filter invoices client-side for text-based filters (customerName, invoiceId)
+    const filteredInvoices = (invoices || []).filter(inv => {
+        if (filters.customerName && inv.customerName) {
+            if (!inv.customerName.toLowerCase().includes(filters.customerName.toLowerCase())) return false;
         }
-    }, [currentMode, i18n.language]);
-
-    // WebSocket connection
-    const { connected: wsConnected } = useWebSocket({
-        topics: [
-            WEBSOCKET_TOPICS.DASHBOARD_INVOICE_CREATED,
-            WEBSOCKET_TOPICS.DASHBOARD_PRINT_UPDATE
-        ],
-        onMessage: handleWebSocketMessage,
-        enabled: true
+        if (filters.invoiceId) {
+            const invoiceIdStr = String(inv.invoiceNumber || inv.readableId || '');
+            if (!invoiceIdStr.toLowerCase().includes(filters.invoiceId.toLowerCase())) return false;
+        }
+        return true;
     });
 
     // POS states
     const [cart, setCart] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
-    const [customerSearch, setCustomerSearch] = useState('');
-    const [customerResults, setCustomerResults] = useState([]);
-    const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
     const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
-    const [glassTypes, setGlassTypes] = useState([]);
 
     // Enhanced line item state with operations array
     const [currentLine, setCurrentLine] = useState({
@@ -98,15 +154,9 @@ const CashierInvoicesPage = () => {
     const [paymentMethod, setPaymentMethod] = useState('CASH');
     const [showConfirmation, setShowConfirmation] = useState(false);
 
-    // Print job states
+    // Print states
     const [isPrinting, setIsPrinting] = useState(false);
     const [isSendingToFactory, setIsSendingToFactory] = useState(false);
-    const [printStatus, setPrintStatus] = useState(null);
-    const [printJobStatus, setPrintJobStatus] = useState(null);
-    const [showPrintJobStatusModal, setShowPrintJobStatusModal] = useState(false);
-    const [isCheckingPrintJobs, setIsCheckingPrintJobs] = useState(false);
-    const [isRetryingPrintJob, setIsRetryingPrintJob] = useState(false);
-    const [isCreatingPrintJobs, setIsCreatingPrintJobs] = useState(false);
 
     // Confirmation dialog states
     const [confirmDialog, setConfirmDialog] = useState({
@@ -126,7 +176,6 @@ const CashierInvoicesPage = () => {
         customerType: 'REGULAR'
     });
 
-
     // Processing states
     const [isCreating, setIsCreating] = useState(false);
     const [isAddingCustomer, setIsAddingCustomer] = useState(false);
@@ -137,23 +186,10 @@ const CashierInvoicesPage = () => {
     const widthRef = useRef(null);
     const heightRef = useRef(null);
 
-    // Pagination for invoice list
-    const [currentPage, setCurrentPage] = useState(0);
-    const [totalPages, setTotalPages] = useState(0);
-
-    // Filters State replaces simple searchTerm
-    const [filters, setFilters] = useState({
-        customerName: '',
-        invoiceId: '',
-        startDate: '',
-        status: ''
-    });
-
-    // Load initial data
-    useEffect(() => {
-        loadInvoices();
-        loadGlassTypes();
-    }, []);
+    // Pagination compatibility for InvoiceList component
+    const canLoadMore = invoicePaginationStatus === 'CanLoadMore';
+    const currentPage = 0; // Convex uses cursor-based, simulate page 0
+    const totalPages = canLoadMore ? 2 : 1; // Indicate there's more if CanLoadMore
 
     // Auto-set payment for CASH customers
     useEffect(() => {
@@ -162,27 +198,6 @@ const CashierInvoicesPage = () => {
             setAmountPaidNow(total);
         }
     }, [selectedCustomer, cart]);
-
-    // Customer search with debouncing
-    useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            if (customerSearch.length >= 2) {
-                searchCustomers(customerSearch);
-            } else {
-                setCustomerResults([]);
-            }
-        }, 300);
-
-        return () => clearTimeout(timeoutId);
-    }, [customerSearch]);
-
-    // Debounce filters for invoice list loading
-    useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            loadInvoices(0);
-        }, 500);
-        return () => clearTimeout(timeoutId);
-    }, [filters]);
 
     // Keyboard shortcuts for POS workflow
     useEffect(() => {
@@ -204,60 +219,14 @@ const CashierInvoicesPage = () => {
         return () => window.removeEventListener('keydown', handleKeyPress);
     }, [currentMode, cart, selectedCustomer]);
 
-    // Load functions with filters
-    const loadInvoices = async (page = 0) => {
-        setLoading(true);
-        try {
-            const params = {
-                page,
-                size: 20,
-                ...filters
-            };
-
-            const response = await invoiceService.listInvoices(params);
-            setInvoices(response.content || []);
-            setTotalPages(response.totalPages || 0);
-            setCurrentPage(page);
-        } catch (err) {
-            console.error('Load invoices error:', err);
-            showError(getErrorMessage(err, t('messages.loadingInvoices')));
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleFilterChange = (key, value) => {
         setFilters(prev => ({ ...prev, [key]: value }));
-    };
-
-    const loadGlassTypes = async () => {
-        try {
-            const types = await glassTypeService.getAllGlassTypes();
-            setGlassTypes(types);
-        } catch (err) {
-            console.error('Load glass types error:', err);
-            showError(getErrorMessage(err, t('messages.loadingData')));
-        }
-    };
-
-    const searchCustomers = async (query) => {
-        setIsSearchingCustomers(true);
-        try {
-            const results = await customerService.searchCustomers(query);
-            setCustomerResults(results);
-        } catch (err) {
-            console.error('Search customers error:', err);
-            setCustomerResults([]);
-        } finally {
-            setIsSearchingCustomers(false);
-        }
     };
 
     // Customer handlers
     const handleSelectCustomer = (customer) => {
         setSelectedCustomer(customer);
         setCustomerSearch('');
-        setCustomerResults([]);
         setTimeout(() => glassTypeRef.current?.focus(), 100);
     };
 
@@ -267,7 +236,6 @@ const CashierInvoicesPage = () => {
         }
         setCurrentMode('addCustomer');
         setCustomerSearch('');
-        setCustomerResults([]);
     };
 
     const handleSaveNewCustomer = async () => {
@@ -278,8 +246,21 @@ const CashierInvoicesPage = () => {
 
         setIsAddingCustomer(true);
         try {
-            const savedCustomer = await customerService.createCustomer(newCustomer);
-            setSelectedCustomer(savedCustomer);
+            const savedCustomerId = await createCustomer({
+                name: newCustomer.name,
+                phone: newCustomer.phone || undefined,
+                address: newCustomer.address || undefined,
+                customerType: newCustomer.customerType || 'REGULAR'
+            });
+            // With Convex, createCustomer returns the ID. We need to construct a basic customer object
+            // for the selectedCustomer state since the reactive query won't give us this immediately inline
+            setSelectedCustomer({
+                _id: savedCustomerId,
+                name: newCustomer.name,
+                phone: newCustomer.phone,
+                address: newCustomer.address,
+                customerType: newCustomer.customerType
+            });
             setCurrentMode('create');
             setNewCustomer({
                 name: '',
@@ -321,34 +302,29 @@ const CashierInvoicesPage = () => {
             return;
         }
 
-        // Validate operations (if any provided)
+        // Validate each operation
         for (let i = 0; i < operations.length; i++) {
             const op = operations[i];
             const prefix = `${t('product.validation.operationPrefix')} ${i + 1}: `;
 
-            if (op.type === 'SHATAF') {
-                if (!op.shatafType) {
-                    showError(prefix + t('product.validation.shatafTypeRequired'));
-                    return;
-                }
-            } else if (op.type === 'FARMA') {
-                if (!op.farmaType) {
-                    showError(prefix + t('product.validation.farmaRequired'));
-                    return;
-                }
-            } else if (op.type === 'LASER') {
-                if (!op.laserType) {
-                    showError(prefix + t('product.validation.laserTypeRequired'));
-                    return;
-                }
-                if (op.manualPrice === null || op.manualPrice === undefined || op.manualPrice === '') {
-                    showError(prefix + t('product.validation.laserPriceRequired'));
-                    return;
-                }
+            if (!op.bevelingType) {
+                showError(prefix + t('product.validation.shatafTypeRequired'));
+                return;
+            }
+
+            const st = BEVELING_TYPES[op.bevelingType];
+            if (st?.requiresCalculation && !op.calcMethod) {
+                showError(prefix + t('product.validation.farmaRequired'));
+                return;
+            }
+
+            if (st?.requiresManualPrice && (op.manualPrice == null || op.manualPrice === '')) {
+                showError(prefix + t('product.validation.laserPriceRequired'));
+                return;
             }
         }
 
-        const glassType = glassTypes.find(gt => gt.id == currentLine.glassTypeId);
+        const glassType = (glassTypes || []).find(gt => gt._id == currentLine.glassTypeId);
         if (!glassType) {
             showError(t('product.validation.glassTypeRequired'));
             return;
@@ -357,30 +333,25 @@ const CashierInvoicesPage = () => {
         setIsCalculatingPrice(true);
 
         try {
-            // Prepare request for backend calculation
-            const previewRequest = {
-                glassTypeId: parseInt(currentLine.glassTypeId),
-                width: parseFloat(currentLine.width),
-                height: parseFloat(currentLine.height),
-                dimensionUnit: currentLine.dimensionUnit || 'CM',
-                operations: operations.map(op => ({
-                    type: op.type,
-                    shatafType: op.shatafType || null,
-                    farmaType: op.farmaType || null,
-                    laserType: op.laserType || null,
-                    diameter: op.diameter ? parseFloat(op.diameter) : null,
-                    manualPrice: op.manualPrice ? parseFloat(op.manualPrice) : null,
-                    manualCuttingPrice: op.manualCuttingPrice ? parseFloat(op.manualCuttingPrice) : null,
-                    notes: op.notes || null
-                }))
-            };
+            // Map operations to backend bilingual format
+            const mappedOps = operations
+                .filter(op => op.bevelingType)
+                .map(mapOperationToBackend);
 
-            // Call backend preview endpoint
-            const preview = await invoiceService.previewLineCalculation(previewRequest);
+            // Call backend preview with new format (nested dimensions)
+            const preview = await convex.query(api.invoices.queries.previewLineCalculation, {
+                glassTypeId: currentLine.glassTypeId,
+                dimensions: {
+                    width: parseFloat(currentLine.width),
+                    height: parseFloat(currentLine.height),
+                    measuringUnit: currentLine.dimensionUnit || 'CM',
+                },
+                ...(mappedOps.length > 0 ? { operations: mappedOps } : {})
+            });
 
-            console.log('✅ Price Calculated:', preview);
+            const quantity = parseInt(currentLine.quantity) || 1;
+            const lineTotal = preview.lineTotal * quantity;
 
-            // Create cart item with calculated prices
             const cartItem = {
                 id: Date.now(),
                 glassTypeId: currentLine.glassTypeId,
@@ -388,24 +359,23 @@ const CashierInvoicesPage = () => {
                 width: parseFloat(currentLine.width),
                 height: parseFloat(currentLine.height),
                 dimensionUnit: currentLine.dimensionUnit || 'CM',
-                operations: preview.operations || operations, // Use backend returned ops if available
+                quantity: quantity,
+                operations: operations,
                 glassPrice: preview.glassPrice,
-                operationsPrice: preview.cuttingPrice, // Backend returns total operations price as cuttingPrice currently
-                cuttingPrice: preview.cuttingPrice, // Keep for backward compatibility
+                operationsPrice: preview.totalOperationsPrice,
                 areaM2: preview.areaM2,
-                lineTotal: preview.lineTotal,
-                // Store raw operations too for editing/re-calc
-                rawOperations: operations
+                lineTotal: lineTotal,
+                backendPreview: preview,
             };
 
             setCart(prev => [...prev, cartItem]);
 
-            // Reset current line
             setCurrentLine({
                 glassTypeId: '',
                 width: '',
                 height: '',
                 dimensionUnit: 'CM',
+                quantity: 1,
                 operations: []
             });
 
@@ -453,7 +423,7 @@ const CashierInvoicesPage = () => {
         }
 
         const total = calculateCartTotal();
-        const TOLERANCE = 0.01; // 1 piaster tolerance for floating point comparison
+        const TOLERANCE = 0.01;
 
         // Validate payment for CASH customers
         if (selectedCustomer.customerType === 'CASH') {
@@ -483,74 +453,47 @@ const CashierInvoicesPage = () => {
         setIsCreating(true);
 
         try {
-            // Prepare invoice request with multi-operation support
+            // Prepare invoice request with new nested format
             const invoiceRequest = {
-                customerId: selectedCustomer.id,
-                invoiceLines: cart.map(item => {
-                    // Find primary operations
-                    const shatafOp = item.operations?.find(op => op.type === 'SHATAF');
-                    const farmaOp = item.operations?.find(op => op.type === 'FARMA');
-                    const laserOp = item.operations?.find(op => op.type === 'LASER');
-
-                    return {
-                        glassTypeId: item.glassTypeId,
+                customerId: selectedCustomer._id,
+                lines: cart.map(item => ({
+                    glassTypeId: item.glassTypeId,
+                    dimensions: {
                         width: item.width,
                         height: item.height,
-                        dimensionUnit: item.dimensionUnit,
-                        // Primary operation data (for backward compatibility)
-                        shatafType: shatafOp?.shatafType || null,
-                        farmaType: shatafOp?.farmaType || farmaOp?.farmaType || null,
-                        diameter: shatafOp?.diameter || farmaOp?.diameter || null,
-                        manualCuttingPrice: shatafOp?.manualCuttingPrice || null,
-                        // Additional operations
-                        operations: item.operations?.map(op => ({
-                            type: op.type,
-                            shatafType: op.shatafType || null,
-                            farmaType: op.farmaType || null,
-                            laserType: op.laserType || null,
-                            diameter: op.diameter ? parseFloat(op.diameter) : null,
-                            manualPrice: op.manualPrice ? parseFloat(op.manualPrice) : null,
-                            manualCuttingPrice: op.manualCuttingPrice ? parseFloat(op.manualCuttingPrice) : null,
-                            notes: op.notes || null
-                        })) || []
-                    };
-                }),
-                amountPaidNow: amountPaidNow,
-                notes: ''
+                        measuringUnit: item.dimensionUnit || 'CM',
+                    },
+                    quantity: item.quantity || 1,
+                    operations: (item.operations || [])
+                        .filter(op => op.bevelingType)
+                        .map(mapOperationToBackend),
+                })),
+                amountPaidNow: amountPaidNow > 0 ? amountPaidNow : undefined,
+                notes: undefined
             };
 
-            console.log('📤 Sending Invoice Request:', JSON.stringify(invoiceRequest, null, 2));
+            console.log('Sending Invoice Request:', JSON.stringify(invoiceRequest, null, 2));
 
-            // Create invoice
-            const response = await invoiceService.createInvoice(invoiceRequest);
-            const createdInvoice = response.invoice || response;
+            // Create invoice via Convex mutation
+            const createdInvoiceId = await createInvoice(invoiceRequest);
 
-            console.log('✅ Invoice Created:', {
-                id: createdInvoice.id,
-                totalPrice: createdInvoice.totalPrice,
-                linesCount: createdInvoice.invoiceLines?.length || 0
-            });
+            console.log('Invoice Created:', createdInvoiceId);
 
             showSuccess(t('messages.invoiceCreatedSuccess'));
 
-            // Try to create print jobs (non-blocking)
+            // Open client invoice preview (non-blocking)
             try {
-                setIsCreatingPrintJobs(true);
-                await printJobService.createAllPrintJobs(createdInvoice.id);
-                showSuccess(t('messages.saveSuccess'));
+                await doPrintInvoice(createdInvoiceId, 'CLIENT');
             } catch (printError) {
-                console.error('Print jobs creation error:', printError);
-                showWarning(t('messages.invoiceCreationError'));
-            } finally {
-                setIsCreatingPrintJobs(false);
+                console.error('Print preview error:', printError);
+                showWarning(t('messages.printError'));
             }
 
             // Close confirmation and reset
             setShowConfirmation(false);
             handleResetPOS();
 
-            // Reload invoices
-            loadInvoices(0);
+            // No manual reload needed - Convex auto-updates the invoices query
 
         } catch (error) {
             console.error('Create invoice error:', error);
@@ -570,8 +513,7 @@ const CashierInvoicesPage = () => {
     const handlePrintInvoice = async (invoice, type = 'CLIENT') => {
         setIsPrinting(true);
         try {
-            // createSinglePrintJob opens the PDF directly via blob fetch with auth
-            await printJobService.createSinglePrintJob(invoice.id, type);
+            await doPrintInvoice(invoice._id, type);
             showSuccess(t('messages.saveSuccess'));
         } catch (err) {
             console.error('Print invoice error:', err);
@@ -584,30 +526,22 @@ const CashierInvoicesPage = () => {
     const handleSendToFactory = async (invoice) => {
         setConfirmDialog({
             isOpen: true,
-            title: t('navigation.factory'),
-            message: t('messages.confirmDelete'),
+            title: t('invoices.details.sendToFactoryConfirmTitle'),
+            message: t('invoices.details.sendToFactoryConfirmMessage', { id: invoice.readableId }),
             type: 'info',
             onConfirm: async () => {
                 await executeSendToFactory(invoice);
             }
         });
     };
+    // title: t('invoices.details.sendToFactoryConfirmTitle'),
+    //     message: t('invoices.details.sendToFactoryConfirmMessage', { id: invoiceId }),
 
     const executeSendToFactory = async (invoice) => {
         setIsSendingToFactory(true);
         try {
-            const status = await printJobService.checkPrintJobStatus(invoice.id);
-
-            // Check if STICKER is missing
-            const isStickerMissing = status.missingJobTypes && status.missingJobTypes.includes('STICKER');
-
-            if (isStickerMissing) {
-                // Create ONLY sticker
-                await printJobService.createSinglePrintJob(invoice.id, 'STICKER');
-            }
-
+            await printAllStickers(invoice._id);
             showSuccess(t('messages.saveSuccess'));
-            loadInvoices(currentPage);
         } catch (err) {
             console.error('Send to factory error:', err);
             showError(getErrorMessage(err, t('messages.sendToFactoryError')));
@@ -630,9 +564,9 @@ const CashierInvoicesPage = () => {
 
     const executeMarkAsPaid = async (invoice) => {
         try {
-            await invoiceService.markAsPaid(invoice.id);
+            await markAsPaid({ invoiceId: invoice._id });
             showSuccess(t('messages.saveSuccess'));
-            loadInvoices(currentPage);
+            // No manual reload needed - Convex auto-updates
         } catch (err) {
             console.error('Mark as paid error:', err);
             showError(getErrorMessage(err, t('messages.markAsPaidError')));
@@ -644,13 +578,13 @@ const CashierInvoicesPage = () => {
         setCurrentMode('list');
         setSelectedCustomer(null);
         setCustomerSearch('');
-        setCustomerResults([]);
         setCart([]);
         setCurrentLine({
             glassTypeId: '',
             width: '',
             height: '',
             dimensionUnit: 'CM',
+            quantity: 1,
             operations: []
         });
         setAmountPaidNow(0);
@@ -659,7 +593,7 @@ const CashierInvoicesPage = () => {
 
     // Invoice list operations
     const handleViewInvoice = (invoice) => {
-        navigate(`/invoices/${invoice.id}`);
+        navigate(`/invoices/${invoice._id}`);
     };
 
     return (
@@ -671,17 +605,6 @@ const CashierInvoicesPage = () => {
                         title={t('invoices.cashierTitle')}
                         subtitle={currentMode === 'list' ? t('invoices.invoicesList') : t('invoices.createNew')}
                     />
-                    {/* WebSocket Connection Status */}
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
-                        wsConnected
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                    }`}>
-                        {wsConnected ? <FiWifi size={14} /> : <FiWifiOff size={14} />}
-                        <span className="text-xs font-medium">
-                            {wsConnected ? t('factory.connected') : t('factory.disconnected')}
-                        </span>
-                    </div>
                 </div>
 
                 {/* Mode Toggle */}
@@ -726,7 +649,7 @@ const CashierInvoicesPage = () => {
                             <CustomerSelection
                                 selectedCustomer={selectedCustomer}
                                 customerSearch={customerSearch}
-                                customerResults={customerResults}
+                                customerResults={customerResults || []}
                                 isSearchingCustomers={isSearchingCustomers}
                                 onCustomerSearchChange={setCustomerSearch}
                                 onSelectCustomer={handleSelectCustomer}
@@ -736,7 +659,7 @@ const CashierInvoicesPage = () => {
 
                             {/* Enhanced Product Entry with Multi-Operations */}
                             <EnhancedProductEntry
-                                glassTypes={glassTypes}
+                                glassTypes={glassTypes || []}
                                 currentLine={currentLine}
                                 onLineChange={setCurrentLine}
                                 onAddToCart={handleAddLineToCart}
@@ -749,7 +672,7 @@ const CashierInvoicesPage = () => {
                             {/* Shopping Cart */}
                             <ShoppingCart
                                 cart={cart}
-                                glassTypes={glassTypes}
+                                glassTypes={glassTypes || []}
                                 onRemove={handleRemoveFromCart}
                                 onUpdate={handleUpdateCartItem}
                             />
@@ -758,7 +681,7 @@ const CashierInvoicesPage = () => {
                             {cart.length > 0 && (
                                 <EnhancedOrderSummary
                                     cart={cart}
-                                    glassTypes={glassTypes}
+                                    glassTypes={glassTypes || []}
                                 />
                             )}
 
@@ -771,7 +694,7 @@ const CashierInvoicesPage = () => {
                                     onAmountPaidNowChange={setAmountPaidNow}
                                     paymentMethod={paymentMethod}
                                     onPaymentMethodChange={setPaymentMethod}
-                                    disabled={isCreating || isCreatingPrintJobs}
+                                    disabled={isCreating || false}
                                 />
                             )}
 
@@ -780,16 +703,16 @@ const CashierInvoicesPage = () => {
                                 <div className="space-y-3">
                                     <Button
                                         onClick={handleCreateInvoice}
-                                        disabled={isCreating || isCreatingPrintJobs}
+                                        disabled={isCreating || false}
                                         className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-lg py-4 shadow-lg hover:shadow-emerald-500/25 transition-all duration-200"
                                     >
-                                        {(isCreating || isCreatingPrintJobs) ? (
+                                        {(isCreating || false) ? (
                                             <LoadingSpinner size="sm" className="ml-2" />
                                         ) : (
                                             <FiDollarSign className="ml-2" />
                                         )}
                                         {isCreating ? t('invoices.creatingInvoice') :
-                                            isCreatingPrintJobs ? t('invoices.creatingPrintJobs') : t('invoices.createInvoice')}
+                                            false ? t('invoices.creatingPrintJobs') : t('invoices.createInvoice')}
                                         <kbd className="mr-2 px-2 py-1 bg-white/20 rounded text-xs font-mono">F2</kbd>
                                     </Button>
 
@@ -821,23 +744,37 @@ const CashierInvoicesPage = () => {
 
                 {/* Invoice List */}
                 {currentMode === 'list' && (
-                    <InvoiceList
-                        isPrinting={isPrinting}
-                        isSendingToFactory={isSendingToFactory}
-                        invoices={invoices}
-                        loading={loading}
-                        searchTerm={filters.customerName}
-                        filters={filters}
-                        onFilterChange={handleFilterChange}
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onSearchChange={(val) => handleFilterChange('customerName', val)}
-                        onPageChange={(page) => loadInvoices(page)}
-                        onViewInvoice={handleViewInvoice}
-                        onPrintInvoice={handlePrintInvoice}
-                        onSendToFactory={handleSendToFactory}
-                        onMarkAsPaid={handleMarkAsPaid}
-                    />
+                    <>
+                        <InvoiceList
+                            isPrinting={isPrinting}
+                            isSendingToFactory={isSendingToFactory}
+                            invoices={filteredInvoices}
+                            loading={invoicesLoading}
+                            searchTerm={filters.customerName}
+                            filters={filters}
+                            onFilterChange={handleFilterChange}
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onSearchChange={(val) => handleFilterChange('customerName', val)}
+                            onPageChange={() => {
+                                if (canLoadMore) loadMoreInvoices(20);
+                            }}
+                            onViewInvoice={handleViewInvoice}
+                            onPrintInvoice={handlePrintInvoice}
+                            onSendToFactory={handleSendToFactory}
+                            onMarkAsPaid={handleMarkAsPaid}
+                        />
+                        {canLoadMore && (
+                            <div className="flex justify-center mt-4">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => loadMoreInvoices(20)}
+                                >
+                                    {t('common.loadMore')}
+                                </Button>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 
@@ -863,28 +800,6 @@ const CashierInvoicesPage = () => {
                 type={confirmDialog.type}
             />
 
-            {/* Print Job Status Modal */}
-            <PrintJobStatusModal
-                isOpen={showPrintJobStatusModal}
-                onClose={() => setShowPrintJobStatusModal(false)}
-                status={printJobStatus}
-                onRetry={async () => {
-                    if (printJobStatus?.invoiceId) {
-                        setIsRetryingPrintJob(true);
-                        try {
-                            await printJobService.retryPrintJobs(printJobStatus.invoiceId);
-                            showSuccess(t('printJob.retrySuccess'));
-                            const newStatus = await printJobService.checkPrintJobStatus(printJobStatus.invoiceId);
-                            setPrintJobStatus(newStatus);
-                        } catch (err) {
-                            showError(t('printJob.retryFailed'));
-                        } finally {
-                            setIsRetryingPrintJob(false);
-                        }
-                    }
-                }}
-                isRetrying={isRetryingPrintJob}
-            />
         </div>
     );
 };
