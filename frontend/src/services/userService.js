@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@convex/_generated/api";
 
 // ===== QUERY HOOKS =====
@@ -34,20 +34,18 @@ export function useCurrentUser() {
 // ===== MUTATION HOOKS =====
 
 /**
- * Create a new user
+ * Create a new user (creates in Clerk + Convex)
  * Usage: const createUser = useCreateUser();
- *        await createUser({ clerkUserId, username, firstName, lastName, role });
- * @returns {Function} Mutation function accepting { clerkUserId, username, firstName, lastName, role }
+ *        await createUser({ username, firstName, lastName, password, role });
  */
 export function useCreateUser() {
-    return useMutation(api.users.mutations.createUser);
+    return useAction(api.users.actions.createUserWithClerk);
 }
 
 /**
  * Update an existing user
  * Usage: const updateUser = useUpdateUser();
  *        await updateUser({ userId, firstName, lastName, role, isActive });
- * @returns {Function} Mutation function accepting { userId, firstName?, lastName?, role?, isActive? }
  */
 export function useUpdateUser() {
     return useMutation(api.users.mutations.updateUser);
@@ -56,18 +54,54 @@ export function useUpdateUser() {
 // ===== UTILITY FUNCTIONS =====
 
 /**
+ * Returns password requirement checks with pass/fail status.
+ * @param {string} password
+ * @returns {Array<{ label: string, passed: boolean }>}
+ */
+export const getPasswordChecks = (password = '') => {
+    return [
+        { label: '8 أحرف على الأقل', passed: password.length >= 8 },
+        { label: 'حرف كبير (A-Z)', passed: /[A-Z]/.test(password) },
+        { label: 'حرف صغير (a-z)', passed: /[a-z]/.test(password) },
+        { label: 'رقم (0-9)', passed: /[0-9]/.test(password) },
+        { label: 'رمز خاص (!@#$...)', passed: /[^A-Za-z0-9]/.test(password) },
+    ];
+};
+
+/**
  * Validate user creation data
  * @param {Object} userData - User data to validate
- * @returns {{ isValid: boolean, errors: string[] }} Validation result with array of error messages
+ * @returns {{ isValid: boolean, errors: Object }} Validation result with field-level errors
  */
 export const validateUserData = (userData) => {
-    const errors = [];
-    if (!userData?.username || userData.username.length < 3) errors.push('اسم المستخدم مطلوب ويجب أن يكون 3 أحرف على الأقل');
-    if (!userData?.firstName || userData.firstName.length < 2) errors.push('الاسم الأول مطلوب ويجب أن يكون حرفين على الأقل');
-    if (!userData?.lastName || userData.lastName.length < 2) errors.push('الاسم الأخير مطلوب ويجب أن يكون حرفين على الأقل');
-    if (!userData?.password || userData.password.length < 6) errors.push('كلمة المرور مطلوبة ويجب أن تكون 6 أحرف على الأقل');
-    if (!['OWNER', 'ADMIN', 'CASHIER', 'WORKER'].includes(userData?.role)) errors.push('يرجى اختيار دور صحيح');
-    return { isValid: errors.length === 0, errors };
+    const errors = {};
+    if (!userData?.username || userData.username.length < 3) {
+        errors.username = 'اسم المستخدم مطلوب ويجب أن يكون 3 أحرف على الأقل';
+    }
+    if (!userData?.firstName || userData.firstName.length < 2) {
+        errors.firstName = 'الاسم الأول مطلوب ويجب أن يكون حرفين على الأقل';
+    }
+    // Password validation - check all rules
+    const checks = getPasswordChecks(userData?.password || '');
+    const failingChecks = checks.filter(c => !c.passed);
+    if (failingChecks.length > 0) {
+        errors.password = true; // flag as invalid; UI shows the checklist
+    }
+    if (!['OWNER', 'ADMIN', 'CASHIER', 'WORKER'].includes(userData?.role)) {
+        errors.role = 'يرجى اختيار دور صحيح';
+    }
+    return { isValid: Object.keys(errors).length === 0, errors };
+};
+
+/**
+ * Extract a clean error message from a Convex error.
+ * Convex action errors include prefixes like "[CONVEX A(...)] Server Error Uncaught Error: ..."
+ */
+export const extractErrorMessage = (err) => {
+    const msg = err?.message || '';
+    // Strip Convex server error prefix
+    const match = msg.match(/(?:Uncaught Error:|Server Error[^:]*:)\s*(.+)/);
+    return match ? match[1].trim() : msg || 'حدث خطأ غير متوقع';
 };
 
 /**

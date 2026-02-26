@@ -193,6 +193,11 @@ const InvoiceViewModal = ({
                                                             })
                                                         ) : null}
                                                     </div>
+                                                    {line.notes && (
+                                                        <div className="mt-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded">
+                                                            {line.notes}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="text-xs text-gray-500 dark:text-gray-400">{t('invoiceView.lineTotal')}</div>

@@ -1,4 +1,4 @@
-import { mutation } from "../_generated/server";
+import { mutation, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
 import { requireRole } from "../helpers/auth";
 import { userRole } from "../schema";
@@ -83,6 +83,48 @@ export const updateUser = mutation({
  * Upsert user from Clerk webhook or first login.
  * Creates user if not exists, no auth required (called from webhook).
  */
+/**
+ * Internal mutation called by the createUserWithClerk action.
+ * Inserts a user record without auth checks (the action handles auth).
+ */
+export const insertUser = internalMutation({
+  args: {
+    clerkUserId: v.string(),
+    username: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
+    role: userRole,
+  },
+  handler: async (ctx, args) => {
+    // Check username uniqueness
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", args.username))
+      .unique();
+    if (existing) {
+      throw new Error("اسم المستخدم مسجل بالفعل");
+    }
+
+    // Check clerkUserId uniqueness
+    const existingClerk = await ctx.db
+      .query("users")
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", args.clerkUserId))
+      .unique();
+    if (existingClerk) {
+      throw new Error("حساب Clerk مرتبط بالفعل بمستخدم آخر");
+    }
+
+    return await ctx.db.insert("users", {
+      clerkUserId: args.clerkUserId,
+      username: args.username,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      role: args.role,
+      isActive: true,
+    });
+  },
+});
+
 export const upsertFromClerk = mutation({
   args: {
     clerkUserId: v.string(),

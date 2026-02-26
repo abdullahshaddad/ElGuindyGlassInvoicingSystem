@@ -25,7 +25,7 @@ const CustomerDetailsPage = () => {
         status: invoicesPaginationStatus,
         loadMore: loadMoreInvoices,
         isLoading: invoicesLoading
-    } = useCustomerInvoices(id, { initialNumItems: 10 });
+    } = useCustomerInvoices(id, { initialNumItems: 10, customerName: customer?.name });
 
     const loading = customer === undefined;
 

@@ -664,6 +664,7 @@
     "laserPrice": "Laser Price",
     "notes": "Notes",
     "notesOptional": "Notes (optional)",
+    "notesPlaceholder": "Notes about glass or operations...",
     "glassOptionLabel": "{{name}} ({{thickness}} mm) - {{price}} EGP/m",
     "laser": {
       "NORMAL": "Normal Laser",

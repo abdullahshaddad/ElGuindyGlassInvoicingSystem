@@ -15,29 +15,20 @@ export function useCompanyProfile() {
 
 /**
  * Create or update the company profile
- * Usage: const upsertProfile = useUpsertCompanyProfile();
- *        await upsertProfile({ companyName, companyNameArabic, address, phone, email, taxId, commercialRegister, footerText });
- * @returns {Function} Mutation function accepting { companyName, companyNameArabic?, address?, phone?, email?, taxId?, commercialRegister?, footerText? }
  */
 export function useUpsertCompanyProfile() {
     return useMutation(api.companyProfile.mutations.upsertCompanyProfile);
 }
 
 /**
- * Upload a company logo
- *
- * For Convex file uploads, the typical pattern is:
- * 1. Call a mutation/action that returns an upload URL (or use generateUploadUrl)
- * 2. POST the file to that upload URL via fetch
- * 3. Receive a storageId from the response
- * 4. Pass the storageId to uploadLogo mutation to associate it with the company profile
- *
- * Usage:
- *   const uploadLogo = useUploadLogo();
- *   // After uploading file to Convex storage and obtaining storageId:
- *   await uploadLogo({ storageId });
- *
- * @returns {Function} Mutation function accepting { storageId }
+ * Generate a short-lived upload URL for Convex file storage
+ */
+export function useGenerateUploadUrl() {
+    return useMutation(api.companyProfile.mutations.generateUploadUrl);
+}
+
+/**
+ * Save the uploaded logo's storageId on the company profile
  */
 export function useUploadLogo() {
     return useMutation(api.companyProfile.mutations.uploadLogo);

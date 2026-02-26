@@ -57,16 +57,20 @@ export function useCustomerByPhone(phone) {
 /**
  * Get invoices for a specific customer with pagination
  * @param {string|undefined} customerId - Convex customer ID
- * @param {Object} [paginationOpts] - Convex pagination options
+ * @param {Object} [options] - Options including pagination and customerName
+ * @param {number} [options.initialNumItems] - Initial number of items to load
+ * @param {string} [options.customerName] - Customer name to attach to each invoice
  * @returns {Object} Paginated query result { results, status, loadMore, isLoading }
  */
-export function useCustomerInvoices(customerId, paginationOpts = {}) {
+export function useCustomerInvoices(customerId, options = {}) {
+    const { initialNumItems = 20, customerName } = options;
+    const queryArgs = customerId
+        ? { customerId, ...(customerName ? { customerName } : {}) }
+        : "skip";
     return usePaginatedQuery(
         api.customers.queries.getCustomerInvoices,
-        customerId ? { customerId } : "skip",
-        paginationOpts.initialNumItems
-            ? { initialNumItems: paginationOpts.initialNumItems }
-            : { initialNumItems: 20 }
+        queryArgs,
+        { initialNumItems }
     );
 }
 

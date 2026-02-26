@@ -532,7 +532,7 @@ const CuttingJobCard = ({ job, onViewSticker, onStatusChange, showThickness = fa
     };
 
     return (
-        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600 overflow-hidden hover:shadow-lg transition-all">
+        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600 overflow-hidden hover:shadow-lg transition-all flex flex-col h-full">
             {/* Header - Customer & Invoice */}
             <div className="bg-white dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-600">
                 <div className="flex items-center justify-between">
@@ -546,7 +546,7 @@ const CuttingJobCard = ({ job, onViewSticker, onStatusChange, showThickness = fa
             </div>
 
             {/* Main Content */}
-            <div className="p-4 space-y-3">
+            <div className="p-4 space-y-3 flex-1">
                 {/* Glass Type & Thickness */}
                 <div className="flex items-start justify-between">
                     <div>

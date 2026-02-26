@@ -69,21 +69,23 @@ const CSS = `
 body{font-family:'Amiri','Traditional Arabic','Arabic Typesetting',serif;color:#111827;font-size:10pt;direction:rtl;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .page{page-break-after:always;position:relative;min-height:calc(297mm - 24mm);padding-bottom:36pt}
 .page:last-child{page-break-after:auto}
+.hdr-top{text-align:center;margin-bottom:6pt}
+.hdr-top-logo{height:50pt;max-width:160pt;object-fit:contain;margin-bottom:4pt}
+.inv-num{font-size:18pt;font-weight:700;color:#122d5f;letter-spacing:.5pt;direction:ltr;display:inline-block}
+.copy-lbl{font-size:8.5pt;color:#6b7280;margin-top:1pt}
 .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8pt}
 .hdr-r{text-align:right}
 .hdr-l{text-align:left;direction:ltr}
-.inv-title{font-size:22pt;font-weight:700;color:#122d5f;line-height:1.2}
-.copy-lbl{font-size:8.5pt;color:#2563eb;margin-top:2pt}
-.co-name{font-size:12pt;font-weight:700;color:#111827;margin-top:6pt}
+.inv-title{font-size:14pt;font-weight:700;color:#122d5f;line-height:1.2}
+.co-name{font-size:12pt;font-weight:700;color:#111827;margin-top:2pt}
 .co-det{font-size:8.5pt;color:#6b7280;margin-top:1pt}
-.inv-badge{background:#2563eb;color:#fff;font-size:16pt;font-weight:700;padding:5pt 15pt;border-radius:4pt;display:inline-block;direction:ltr}
-.inv-date{font-size:10pt;color:#6b7280;margin-top:6pt}
+.inv-date{font-size:10pt;color:#6b7280}
 .st-badge{display:inline-block;padding:2pt 8pt;border-radius:8pt;font-size:8.5pt;font-weight:700;margin-top:4pt}
 .st-paid{background:rgba(5,150,105,.12);color:#059669}
 .st-pending{background:rgba(107,114,128,.12);color:#6b7280}
 .st-partial{background:rgba(217,140,13,.12);color:#d98c0d}
 .st-cancelled{background:rgba(220,38,38,.12);color:#dc2626}
-.blue-sep{border:none;border-top:3pt solid #2563eb;margin:10pt 0 14pt}
+.blue-sep{border:none;border-top:2pt solid #122d5f;margin:8pt 0 14pt}
 .cust-box{background:#f1f5f9;border:.5pt solid #e5e7eb;padding:8pt 12pt;margin-bottom:14pt;border-radius:3pt}
 .cust-box h3{font-size:12pt;color:#122d5f;margin-bottom:6pt}
 .cust-row{display:flex;gap:24pt;font-size:10pt;margin-bottom:3pt}
@@ -102,6 +104,7 @@ body{font-family:'Amiri','Traditional Arabic','Arabic Typesetting',serif;color:#
 .area-u{font-size:7.5pt;color:#6b7280}
 .qty-v{font-size:12pt;font-weight:700}
 .op-ln{font-size:8pt;color:#111827;margin-bottom:1pt}
+.line-note{font-size:7.5pt;color:#92400e;background:#fffbeb;padding:2pt 4pt;border-radius:2pt;margin-top:2pt;display:inline-block}
 .lt-v{font-weight:700;color:#059669;font-size:10pt}
 .lt-sub{font-size:7pt;color:#6b7280;margin-top:1pt}
 .tot-wrap{display:flex;justify-content:flex-start;margin-bottom:14pt}
@@ -136,11 +139,21 @@ function renderCopy(invoice, lines, payments, customer, co, invNum, copyLabel, s
     const stCls = statusClass(invoice.status);
     const stTxt = statusLabel(invoice.status);
 
+    // Top section: logo + invoice number centered
     let h = `<div class="page">
-  <div class="hdr">
-    <div class="hdr-r">
-      <div class="inv-title">فاتورة</div>
-      <div class="copy-lbl">${esc(copyLabel)}</div>`;
+  <div class="hdr-top">`;
+
+    if (co.logoUrl) {
+        h += `\n    <img class="hdr-top-logo" src="${esc(co.logoUrl)}" alt=""><br>`;
+    }
+
+    h += `\n    <div class="inv-num">${esc(invNum)}</div>`;
+    h += `\n    <div class="copy-lbl">${esc(copyLabel)}</div>`;
+    h += `\n  </div>`;
+
+    // Second row: company info (right) + date/status (left)
+    h += `\n  <div class="hdr">
+    <div class="hdr-r">`;
 
     const companyName = co.companyNameArabic || co.companyName || '';
     if (companyName) h += `\n      <div class="co-name">${esc(companyName)}</div>`;
@@ -151,7 +164,6 @@ function renderCopy(invoice, lines, payments, customer, co, invNum, copyLabel, s
     h += `
     </div>
     <div class="hdr-l">
-      <div class="inv-badge">${esc(invNum)}</div>
       <div class="inv-date">${esc(fmtDate(invoice.issueDate))}</div>
       <div class="st-badge ${stCls}">${esc(stTxt)}</div>
     </div>
@@ -210,6 +222,9 @@ function renderCopy(invoice, lines, payments, customer, co, invNum, copyLabel, s
             oc = ops.map(op => `<div class="op-ln">${esc(getOpDisplay(op))}</div>`).join('');
         } else {
             oc = '<span style="color:#6b7280">-</span>';
+        }
+        if (line.notes) {
+            oc += `<div class="line-note">${esc(line.notes)}</div>`;
         }
 
         let tc = `<div class="lt-v">${esc(fmtCurrency(line.lineTotal))}</div>`;

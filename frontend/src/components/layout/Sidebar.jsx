@@ -190,7 +190,7 @@ const NavGroup = ({ title, children, isCollapsed }) => (
                 {title}
             </h3>
         )}
-        {isCollapsed && <div className="border-t border-gray-200 dark:border-gray-700 my-2 mx-3"></div>}
+        {/*{isCollapsed && <div className="border-t border-gray-200 dark:border-gray-700 my-2 mx-3"></div>}*/}
         <nav className="space-y-1">
             {children}
         </nav>
@@ -284,70 +284,73 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                 )}
             >
                 {/* Sidebar header - Fixed at top */}
-                <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between">
-                        <div className={clsx('flex items-center gap-3', isCollapsed && 'justify-center w-full')}>
-                            {companyLogo ? (
-                                <img
-                                    src={companyLogo}
-                                    alt={companyName || t('app.name', '\u0627\u0644\u062c\u064a\u0646\u062f\u064a \u0644\u0644\u0632\u062c\u0627\u062c')}
-                                    className="w-10 h-10 rounded-xl object-contain"
-                                    onError={(e) => {
-                                        e.target.style.display = 'none';
-                                        e.target.nextSibling.style.display = 'flex';
-                                    }}
-                                />
-                            ) : null}
-                            <div
-                                className={clsx(
-                                    "w-10 h-10 rounded-xl items-center justify-center text-white font-bold flex-shrink-0",
-                                    companyLogo ? "hidden" : "flex"
-                                )}
-                                style={{ backgroundColor: '#0077B6' }}
-                            >
-                                G
-                            </div>
-                            {!isCollapsed && (
-                                <div className="min-w-0 flex-1">
-                                    <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">
-                                        {companyName || t('app.name', '\u0627\u0644\u062c\u064a\u0646\u062f\u064a \u0644\u0644\u0632\u062c\u0627\u062c')}
-                                    </h1>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Toggle & Close buttons */}
-                        <div className="flex items-center gap-1">
-                            {/* Collapse Toggle Button - Desktop only */}
+                <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
+                    {isCollapsed ? (
+                        /* Collapsed: only menu icon, click to expand */
+                        <div className="flex flex-col items-center py-4">
                             <button
                                 onClick={onToggleCollapse}
-                                className={clsx(
-                                    'hidden lg:flex p-2 rounded-lg',
-                                    'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
-                                    'hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'
-                                )}
-                                title={isCollapsed
-                                    ? (isRTL ? '\u062a\u0648\u0633\u064a\u0639 \u0627\u0644\u0642\u0627\u0626\u0645\u0629' : 'Expand sidebar')
-                                    : (isRTL ? '\u0637\u064a \u0627\u0644\u0642\u0627\u0626\u0645\u0629' : 'Collapse sidebar')
-                                }
+                                className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                title={isRTL ? 'توسيع القائمة' : 'Expand sidebar'}
                             >
-                                {isCollapsed
-                                    ? <FiMenu className="w-5 h-5" />
-                                    : (isRTL ? <FiChevronRight className="w-5 h-5" /> : <FiChevronLeft className="w-5 h-5" />)
-                                }
+                                <FiMenu className="w-5 h-5" />
                             </button>
+                        </div>
+                    ) : (
+                        /* Expanded: logo + name + toggle/close buttons */
+                        <div className="flex items-center justify-between p-4">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                {companyLogo ? (
+                                    <img
+                                        src={companyLogo}
+                                        alt={companyName || t('app.name', 'الجندي للزجاج')}
+                                        className="w-10 h-10 rounded-xl object-contain flex-shrink-0"
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            e.target.nextSibling.style.display = 'flex';
+                                        }}
+                                    />
+                                ) : null}
+                                <div
+                                    className={clsx(
+                                        "w-10 h-10 rounded-xl items-center justify-center text-white font-bold flex-shrink-0",
+                                        companyLogo ? "hidden" : "flex"
+                                    )}
+                                    style={{ backgroundColor: '#0077B6' }}
+                                >
+                                    G
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+                                        {companyName || t('app.name', 'الجندي للزجاج')}
+                                    </h1>
+                                </div>
+                            </div>
 
-                            {/* Close button for mobile */}
-                            {!isCollapsed && (
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                                {/* Collapse Toggle - Desktop only */}
+                                <button
+                                    onClick={onToggleCollapse}
+                                    className={clsx(
+                                        'hidden lg:flex p-2 rounded-lg',
+                                        'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
+                                        'hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'
+                                    )}
+                                    title={isRTL ? 'طي القائمة' : 'Collapse sidebar'}
+                                >
+                                    {isRTL ? <FiChevronRight className="w-5 h-5" /> : <FiChevronLeft className="w-5 h-5" />}
+                                </button>
+
+                                {/* Close button for mobile */}
                                 <button
                                     onClick={onClose}
                                     className="lg:hidden p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
                                     <FiX className="w-5 h-5" />
                                 </button>
-                            )}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Navigation - Scrollable section */}
@@ -391,7 +394,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                             'p-2 space-y-1 min-w-[200px]',
                             isCollapsed
                                 ? (isRTL ? 'right-0' : 'left-0')
-                                : (isRTL ? 'left-2 right-2' : 'left-2 right-2')
+                                : 'inset-x-2'
                         )}>
                             {/* User Info Header in Popup */}
                             <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700 mb-1">

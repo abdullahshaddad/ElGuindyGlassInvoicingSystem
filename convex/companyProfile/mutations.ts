@@ -11,9 +11,6 @@ export const upsertCompanyProfile = mutation({
     email: v.optional(v.string()),
     taxId: v.optional(v.string()),
     commercialRegister: v.optional(v.string()),
-    logoUrl: v.optional(v.string()),
-    logoBase64: v.optional(v.string()),
-    logoContentType: v.optional(v.string()),
     footerText: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -32,6 +29,21 @@ export const upsertCompanyProfile = mutation({
   },
 });
 
+/**
+ * Generate a short-lived upload URL for Convex file storage.
+ */
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireRole(ctx, ["OWNER"]);
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+/**
+ * Save the uploaded logo's storageId on the company profile.
+ * Deletes the previous logo from storage if one existed.
+ */
 export const uploadLogo = mutation({
   args: { storageId: v.id("_storage") },
   handler: async (ctx, args) => {
@@ -40,8 +52,17 @@ export const uploadLogo = mutation({
     const existing = await ctx.db.query("companyProfile").first();
     if (!existing) throw new Error("يجب إنشاء ملف الشركة أولاً");
 
+    // Delete old logo from storage
+    if (existing.logoStorageId) {
+      await ctx.storage.delete(existing.logoStorageId);
+    }
+
     await ctx.db.patch(existing._id, {
       logoStorageId: args.storageId,
+      // Clear any old base64 data
+      logoUrl: undefined,
+      logoBase64: undefined,
+      logoContentType: undefined,
     });
   },
 });

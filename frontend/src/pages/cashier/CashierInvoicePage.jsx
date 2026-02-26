@@ -467,6 +467,7 @@ const CashierInvoicesPage = () => {
                     operations: (item.operations || [])
                         .filter(op => op.bevelingType)
                         .map(mapOperationToBackend),
+                    notes: item.notes || undefined,
                 })),
                 amountPaidNow: amountPaidNow > 0 ? amountPaidNow : undefined,
                 notes: undefined

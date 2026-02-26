@@ -664,6 +664,7 @@
     "laserPrice": "سعر الليزر",
     "notes": "ملاحظات",
     "notesOptional": "ملاحظات (اختياري)",
+    "notesPlaceholder": "ملاحظات على الزجاج أو العمليات...",
     "glassOptionLabel": "{{name}} ({{thickness}} مم) - {{price}} ج.م/م",
     "laser": {
       "NORMAL": "ليزر عادي",

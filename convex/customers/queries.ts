@@ -48,14 +48,27 @@ export const getCustomerByPhone = query({
 export const getCustomerInvoices = query({
   args: {
     customerId: v.id("customers"),
+    customerName: v.optional(v.string()),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
     await requireAuth(ctx);
-    return await ctx.db
+    const result = await ctx.db
       .query("invoices")
       .withIndex("by_customerId", (q) => q.eq("customerId", args.customerId))
       .order("desc")
       .paginate(args.paginationOpts);
+
+    if (args.customerName) {
+      return {
+        ...result,
+        page: result.page.map((invoice) => ({
+          ...invoice,
+          customerName: args.customerName,
+        })),
+      };
+    }
+
+    return result;
   },
 });

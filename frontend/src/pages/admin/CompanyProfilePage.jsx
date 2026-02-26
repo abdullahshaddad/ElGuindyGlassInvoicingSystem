@@ -6,7 +6,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { useCompanyProfile, useUpsertCompanyProfile, useUploadLogo } from '@/services/companyProfileService';
+import { useCompanyProfile, useUpsertCompanyProfile, useGenerateUploadUrl, useUploadLogo } from '@/services/companyProfileService';
 
 const CompanyProfilePage = () => {
     const { t } = useTranslation();
@@ -18,6 +18,7 @@ const CompanyProfilePage = () => {
 
     // Convex mutations
     const upsertCompanyProfile = useUpsertCompanyProfile();
+    const generateUploadUrl = useGenerateUploadUrl();
     const uploadLogo = useUploadLogo();
 
     const [saving, setSaving] = useState(false);
@@ -71,13 +72,11 @@ const CompanyProfilePage = () => {
                 taxId: profile.taxId || undefined,
                 commercialRegister: profile.commercialRegister || undefined,
                 footerText: profile.footerText || undefined,
-                logoUrl: profile.logoUrl || undefined
             });
-            // No manual refetch needed - Convex auto-updates
-            showSuccess(t('companyProfile.savedSuccess'));
+            showSuccess(t('companyProfile.savedSuccess', 'تم حفظ الملف الشخصي بنجاح'));
         } catch (error) {
             console.error('Error saving profile:', error);
-            showError(t('companyProfile.saveError'));
+            showError(t('companyProfile.saveError', 'فشل في حفظ الملف الشخصي'));
         } finally {
             setSaving(false);
         }
@@ -89,46 +88,43 @@ const CompanyProfilePage = () => {
 
         // Validate file type
         if (!file.type.startsWith('image/')) {
-            showError(t('companyProfile.invalidImage'));
+            showError(t('companyProfile.invalidImage', 'يرجى اختيار ملف صورة صالح'));
             return;
         }
 
-        // Validate file size (e.g., max 2MB)
-        if (file.size > 2 * 1024 * 1024) {
-            showError(t('companyProfile.imageTooLarge'));
+        // Validate file size (max 5MB for storage)
+        if (file.size > 5 * 1024 * 1024) {
+            showError(t('companyProfile.imageTooLarge', 'حجم الصورة كبير جداً (الحد الأقصى 5 ميجابايت)'));
             return;
         }
 
         try {
             setUploading(true);
 
-            // Convert file to base64 and store directly via upsertCompanyProfile
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                try {
-                    const base64Data = event.target.result;
-                    // Store the base64 data URL directly as logoUrl
-                    await upsertCompanyProfile({
-                        companyName: profile.companyName || 'Company',
-                        logoUrl: base64Data
-                    });
-                    // The reactive query will auto-update the profile with the new logoUrl
-                    showSuccess(t('companyProfile.logoUploaded'));
-                } catch (uploadError) {
-                    console.error('Error uploading logo:', uploadError);
-                    showError(t('companyProfile.uploadError'));
-                } finally {
-                    setUploading(false);
-                }
-            };
-            reader.onerror = () => {
-                showError(t('companyProfile.uploadError'));
-                setUploading(false);
-            };
-            reader.readAsDataURL(file);
+            // 1. Get a short-lived upload URL from Convex
+            const uploadUrl = await generateUploadUrl();
+
+            // 2. Upload the file directly to Convex storage
+            const result = await fetch(uploadUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': file.type },
+                body: file,
+            });
+
+            if (!result.ok) {
+                throw new Error('فشل في رفع الملف');
+            }
+
+            const { storageId } = await result.json();
+
+            // 3. Link the storageId to the company profile
+            await uploadLogo({ storageId });
+
+            showSuccess(t('companyProfile.logoUploaded', 'تم رفع الشعار بنجاح'));
         } catch (error) {
             console.error('Error uploading logo:', error);
-            showError(t('companyProfile.uploadError'));
+            showError(t('companyProfile.uploadError', 'فشل في رفع الشعار'));
+        } finally {
             setUploading(false);
         }
     };
@@ -155,7 +151,7 @@ const CompanyProfilePage = () => {
                 <Button
                     onClick={handleSubmit}
                     disabled={saving}
-                    isLoading={saving}
+                    loading={saving}
                     className="flex items-center gap-2"
                 >
                     <FiSave />

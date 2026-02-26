@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FiPlus, FiTrash2, FiInfo, FiAlertCircle, FiLayers } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiInfo, FiAlertCircle, FiLayers, FiEdit3 } from 'react-icons/fi';
 import Input from '@components/ui/Input.jsx';
 import Select from '@components/ui/Select.jsx';
 import Button from '@components/ui/Button.jsx';
@@ -423,6 +423,22 @@ const EnhancedProductEntry = ({
                         ))}
                     </div>
                 )}
+            </div>
+
+            {/* Notes */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+                    <FiEdit3 size={14} />
+                    {t('product.notes', 'ملاحظات')}
+                </label>
+                <textarea
+                    value={currentLine.notes || ''}
+                    onChange={(e) => onLineChange({ ...currentLine, notes: e.target.value })}
+                    placeholder={t('product.notesPlaceholder', 'ملاحظات على الزجاج أو العمليات...')}
+                    disabled={disabled}
+                    rows={2}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                />
             </div>
 
             {/* Validation Errors */}

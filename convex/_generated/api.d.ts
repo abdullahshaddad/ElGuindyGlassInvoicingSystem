@@ -42,6 +42,7 @@ import type * as payments_queries from "../payments/queries.js";
 import type * as printJobs_internal from "../printJobs/internal.js";
 import type * as printJobs_mutations from "../printJobs/mutations.js";
 import type * as printJobs_queries from "../printJobs/queries.js";
+import type * as users_actions from "../users/actions.js";
 import type * as users_mutations from "../users/mutations.js";
 import type * as users_queries from "../users/queries.js";
 
@@ -86,6 +87,7 @@ declare const fullApi: ApiFromModules<{
   "printJobs/internal": typeof printJobs_internal;
   "printJobs/mutations": typeof printJobs_mutations;
   "printJobs/queries": typeof printJobs_queries;
+  "users/actions": typeof users_actions;
   "users/mutations": typeof users_mutations;
   "users/queries": typeof users_queries;
 }>;

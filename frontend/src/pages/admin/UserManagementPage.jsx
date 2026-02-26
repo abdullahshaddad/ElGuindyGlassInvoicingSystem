@@ -1,13 +1,13 @@
 // src/pages/admin/UserManagementPage.jsx - WITH FULL DARK MODE SUPPORT
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FiPlus, FiSearch, FiUserCheck, FiUserX } from 'react-icons/fi';
+import { FiPlus, FiSearch, FiUserCheck, FiUserX, FiEye, FiEyeOff } from 'react-icons/fi';
 
 // Import existing components
 import { Badge, Button, DataTable, Input, Modal, PageHeader, Select } from '@components';
 
 // Import Convex hooks and utilities from rewritten service
-import { useUsers, useCreateUser, useUpdateUser, validateUserData, getRoleInfo } from '@services/userService';
+import { useUsers, useCreateUser, useUpdateUser, validateUserData, getPasswordChecks, getRoleInfo, extractErrorMessage } from '@services/userService';
 import useAuthorized from "@hooks/useAuthorized.js";
 
 const UserManagementPage = () => {
@@ -39,10 +39,12 @@ const UserManagementPage = () => {
     const [formData, setFormData] = useState({
         username: '',
         firstName: '',
+        lastName: '',
         password: '',
         role: 'CASHIER' // Default role
     });
     const [formErrors, setFormErrors] = useState({});
+    const [showPassword, setShowPassword] = useState(false);
 
     // RTL support
     const isRTL = i18n.language === 'ar';
@@ -78,15 +80,7 @@ const UserManagementPage = () => {
         // Validate form data
         const validation = validateUserData(formData);
         if (!validation.isValid) {
-            // Convert errors array to field-level errors for display
-            const fieldErrors = {};
-            validation.errors.forEach(err => {
-                if (err.includes('\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645')) fieldErrors.username = err;
-                else if (err.includes('\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u0648\u0644')) fieldErrors.firstName = err;
-                else if (err.includes('\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631')) fieldErrors.password = err;
-                else if (err.includes('\u062f\u0648\u0631')) fieldErrors.role = err;
-            });
-            setFormErrors(fieldErrors);
+            setFormErrors(validation.errors);
             return;
         }
 
@@ -94,10 +88,11 @@ const UserManagementPage = () => {
             setIsSubmitting(true);
             setError('');
 
-            // Call Convex mutation
+            // Call Convex action (creates user in Clerk + Convex)
             await createUser({
                 username: formData.username,
                 firstName: formData.firstName,
+                lastName: formData.lastName || undefined,
                 password: formData.password,
                 role: formData.role
             });
@@ -106,21 +101,22 @@ const UserManagementPage = () => {
             setFormData({
                 username: '',
                 firstName: '',
+                lastName: '',
                 password: '',
                 role: 'CASHIER'
             });
             setFormErrors({});
             setShowCreateModal(false);
 
-            // No manual reload needed - Convex auto-updates
-            console.log(t('users.messages.create_success'));
-
         } catch (err) {
             console.error('Create user error:', err);
-            if (err.message?.includes('already exists') || err.message?.includes('username')) {
-                setError(t('users.messages.username_exists'));
+            const cleanMsg = extractErrorMessage(err);
+            if (cleanMsg.includes('مسجل بالفعل') || cleanMsg.includes('already exists')) {
+                setFormErrors({ username: 'اسم المستخدم مسجل بالفعل' });
+            } else if (cleanMsg.includes('كلمة المرور')) {
+                setFormErrors({ password: cleanMsg });
             } else {
-                setError(err.message || t('users.messages.create_error'));
+                setError(cleanMsg);
             }
         } finally {
             setIsSubmitting(false);
@@ -340,6 +336,7 @@ const UserManagementPage = () => {
                     setFormData({
                         username: '',
                         firstName: '',
+                        lastName: '',
                         password: '',
                         role: 'CASHIER'
                     });
@@ -351,11 +348,17 @@ const UserManagementPage = () => {
                 className="dark:bg-gray-800 dark:border-gray-700"
             >
                 <div className="bg-white dark:bg-gray-800">
+                    {/* Error Display inside modal */}
+                    {error && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4">
+                            <div className="text-red-800 dark:text-red-300 text-sm">{error}</div>
+                        </div>
+                    )}
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Username Field */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                {t('users.fields.username')} *
+                                {t('users.fields.username')} <span className="text-red-500">*</span>
                             </label>
                             <Input
                                 type="text"
@@ -373,7 +376,7 @@ const UserManagementPage = () => {
                         {/* First Name Field */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                {t('users.fields.first_name')} *
+                                {t('users.fields.first_name')} <span className="text-red-500">*</span>
                             </label>
                             <Input
                                 type="text"
@@ -388,28 +391,74 @@ const UserManagementPage = () => {
                             />
                         </div>
 
+                        {/* Last Name Field */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {t('users.fields.last_name', 'الاسم الأخير')}
+                            </label>
+                            <Input
+                                type="text"
+                                name="lastName"
+                                value={formData.lastName}
+                                onChange={handleInputChange}
+                                placeholder={t('forms.placeholder', { field: t('users.fields.last_name', 'الاسم الأخير') })}
+                                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                            />
+                        </div>
+
                         {/* Password Field */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                {t('users.fields.password')} *
+                                {t('users.fields.password')} <span className="text-red-500">*</span>
                             </label>
-                            <Input
-                                type="password"
-                                name="password"
-                                value={formData.password}
-                                onChange={handleInputChange}
-                                error={!!formErrors.password}
-                                helperText={formErrors.password}
-                                placeholder={t('forms.placeholder', { field: t('users.fields.password') })}
-                                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-                                required
-                            />
+                            <div className="relative">
+                                <Input
+                                    type={showPassword ? 'text' : 'password'}
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleInputChange}
+                                    error={!!formErrors.password}
+                                    placeholder={t('forms.placeholder', { field: t('users.fields.password') })}
+                                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(prev => !prev)}
+                                    className="absolute top-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+                                    style={{ [isRTL ? 'left' : 'right']: '10px' }}
+                                    tabIndex={-1}
+                                >
+                                    {showPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                            {/* Password requirements checklist */}
+                            {formData.password.length > 0 && (
+                                <ul className="mt-2 space-y-1">
+                                    {getPasswordChecks(formData.password).map((check, i) => (
+                                        <li key={i} className="flex items-center gap-1.5 text-xs">
+                                            {check.passed ? (
+                                                <svg className="w-3.5 h-3.5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                </svg>
+                                            ) : (
+                                                <svg className="w-3.5 h-3.5 text-red-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                </svg>
+                                            )}
+                                            <span className={check.passed ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}>
+                                                {check.label}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </div>
 
                         {/* Role Field */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                {t('users.fields.role')} *
+                                {t('users.fields.role')} <span className="text-red-500">*</span>
                             </label>
                             <Select
                                 name="role"
@@ -447,19 +496,11 @@ const UserManagementPage = () => {
                                 type="submit"
                                 variant="primary"
                                 disabled={isSubmitting}
+                                loading={isSubmitting}
                                 className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 text-white border-0 disabled:opacity-50 dark:disabled:opacity-50"
                             >
-                                {isSubmitting ? (
-                                    <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white dark:border-gray-300"></div>
-                                        {t('users.actions.creating')}
-                                    </>
-                                ) : (
-                                    <>
-                                        <FiPlus className="w-4 h-4" />
-                                        {t('actions.create')}
-                                    </>
-                                )}
+                                <FiPlus className="w-4 h-4" />
+                                {isSubmitting ? t('users.actions.creating', 'جاري الإنشاء...') : t('actions.create')}
                             </Button>
                         </div>
                     </form>
