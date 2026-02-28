@@ -1,44 +1,42 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
-import { requireAuth } from "../helpers/auth";
+import { tenantQuery, verifyTenantOwnership } from "../helpers/multitenancy";
 
-export const getInvoicePrintJobs = query({
+export const getInvoicePrintJobs = tenantQuery({
   args: { invoiceId: v.id("invoices") },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
+  handler: async (ctx, args, tenant) => {
+    // Verify invoice belongs to tenant
+    const invoice = await ctx.db.get(args.invoiceId);
+    verifyTenantOwnership(invoice, tenant.tenantId);
+
     const jobs = await ctx.db
       .query("printJobs")
       .withIndex("by_invoiceId", (q) => q.eq("invoiceId", args.invoiceId))
       .collect();
 
-    // Backfill invoiceReadableId for old jobs that don't have it
     return await Promise.all(
       jobs.map(async (job) => {
         if (job.invoiceReadableId) return job;
-        const invoice = await ctx.db.get(job.invoiceId);
+        const inv = await ctx.db.get(job.invoiceId);
         return {
           ...job,
-          invoiceReadableId: invoice?.readableId || String(invoice?.invoiceNumber ?? ""),
+          invoiceReadableId: inv?.readableId || String(inv?.invoiceNumber ?? ""),
         };
       })
     );
   },
 });
 
-export const getPrintJob = query({
+export const getPrintJob = tenantQuery({
   args: { printJobId: v.id("printJobs") },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
+  handler: async (ctx, args, tenant) => {
     const job = await ctx.db.get(args.printJobId);
-    if (!job) throw new Error("مهمة الطباعة غير موجودة");
+    verifyTenantOwnership(job, tenant.tenantId);
 
-    // Get download URL if PDF exists
     let pdfUrl: string | null = null;
     if (job.pdfStorageId) {
       pdfUrl = await ctx.storage.getUrl(job.pdfStorageId);
     }
 
-    // Backfill invoiceReadableId for old jobs
     let invoiceReadableId = job.invoiceReadableId;
     if (!invoiceReadableId) {
       const invoice = await ctx.db.get(job.invoiceId);
@@ -49,13 +47,14 @@ export const getPrintJob = query({
   },
 });
 
-export const getPendingPrintJobs = query({
+export const getPendingPrintJobs = tenantQuery({
   args: {},
-  handler: async (ctx) => {
-    await requireAuth(ctx);
+  handler: async (ctx, _args, tenant) => {
     const jobs = await ctx.db
       .query("printJobs")
-      .withIndex("by_status", (q) => q.eq("status", "QUEUED"))
+      .withIndex("by_tenantId_status", (q) =>
+        q.eq("tenantId", tenant.tenantId).eq("status", "QUEUED")
+      )
       .collect();
 
     return await Promise.all(

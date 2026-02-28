@@ -1,30 +1,27 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
-import { requireRole } from "../helpers/auth";
+import { tenantQuery } from "../helpers/multitenancy";
 
-export const getDashboardStats = query({
+export const getDashboardStats = tenantQuery({
   args: {
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    await requireRole(ctx, ["OWNER", "ADMIN"]);
-
+  handler: async (ctx, args, tenant) => {
     const now = Date.now();
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     const startDate = args.startDate ?? startOfDay.getTime();
     const endDate = args.endDate ?? now;
 
-    // Get all invoices in range
     const invoices = await ctx.db
       .query("invoices")
-      .withIndex("by_issueDate", (q) =>
-        q.gte("issueDate", startDate).lte("issueDate", endDate)
+      .withIndex("by_tenantId_issueDate", (q) =>
+        q.eq("tenantId", tenant.tenantId)
+          .gte("issueDate", startDate)
+          .lte("issueDate", endDate)
       )
       .collect();
 
-    // Calculate stats
     const totalInvoices = invoices.length;
     const paidInvoices = invoices.filter((i) => i.status === "PAID");
     const pendingInvoices = invoices.filter((i) => i.status === "PENDING");
@@ -34,11 +31,12 @@ export const getDashboardStats = query({
       0
     );
 
-    // Count all customers
-    const allCustomers = await ctx.db.query("customers").collect();
+    const allCustomers = await ctx.db
+      .query("customers")
+      .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant.tenantId))
+      .collect();
     const totalCustomers = allCustomers.length;
 
-    // Today's invoices
     const todayInvoices = invoices.filter(
       (i) => i.issueDate >= startOfDay.getTime()
     );
@@ -59,15 +57,15 @@ export const getDashboardStats = query({
   },
 });
 
-export const getTopCustomers = query({
+export const getTopCustomers = tenantQuery({
   args: { limit: v.optional(v.number()) },
-  handler: async (ctx, args) => {
-    await requireRole(ctx, ["OWNER", "ADMIN"]);
-
+  handler: async (ctx, args, tenant) => {
     const limit = args.limit ?? 10;
-    const customers = await ctx.db.query("customers").collect();
+    const customers = await ctx.db
+      .query("customers")
+      .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant.tenantId))
+      .collect();
 
-    // Sort by balance (debt) descending
     return customers
       .filter((c) => c.balance > 0)
       .sort((a, b) => b.balance - a.balance)
@@ -82,11 +80,9 @@ export const getTopCustomers = query({
   },
 });
 
-export const getMonthlyRevenue = query({
+export const getMonthlyRevenue = tenantQuery({
   args: { months: v.optional(v.number()) },
-  handler: async (ctx, args) => {
-    await requireRole(ctx, ["OWNER", "ADMIN"]);
-
+  handler: async (ctx, args, tenant) => {
     const monthCount = args.months ?? 12;
     const now = new Date();
     const result: { month: string; revenue: number; count: number }[] = [];
@@ -97,8 +93,8 @@ export const getMonthlyRevenue = query({
 
       const invoices = await ctx.db
         .query("invoices")
-        .withIndex("by_issueDate", (q) =>
-          q
+        .withIndex("by_tenantId_issueDate", (q) =>
+          q.eq("tenantId", tenant.tenantId)
             .gte("issueDate", date.getTime())
             .lt("issueDate", nextMonth.getTime())
         )
@@ -118,14 +114,13 @@ export const getMonthlyRevenue = query({
   },
 });
 
-export const getRecentInvoices = query({
+export const getRecentInvoices = tenantQuery({
   args: { limit: v.optional(v.number()) },
-  handler: async (ctx, args) => {
-    await requireRole(ctx, ["OWNER", "ADMIN"]);
-
+  handler: async (ctx, args, tenant) => {
     const limit = args.limit ?? 10;
     const invoices = await ctx.db
       .query("invoices")
+      .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant.tenantId))
       .order("desc")
       .take(limit);
 

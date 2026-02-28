@@ -1,25 +1,29 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
-import { requireAuth } from "../helpers/auth";
+import { tenantQuery, verifyTenantOwnership } from "../helpers/multitenancy";
 
-export const listGlassTypes = query({
+export const listGlassTypes = tenantQuery({
   args: { activeOnly: v.optional(v.boolean()) },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
+  handler: async (ctx, args, tenant) => {
     if (args.activeOnly) {
       return await ctx.db
         .query("glassTypes")
-        .withIndex("by_active", (q) => q.eq("active", true))
+        .withIndex("by_tenantId_active", (q) =>
+          q.eq("tenantId", tenant.tenantId).eq("active", true)
+        )
         .collect();
     }
-    return await ctx.db.query("glassTypes").collect();
+    return await ctx.db
+      .query("glassTypes")
+      .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant.tenantId))
+      .collect();
   },
 });
 
-export const getGlassType = query({
+export const getGlassType = tenantQuery({
   args: { glassTypeId: v.id("glassTypes") },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-    return await ctx.db.get(args.glassTypeId);
+  handler: async (ctx, args, tenant) => {
+    const glassType = await ctx.db.get(args.glassTypeId);
+    verifyTenantOwnership(glassType, tenant.tenantId);
+    return glassType;
   },
 });

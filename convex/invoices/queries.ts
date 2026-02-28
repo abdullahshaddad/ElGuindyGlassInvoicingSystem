@@ -1,7 +1,6 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
-import { requireAuth } from "../helpers/auth";
 import { paginationOptsValidator } from "convex/server";
+import { tenantQuery, verifyTenantOwnership } from "../helpers/multitenancy";
 import {
   toMeters,
   calculateAreaM2,
@@ -23,13 +22,11 @@ import {
 // getInvoice
 // ============================================================
 
-export const getInvoice = query({
+export const getInvoice = tenantQuery({
   args: { invoiceId: v.id("invoices") },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-
+  handler: async (ctx, args, tenant) => {
     const invoice = await ctx.db.get(args.invoiceId);
-    if (!invoice) return null;
+    if (!invoice || invoice.tenantId !== tenant.tenantId) return null;
 
     const customer = await ctx.db.get(invoice.customerId);
 
@@ -39,9 +36,7 @@ export const getInvoice = query({
       .collect();
 
     const linesWithDetails = lines.map((line) => {
-      // Use the embedded snapshot; fall back to live lookup stub for legacy docs
       const glassType = line.glassTypeSnapshot ?? { name: "—", thickness: 0 };
-      // Operations are embedded in the line document
       return { ...line, glassType, operations: line.operations ?? [] };
     });
 
@@ -58,7 +53,7 @@ export const getInvoice = query({
 // listInvoices
 // ============================================================
 
-export const listInvoices = query({
+export const listInvoices = tenantQuery({
   args: {
     paginationOpts: paginationOptsValidator,
     status:     v.optional(invoiceStatus),
@@ -67,58 +62,50 @@ export const listInvoices = query({
     endDate:    v.optional(v.number()),
     search:     v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-
+  handler: async (ctx, args, tenant) => {
+    // Primary query always scoped by tenant
     let baseQuery;
 
-    if (args.customerId && (args.startDate || args.endDate)) {
+    if (args.status) {
       baseQuery = ctx.db
         .query("invoices")
-        .withIndex("by_customerId_issueDate", (q) => {
-          const withCustomer = q.eq("customerId", args.customerId!);
-          if (args.startDate && args.endDate) {
-            return withCustomer.gte("issueDate", args.startDate).lte("issueDate", args.endDate);
-          } else if (args.startDate) {
-            return withCustomer.gte("issueDate", args.startDate);
-          } else if (args.endDate) {
-            return withCustomer.lte("issueDate", args.endDate);
-          }
-          return withCustomer;
-        });
+        .withIndex("by_tenantId_status", (q) =>
+          q.eq("tenantId", tenant.tenantId).eq("status", args.status!)
+        );
     } else if (args.customerId) {
       baseQuery = ctx.db
         .query("invoices")
-        .withIndex("by_customerId", (q) => q.eq("customerId", args.customerId!));
-    } else if (args.status) {
-      baseQuery = ctx.db
-        .query("invoices")
-        .withIndex("by_status", (q) => q.eq("status", args.status!));
+        .withIndex("by_tenantId_customerId", (q) =>
+          q.eq("tenantId", tenant.tenantId).eq("customerId", args.customerId!)
+        );
     } else if (args.startDate || args.endDate) {
       baseQuery = ctx.db
         .query("invoices")
-        .withIndex("by_issueDate", (q) => {
+        .withIndex("by_tenantId_issueDate", (q) => {
+          const withTenant = q.eq("tenantId", tenant.tenantId);
           if (args.startDate && args.endDate) {
-            return q.gte("issueDate", args.startDate).lte("issueDate", args.endDate);
+            return withTenant.gte("issueDate", args.startDate).lte("issueDate", args.endDate);
           } else if (args.startDate) {
-            return q.gte("issueDate", args.startDate);
+            return withTenant.gte("issueDate", args.startDate);
           } else if (args.endDate) {
-            return q.lte("issueDate", args.endDate);
+            return withTenant.lte("issueDate", args.endDate);
           }
-          return q;
+          return withTenant;
         });
     } else {
-      baseQuery = ctx.db.query("invoices");
+      baseQuery = ctx.db
+        .query("invoices")
+        .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant.tenantId));
     }
 
     const result = await baseQuery.order("desc").paginate(args.paginationOpts);
     let filteredPage = result.page;
 
-    if (args.status && args.customerId) {
-      filteredPage = filteredPage.filter((inv) => inv.status === args.status);
+    // Apply additional filters not covered by the index
+    if (args.customerId && args.status) {
+      filteredPage = filteredPage.filter((inv) => inv.customerId === args.customerId);
     }
-
-    if (args.status && !args.customerId && (args.startDate || args.endDate)) {
+    if (args.customerId && (args.startDate || args.endDate)) {
       filteredPage = filteredPage.filter((inv) => {
         if (args.startDate && inv.issueDate < args.startDate) return false;
         if (args.endDate   && inv.issueDate > args.endDate)   return false;
@@ -163,15 +150,15 @@ export const listInvoices = query({
 // getRevenue
 // ============================================================
 
-export const getRevenue = query({
+export const getRevenue = tenantQuery({
   args: { startDate: v.number(), endDate: v.number() },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-
+  handler: async (ctx, args, tenant) => {
     const invoices = await ctx.db
       .query("invoices")
-      .withIndex("by_issueDate", (q) =>
-        q.gte("issueDate", args.startDate).lte("issueDate", args.endDate)
+      .withIndex("by_tenantId_issueDate", (q) =>
+        q.eq("tenantId", tenant.tenantId)
+          .gte("issueDate", args.startDate)
+          .lte("issueDate", args.endDate)
       )
       .collect();
 
@@ -188,7 +175,7 @@ export const getRevenue = query({
 // previewLineCalculation
 // ============================================================
 
-export const previewLineCalculation = query({
+export const previewLineCalculation = tenantQuery({
   args: {
     glassTypeId: v.id("glassTypes"),
     dimensions: v.object({
@@ -208,9 +195,9 @@ export const previewLineCalculation = query({
       )
     ),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args, tenant) => {
     const glassType = await ctx.db.get(args.glassTypeId);
-    if (!glassType) throw new Error("نوع الزجاج غير موجود");
+    verifyTenantOwnership(glassType, tenant.tenantId);
 
     const { width, height, measuringUnit } = args.dimensions;
     const widthM  = toMeters(width,  measuringUnit);
@@ -245,7 +232,7 @@ export const previewLineCalculation = query({
         diameterM,
       };
 
-      const result = await calculateOperation(ctx, opInput, widthM, heightM, glassType.thickness);
+      const result = await calculateOperation(ctx, opInput, widthM, heightM, glassType.thickness, tenant.tenantId);
 
       operationsPreviews.push({
         operationTypeCode:     opReq.operationType.code,

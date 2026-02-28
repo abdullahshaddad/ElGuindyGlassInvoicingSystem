@@ -302,10 +302,15 @@ const MONTH_NAMES = {
     }
 };
 
-// Company Colors - Bright Blue Theme
+// Company Colors — resolved at render-time from CSS custom properties set by TenantThemeProvider.
+// Falls back to Ocean Blue defaults when CSS vars are not yet loaded.
+const getCssVar = (name) => {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return raw ? `rgb(${raw})` : null;
+};
 const COMPANY_COLORS = {
-    primary: '#0077B6',    // Blue
-    secondary: '#3FA796',  // Teal/Green
+    get primary()   { return getCssVar('--color-primary-500')   || '#0077B6'; },
+    get secondary() { return getCssVar('--color-secondary-500') || '#3FA796'; },
     accent: '#00B4D8',     // Bright Cyan Blue
     warning: '#F59E0B',    // Amber for warnings
     dark: '#1C1C1C',       // Dark

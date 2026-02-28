@@ -1,13 +1,12 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
-import { requireAuth } from "../helpers/auth";
 import { paginationOptsValidator } from "convex/server";
+import { tenantQuery, verifyTenantOwnership } from "../helpers/multitenancy";
 
 /**
  * Get invoices for the factory worker view.
  * Shows pending and in-progress invoices with line details.
  */
-export const getFactoryInvoices = query({
+export const getFactoryInvoices = tenantQuery({
   args: {
     workStatus: v.optional(
       v.union(
@@ -19,12 +18,12 @@ export const getFactoryInvoices = query({
     ),
     paginationOpts: paginationOptsValidator,
   },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-
-    let invoicesQuery = ctx.db.query("invoices").order("desc");
-
-    const page = await invoicesQuery.paginate(args.paginationOpts);
+  handler: async (ctx, args, tenant) => {
+    const page = await ctx.db
+      .query("invoices")
+      .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant.tenantId))
+      .order("desc")
+      .paginate(args.paginationOpts);
 
     let filteredResults = page.page;
     if (args.workStatus) {
@@ -67,13 +66,11 @@ export const getFactoryInvoices = query({
 /**
  * Get a single invoice with full details for factory view.
  */
-export const getFactoryInvoiceDetail = query({
+export const getFactoryInvoiceDetail = tenantQuery({
   args: { invoiceId: v.id("invoices") },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-
+  handler: async (ctx, args, tenant) => {
     const invoice = await ctx.db.get(args.invoiceId);
-    if (!invoice) throw new Error("الفاتورة غير موجودة");
+    verifyTenantOwnership(invoice, tenant.tenantId);
 
     const customer = await ctx.db.get(invoice.customerId);
     const lines = await ctx.db

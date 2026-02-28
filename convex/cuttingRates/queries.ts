@@ -1,26 +1,32 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
-import { requireAuth } from "../helpers/auth";
+import { tenantQuery, verifyTenantOwnership } from "../helpers/multitenancy";
 
-export const listLaserRates = query({
+export const listLaserRates = tenantQuery({
   args: { activeOnly: v.optional(v.boolean()) },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-    const rates = await ctx.db.query("laserRates").collect();
+  handler: async (ctx, args, tenant) => {
     if (args.activeOnly) {
-      return rates.filter((r) => r.active);
+      return await ctx.db
+        .query("laserRates")
+        .withIndex("by_tenantId_active", (q) =>
+          q.eq("tenantId", tenant.tenantId).eq("active", true)
+        )
+        .collect();
     }
-    return rates;
+    return await ctx.db
+      .query("laserRates")
+      .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant.tenantId))
+      .collect();
   },
 });
 
-export const getLaserRateForThickness = query({
+export const getLaserRateForThickness = tenantQuery({
   args: { thickness: v.number() },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
+  handler: async (ctx, args, tenant) => {
     const rates = await ctx.db
       .query("laserRates")
-      .withIndex("by_active", (q) => q.eq("active", true))
+      .withIndex("by_tenantId_active", (q) =>
+        q.eq("tenantId", tenant.tenantId).eq("active", true)
+      )
       .collect();
 
     const match = rates.find(

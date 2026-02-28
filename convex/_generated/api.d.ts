@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as auditLogs_queries from "../auditLogs/queries.js";
 import type * as bevelingRates_mutations from "../bevelingRates/mutations.js";
 import type * as bevelingRates_queries from "../bevelingRates/queries.js";
 import type * as companyProfile_mutations from "../companyProfile/mutations.js";
@@ -22,14 +23,20 @@ import type * as factory_mutations from "../factory/mutations.js";
 import type * as factory_queries from "../factory/queries.js";
 import type * as glassTypes_mutations from "../glassTypes/mutations.js";
 import type * as glassTypes_queries from "../glassTypes/queries.js";
+import type * as helpers_auditLog from "../helpers/auditLog.js";
 import type * as helpers_auth from "../helpers/auth.js";
 import type * as helpers_dimensionUtils from "../helpers/dimensionUtils.js";
 import type * as helpers_enums from "../helpers/enums.js";
 import type * as helpers_idGenerator from "../helpers/idGenerator.js";
+import type * as helpers_multitenancy from "../helpers/multitenancy.js";
+import type * as helpers_permissions from "../helpers/permissions.js";
+import type * as helpers_planConfig from "../helpers/planConfig.js";
 import type * as invoices_mutations from "../invoices/mutations.js";
 import type * as invoices_queries from "../invoices/queries.js";
 import type * as lib_bevelingFormulas from "../lib/bevelingFormulas.js";
 import type * as lib_operationCalculation from "../lib/operationCalculation.js";
+import type * as migrations_cleanupSuperAdminTenantLinks from "../migrations/cleanupSuperAdminTenantLinks.js";
+import type * as migrations_createDefaultTenant from "../migrations/createDefaultTenant.js";
 import type * as migrations_dropAllExceptUsers from "../migrations/dropAllExceptUsers.js";
 import type * as migrations_importData from "../migrations/importData.js";
 import type * as migrations_renameGlassTypeField from "../migrations/renameGlassTypeField.js";
@@ -42,6 +49,10 @@ import type * as payments_queries from "../payments/queries.js";
 import type * as printJobs_internal from "../printJobs/internal.js";
 import type * as printJobs_mutations from "../printJobs/mutations.js";
 import type * as printJobs_queries from "../printJobs/queries.js";
+import type * as superAdmin_mutations from "../superAdmin/mutations.js";
+import type * as superAdmin_queries from "../superAdmin/queries.js";
+import type * as tenants_mutations from "../tenants/mutations.js";
+import type * as tenants_queries from "../tenants/queries.js";
 import type * as users_actions from "../users/actions.js";
 import type * as users_mutations from "../users/mutations.js";
 import type * as users_queries from "../users/queries.js";
@@ -53,6 +64,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "auditLogs/queries": typeof auditLogs_queries;
   "bevelingRates/mutations": typeof bevelingRates_mutations;
   "bevelingRates/queries": typeof bevelingRates_queries;
   "companyProfile/mutations": typeof companyProfile_mutations;
@@ -67,14 +79,20 @@ declare const fullApi: ApiFromModules<{
   "factory/queries": typeof factory_queries;
   "glassTypes/mutations": typeof glassTypes_mutations;
   "glassTypes/queries": typeof glassTypes_queries;
+  "helpers/auditLog": typeof helpers_auditLog;
   "helpers/auth": typeof helpers_auth;
   "helpers/dimensionUtils": typeof helpers_dimensionUtils;
   "helpers/enums": typeof helpers_enums;
   "helpers/idGenerator": typeof helpers_idGenerator;
+  "helpers/multitenancy": typeof helpers_multitenancy;
+  "helpers/permissions": typeof helpers_permissions;
+  "helpers/planConfig": typeof helpers_planConfig;
   "invoices/mutations": typeof invoices_mutations;
   "invoices/queries": typeof invoices_queries;
   "lib/bevelingFormulas": typeof lib_bevelingFormulas;
   "lib/operationCalculation": typeof lib_operationCalculation;
+  "migrations/cleanupSuperAdminTenantLinks": typeof migrations_cleanupSuperAdminTenantLinks;
+  "migrations/createDefaultTenant": typeof migrations_createDefaultTenant;
   "migrations/dropAllExceptUsers": typeof migrations_dropAllExceptUsers;
   "migrations/importData": typeof migrations_importData;
   "migrations/renameGlassTypeField": typeof migrations_renameGlassTypeField;
@@ -87,6 +105,10 @@ declare const fullApi: ApiFromModules<{
   "printJobs/internal": typeof printJobs_internal;
   "printJobs/mutations": typeof printJobs_mutations;
   "printJobs/queries": typeof printJobs_queries;
+  "superAdmin/mutations": typeof superAdmin_mutations;
+  "superAdmin/queries": typeof superAdmin_queries;
+  "tenants/mutations": typeof tenants_mutations;
+  "tenants/queries": typeof tenants_queries;
   "users/actions": typeof users_actions;
   "users/mutations": typeof users_mutations;
   "users/queries": typeof users_queries;

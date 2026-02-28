@@ -1,9 +1,8 @@
-import { mutation } from "../_generated/server";
 import { v } from "convex/values";
-import { requireAuth } from "../helpers/auth";
+import { tenantMutation } from "../helpers/multitenancy";
 import { notificationType } from "../schema";
 
-export const createNotification = mutation({
+export const createNotification = tenantMutation({
   args: {
     title: v.string(),
     message: v.string(),
@@ -12,8 +11,9 @@ export const createNotification = mutation({
     actionUrl: v.optional(v.string()),
     relatedEntity: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args, tenant) => {
     return await ctx.db.insert("notifications", {
+      tenantId: tenant.tenantId,
       title: args.title,
       message: args.message,
       type: args.type,
@@ -27,58 +27,58 @@ export const createNotification = mutation({
   },
 });
 
-export const markAsRead = mutation({
+export const markAsRead = tenantMutation({
   args: { notificationId: v.id("notifications") },
-  handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+  handler: async (ctx, args, tenant) => {
     const notification = await ctx.db.get(args.notificationId);
-    if (!notification) return;
+    if (!notification || notification.tenantId !== tenant.tenantId) return;
 
-    if (!notification.readByUserIds.includes(user._id)) {
+    if (!notification.readByUserIds.includes(tenant.userId)) {
       await ctx.db.patch(args.notificationId, {
-        readByUserIds: [...notification.readByUserIds, user._id],
+        readByUserIds: [...notification.readByUserIds, tenant.userId],
       });
     }
   },
 });
 
-export const markAllAsRead = mutation({
+export const markAllAsRead = tenantMutation({
   args: {},
-  handler: async (ctx) => {
-    const user = await requireAuth(ctx);
-
+  handler: async (ctx, _args, tenant) => {
     const targeted = await ctx.db
       .query("notifications")
-      .withIndex("by_targetUserId", (q) => q.eq("targetUserId", user._id as any))
+      .withIndex("by_tenantId_targetUserId", (q) =>
+        q.eq("tenantId", tenant.tenantId).eq("targetUserId", tenant.userId)
+      )
       .collect();
 
     const broadcast = await ctx.db
       .query("notifications")
-      .withIndex("by_targetUserId", (q) => q.eq("targetUserId", undefined))
+      .withIndex("by_tenantId_targetUserId", (q) =>
+        q.eq("tenantId", tenant.tenantId).eq("targetUserId", undefined)
+      )
       .collect();
 
     const unread = [...targeted, ...broadcast].filter(
-      (n) => !n.readByUserIds.includes(user._id)
+      (n) => !n.readByUserIds.includes(tenant.userId)
     );
 
     for (const n of unread) {
       await ctx.db.patch(n._id, {
-        readByUserIds: [...n.readByUserIds, user._id],
+        readByUserIds: [...n.readByUserIds, tenant.userId],
       });
     }
   },
 });
 
-export const hideNotification = mutation({
+export const hideNotification = tenantMutation({
   args: { notificationId: v.id("notifications") },
-  handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+  handler: async (ctx, args, tenant) => {
     const notification = await ctx.db.get(args.notificationId);
-    if (!notification) return;
+    if (!notification || notification.tenantId !== tenant.tenantId) return;
 
-    if (!notification.hiddenByUserIds.includes(user._id)) {
+    if (!notification.hiddenByUserIds.includes(tenant.userId)) {
       await ctx.db.patch(args.notificationId, {
-        hiddenByUserIds: [...notification.hiddenByUserIds, user._id],
+        hiddenByUserIds: [...notification.hiddenByUserIds, tenant.userId],
       });
     }
   },

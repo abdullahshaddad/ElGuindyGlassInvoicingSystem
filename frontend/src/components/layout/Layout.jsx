@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Sidebar from './Sidebar';
+import SuperAdminBanner from './SuperAdminBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { FiMenu } from 'react-icons/fi';
 import clsx from 'clsx';
@@ -58,6 +59,9 @@ const Layout = ({ children }) => {
                         <FiMenu size={24} />
                     </button>
                 </div>
+
+                {/* SuperAdmin viewing banner */}
+                <SuperAdminBanner />
 
                 {/* Page content */}
                 <main className="p-4 lg:p-6">

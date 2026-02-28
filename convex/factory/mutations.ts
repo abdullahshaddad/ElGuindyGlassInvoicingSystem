@@ -1,33 +1,31 @@
-import { mutation } from "../_generated/server";
 import { v } from "convex/values";
-import { requireAuth } from "../helpers/auth";
+import { tenantMutation, verifyTenantOwnership } from "../helpers/multitenancy";
+import { checkPermission } from "../helpers/permissions";
+import { logAuditEvent } from "../helpers/auditLog";
 import { lineStatus } from "../schema";
 
 /**
  * Update the status of an invoice line (factory worker action).
  * Also recalculates the parent invoice's workStatus.
  */
-export const updateLineStatus = mutation({
+export const updateLineStatus = tenantMutation({
   args: {
     lineId: v.id("invoiceLines"),
     status: lineStatus,
   },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
+  handler: async (ctx, args, tenant) => {
+    checkPermission(tenant, "orders", "update");
 
     const line = await ctx.db.get(args.lineId);
-    if (!line) throw new Error("البند غير موجود");
+    verifyTenantOwnership(line, tenant.tenantId);
 
-    // Update line status
     await ctx.db.patch(args.lineId, { status: args.status });
 
-    // Recalculate invoice work status
     const allLines = await ctx.db
       .query("invoiceLines")
       .withIndex("by_invoiceId", (q) => q.eq("invoiceId", line.invoiceId))
       .collect();
 
-    // Replace the current line's status with the new status in our calculation
     const lineStatuses = allLines.map((l) =>
       l._id === args.lineId ? args.status : l.status
     );
@@ -48,6 +46,13 @@ export const updateLineStatus = mutation({
     await ctx.db.patch(line.invoiceId, {
       workStatus: newWorkStatus,
       updatedAt: Date.now(),
+    });
+
+    await logAuditEvent(ctx, tenant, {
+      action: "order.status_changed",
+      entityType: "invoiceLine",
+      entityId: args.lineId,
+      changes: { status: { from: line.status, to: args.status } },
     });
 
     return { workStatus: newWorkStatus };

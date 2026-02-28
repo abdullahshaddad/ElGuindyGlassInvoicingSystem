@@ -14,9 +14,10 @@ export const useAuthorized = (allowedRoles = []) => {
     const { user, isAuthenticated, isLoading, hasAnyRole } = useAuth();
     const navigate = useNavigate();
 
+    const isSuperAdmin = user?.role === 'SUPERADMIN';
     const isAuthorized = isAuthenticated &&
         user &&
-        (allowedRoles.length === 0 || hasAnyRole(allowedRoles));
+        (allowedRoles.length === 0 || isSuperAdmin || hasAnyRole(allowedRoles));
 
     useEffect(() => {
         // Wait for authentication to load
@@ -27,6 +28,9 @@ export const useAuthorized = (allowedRoles = []) => {
             navigate('/login', { replace: true });
             return;
         }
+
+        // SUPERADMIN bypasses all role checks
+        if (user?.role === 'SUPERADMIN') return;
 
         // Redirect if not authorized for the required roles
         if (allowedRoles.length > 0 && !hasAnyRole(allowedRoles)) {
@@ -41,7 +45,8 @@ export const useAuthorized = (allowedRoles = []) => {
         user,
         hasRole: (role) => user?.role === role,
         hasAnyRole: (roles) => roles.includes(user?.role),
-        canManageUsers: () => ['OWNER', 'ADMIN'].includes(user?.role),
+        canManageUsers: () => ['SUPERADMIN', 'OWNER', 'ADMIN'].includes(user?.role),
+        isSuperAdmin: () => user?.role === 'SUPERADMIN',
         isOwner: () => user?.role === 'OWNER',
         isAdmin: () => user?.role === 'ADMIN'
     };

@@ -24,7 +24,7 @@ const LoginPage = () => {
                 .cl-socialButtons { display: none !important; }
                 .cl-dividerRow { display: none !important; }
                 .cl-formButtonPrimary {
-                    background-color: #0077B6 !important;
+                    background-color: rgb(var(--color-primary-500)) !important;
                     border-radius: 10px !important;
                     font-weight: 600 !important;
                     font-size: 0.9rem !important;
@@ -32,7 +32,7 @@ const LoginPage = () => {
                     box-shadow: none !important;
                     text-transform: none !important;
                 }
-                .cl-formButtonPrimary:hover { background-color: #005f8f !important; }
+                .cl-formButtonPrimary:hover { background-color: rgb(var(--color-primary-700)) !important; }
                 .cl-formFieldInput {
                     border: 1px solid #d1d5db !important;
                     border-radius: 10px !important;
@@ -45,8 +45,8 @@ const LoginPage = () => {
                     text-align: left !important;
                 }
                 .cl-formFieldInput:focus {
-                    border-color: #0077B6 !important;
-                    box-shadow: 0 0 0 1px #0077B6 !important;
+                    border-color: rgb(var(--color-primary-500)) !important;
+                    box-shadow: 0 0 0 1px rgb(var(--color-primary-500)) !important;
                     background-color: #ffffff !important;
                 }
                 .cl-formFieldLabel {
@@ -54,15 +54,15 @@ const LoginPage = () => {
                     font-weight: 500 !important;
                     font-size: 0.85rem !important;
                 }
-                .cl-formFieldAction__password { color: #0077B6 !important; font-size: 0.8rem !important; }
-                .cl-formFieldAction__password:hover { color: #005f8f !important; }
-                .cl-identityPreviewEditButton { color: #0077B6 !important; }
-                .cl-identityPreviewEditButton:hover { color: #005f8f !important; }
-                .cl-formResendCodeLink { color: #0077B6 !important; }
-                .cl-backLink { color: #0077B6 !important; }
-                .cl-backLink:hover { color: #005f8f !important; }
+                .cl-formFieldAction__password { color: rgb(var(--color-primary-500)) !important; font-size: 0.8rem !important; }
+                .cl-formFieldAction__password:hover { color: rgb(var(--color-primary-700)) !important; }
+                .cl-identityPreviewEditButton { color: rgb(var(--color-primary-500)) !important; }
+                .cl-identityPreviewEditButton:hover { color: rgb(var(--color-primary-700)) !important; }
+                .cl-formResendCodeLink { color: rgb(var(--color-primary-500)) !important; }
+                .cl-backLink { color: rgb(var(--color-primary-500)) !important; }
+                .cl-backLink:hover { color: rgb(var(--color-primary-700)) !important; }
                 .cl-otpCodeFieldInput { border-color: #d1d5db !important; }
-                .cl-otpCodeFieldInput:focus { border-color: #0077B6 !important; }
+                .cl-otpCodeFieldInput:focus { border-color: rgb(var(--color-primary-500)) !important; }
                 .cl-alert { border-radius: 8px !important; }
                 .cl-identityPreview { border-radius: 10px !important; border-color: #e5e7eb !important; }
             `}</style>
@@ -91,7 +91,7 @@ const LoginPage = () => {
                             >
                                 <img
                                     src={logo}
-                                    alt="El Guindy Logo"
+                                    alt="Kwartz Logo"
                                     style={{
                                         height: '100px',
                                         width: 'auto',
@@ -112,7 +112,7 @@ const LoginPage = () => {
                                 letterSpacing: '0.025em'
                             }}
                         >
-                            {i18n.language === 'ar' ? 'الجندي للزجاج' : 'EL GUINDY GLASS'}
+                            {i18n.language === 'ar' ? 'كوارتز' : 'KWARTZ'}
                         </h1>
 
                         {/* Tagline */}
@@ -135,7 +135,7 @@ const LoginPage = () => {
                         <div className="w-full max-w-md space-y-4">
                             <div className="flex items-start p-4 rounded-lg" style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
                                 <div className="flex-shrink-0" style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: i18n.language === 'ar' ? '12px' : '0', marginRight: i18n.language === 'ar' ? '0' : '12px' }}>
-                                    <svg style={{ width: '20px', height: '20px', color: '#0077B6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg style={{ width: '20px', height: '20px', color: 'rgb(var(--color-primary-500))' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </div>
@@ -151,7 +151,7 @@ const LoginPage = () => {
 
                             <div className="flex items-start p-4 rounded-lg" style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
                                 <div className="flex-shrink-0" style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: i18n.language === 'ar' ? '12px' : '0', marginRight: i18n.language === 'ar' ? '0' : '12px' }}>
-                                    <svg style={{ width: '20px', height: '20px', color: '#0077B6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg style={{ width: '20px', height: '20px', color: 'rgb(var(--color-primary-500))' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </div>
@@ -167,7 +167,7 @@ const LoginPage = () => {
 
                             <div className="flex items-start p-4 rounded-lg" style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
                                 <div className="flex-shrink-0" style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: i18n.language === 'ar' ? '12px' : '0', marginRight: i18n.language === 'ar' ? '0' : '12px' }}>
-                                    <svg style={{ width: '20px', height: '20px', color: '#0077B6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg style={{ width: '20px', height: '20px', color: 'rgb(var(--color-primary-500))' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                     </svg>
                                 </div>
@@ -183,7 +183,7 @@ const LoginPage = () => {
                         </div>
 
                         {/* Bottom Accent */}
-                        <div className="mt-12" style={{ width: '60px', height: '4px', backgroundColor: '#0077B6', borderRadius: '2px' }} />
+                        <div className="mt-12" style={{ width: '60px', height: '4px', backgroundColor: 'rgb(var(--color-primary-500))', borderRadius: '2px' }} />
                     </div>
                 </div>
 
@@ -221,18 +221,18 @@ const LoginPage = () => {
                                     justifyContent: 'center',
                                     marginBottom: '16px',
                                     padding: '12px',
-                                    backgroundColor: '#0077B6',
+                                    backgroundColor: 'rgb(var(--color-primary-500))',
                                     borderRadius: '1rem',
                                 }}
                             >
                                 <img
                                     src={logo}
-                                    alt="El Guindy Logo"
+                                    alt="Kwartz Logo"
                                     style={{ height: '60px', width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
                                 />
                             </div>
                             <h1 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937' }}>
-                                {i18n.language === 'ar' ? 'الجندي للزجاج' : 'El Guindy Glass'}
+                                {i18n.language === 'ar' ? 'كوارتز' : 'Kwartz'}
                             </h1>
                         </div>
 

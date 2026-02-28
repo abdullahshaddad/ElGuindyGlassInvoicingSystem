@@ -1,13 +1,14 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
-import { requireAuth } from "../helpers/auth";
+import { tenantQuery, verifyTenantOwnership } from "../helpers/multitenancy";
 import { operationCategory } from "../schema";
 
-export const listOperationPrices = query({
+export const listOperationPrices = tenantQuery({
   args: { activeOnly: v.optional(v.boolean()) },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-    const prices = await ctx.db.query("operationPrices").collect();
+  handler: async (ctx, args, tenant) => {
+    const prices = await ctx.db
+      .query("operationPrices")
+      .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant.tenantId))
+      .collect();
     if (args.activeOnly) {
       return prices.filter((p) => p.active);
     }
@@ -15,14 +16,13 @@ export const listOperationPrices = query({
   },
 });
 
-export const getByCategoryAndSubtype = query({
+export const getByCategoryAndSubtype = tenantQuery({
   args: { category: operationCategory, subtype: v.string() },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
+  handler: async (ctx, args, tenant) => {
     return await ctx.db
       .query("operationPrices")
-      .withIndex("by_category_subtype", (q) =>
-        q.eq("category", args.category).eq("subtype", args.subtype)
+      .withIndex("by_tenantId_category_subtype", (q) =>
+        q.eq("tenantId", tenant.tenantId).eq("category", args.category).eq("subtype", args.subtype)
       )
       .unique();
   },

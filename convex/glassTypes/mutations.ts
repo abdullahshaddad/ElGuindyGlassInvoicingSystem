@@ -1,16 +1,17 @@
-import { mutation } from "../_generated/server";
 import { v } from "convex/values";
-import { requireRole } from "../helpers/auth";
+import { tenantMutation, verifyTenantOwnership } from "../helpers/multitenancy";
+import { checkPermission } from "../helpers/permissions";
+import { logAuditEvent, computeDiff } from "../helpers/auditLog";
 
-export const createGlassType = mutation({
+export const createGlassType = tenantMutation({
   args: {
     name: v.string(),
     thickness: v.number(),
     color: v.optional(v.string()),
     pricePerMeter: v.number(),
   },
-  handler: async (ctx, args) => {
-    await requireRole(ctx, ["OWNER", "ADMIN"]);
+  handler: async (ctx, args, tenant) => {
+    checkPermission(tenant, "products", "create");
 
     if (args.pricePerMeter < 0) {
       throw new Error("السعر لا يمكن أن يكون سالباً");
@@ -19,7 +20,8 @@ export const createGlassType = mutation({
       throw new Error("السماكة يجب أن تكون أكبر من صفر");
     }
 
-    return await ctx.db.insert("glassTypes", {
+    const id = await ctx.db.insert("glassTypes", {
+      tenantId: tenant.tenantId,
       name: args.name,
       thickness: args.thickness,
       color: args.color,
@@ -27,10 +29,18 @@ export const createGlassType = mutation({
       pricingMethod: "AREA",
       active: true,
     });
+
+    await logAuditEvent(ctx, tenant, {
+      action: "product.created",
+      entityType: "glassType",
+      entityId: id,
+    });
+
+    return id;
   },
 });
 
-export const updateGlassType = mutation({
+export const updateGlassType = tenantMutation({
   args: {
     glassTypeId: v.id("glassTypes"),
     name: v.optional(v.string()),
@@ -39,31 +49,42 @@ export const updateGlassType = mutation({
     pricePerMeter: v.optional(v.number()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    await requireRole(ctx, ["OWNER", "ADMIN"]);
+  handler: async (ctx, args, tenant) => {
+    checkPermission(tenant, "products", "update");
 
     const existing = await ctx.db.get(args.glassTypeId);
-    if (!existing) throw new Error("نوع الزجاج غير موجود");
+    verifyTenantOwnership(existing, tenant.tenantId);
 
     const { glassTypeId, ...updates } = args;
-    // Filter out undefined values
     const patch: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) patch[key] = value;
     }
 
     await ctx.db.patch(glassTypeId, patch);
+
+    const changes = computeDiff(existing, { ...existing, ...patch });
+    await logAuditEvent(ctx, tenant, {
+      action: "product.updated",
+      entityType: "glassType",
+      entityId: args.glassTypeId,
+      changes,
+    });
   },
 });
 
-export const deleteGlassType = mutation({
+export const deleteGlassType = tenantMutation({
   args: { glassTypeId: v.id("glassTypes") },
-  handler: async (ctx, args) => {
-    await requireRole(ctx, ["OWNER"]);
+  handler: async (ctx, args, tenant) => {
+    checkPermission(tenant, "products", "delete");
 
-    // Check if used by any invoice lines
+    const existing = await ctx.db.get(args.glassTypeId);
+    verifyTenantOwnership(existing, tenant.tenantId);
+
+    // Check if used by any invoice lines within this tenant
     const usedLine = await ctx.db
       .query("invoiceLines")
+      .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant.tenantId))
       .filter((q) => q.eq(q.field("glassTypeId"), args.glassTypeId))
       .first();
 
@@ -72,5 +93,12 @@ export const deleteGlassType = mutation({
     }
 
     await ctx.db.delete(args.glassTypeId);
+
+    await logAuditEvent(ctx, tenant, {
+      action: "product.deleted",
+      entityType: "glassType",
+      entityId: args.glassTypeId,
+      severity: "critical",
+    });
   },
 });

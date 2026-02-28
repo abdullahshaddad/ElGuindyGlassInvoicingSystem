@@ -274,8 +274,9 @@ const UserManagementPage = () => {
     }
 
     return (
-        <div className="space-y-6 bg-gray-50 dark:bg-gray-900 " dir={isRTL ? 'rtl' : 'ltr'}>
-            {/* Step 4 -- RTL + Arabic-first Page Header */}
+        <div className="space-y-6 " dir={isRTL ? 'rtl' : 'ltr'}>
+            {/* Step 4 -- RTL + A
+            rabic-first Page Header */}
             <PageHeader
                 title={t('users.title')}
                 subtitle={t('users.subtitle')}

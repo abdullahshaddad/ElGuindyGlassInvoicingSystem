@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import TenantThemeProvider from '@/contexts/TenantThemeProvider';
 import AppRouter from '@/components/AppRouter';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -11,7 +12,7 @@ const GlobalLoader = () => (
     <div className="fixed inset-0 bg-white dark:bg-gray-900 flex items-center justify-center z-50">
         <div className="text-center">
             <div className="w-16 h-16 bg-primary-500 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                <span className="text-2xl font-bold text-white">G</span>
+                <span className="text-2xl font-bold text-white">K</span>
             </div>
             <LoadingSpinner size="lg" />
             <p className="text-gray-600 dark:text-gray-400 mt-4">
@@ -26,13 +27,15 @@ function App() {
         <ErrorBoundary>
             <ThemeProvider>
                 <AuthProvider>
-                    <SnackbarProvider>
-                        <Suspense fallback={<GlobalLoader />}>
-                            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-                                <AppRouter />
-                            </div>
-                        </Suspense>
-                    </SnackbarProvider>
+                    <TenantThemeProvider>
+                        <SnackbarProvider>
+                            <Suspense fallback={<GlobalLoader />}>
+                                <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+                                    <AppRouter />
+                                </div>
+                            </Suspense>
+                        </SnackbarProvider>
+                    </TenantThemeProvider>
                 </AuthProvider>
             </ThemeProvider>
         </ErrorBoundary>

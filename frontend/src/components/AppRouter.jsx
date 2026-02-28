@@ -22,6 +22,14 @@ const CustomersPage = React.lazy(() => import('@/pages/CustomersPage'));
 const NotFoundPage = React.lazy(() => import('@/pages/errors/NotFoundPage'));
 const UnauthorizedPage = React.lazy(() => import('@/pages/errors/UnauthorizedPage'));
 const CompanyProfilePage = React.lazy(() => import('@/pages/admin/CompanyProfilePage'));
+const TenantSettingsPage = React.lazy(() => import('@/pages/admin/TenantSettingsPage'));
+const TenantMembersPage = React.lazy(() => import('@/pages/admin/TenantMembersPage'));
+const SuperAdminDashboardPage = React.lazy(() => import('@/pages/superAdmin/SuperAdminDashboardPage'));
+const SuperAdminTenantsPage = React.lazy(() => import('@/pages/superAdmin/SuperAdminTenantsPage'));
+const SuperAdminUsersPage = React.lazy(() => import('@/pages/superAdmin/SuperAdminUsersPage'));
+const SuperAdminAuditLogsPage = React.lazy(() => import('@/pages/superAdmin/SuperAdminAuditLogsPage'));
+const SuperAdminPlansPage = React.lazy(() => import('@/pages/superAdmin/SuperAdminPlansPage'));
+const TenantDetailPage = React.lazy(() => import('@/pages/superAdmin/TenantDetailPage'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -31,19 +39,21 @@ const PageLoader = () => (
 );
 
 // Role definitions
+const SUPERADMIN = 'SUPERADMIN';
 const OWNER = 'OWNER';
 const ADMIN = 'ADMIN';
 const CASHIER = 'CASHIER';
 const WORKER = 'WORKER';
 
-const MANAGEMENT_ROLES = [OWNER, ADMIN];
-const SALES_ROLES = [OWNER, ADMIN, CASHIER];
-const FACTORY_ROLES = [OWNER, ADMIN, WORKER];
-const USER_MANAGEMENT_ROLES = [OWNER, ADMIN];
+const MANAGEMENT_ROLES = [SUPERADMIN, OWNER, ADMIN];
+const SALES_ROLES = [SUPERADMIN, OWNER, ADMIN, CASHIER];
+const FACTORY_ROLES = [SUPERADMIN, OWNER, ADMIN, WORKER];
+const USER_MANAGEMENT_ROLES = [SUPERADMIN, OWNER, ADMIN];
+const SUPERADMIN_ROLES = [SUPERADMIN];
 
 // Auth redirect component for handling root route
 const AuthRedirect = () => {
-    const { user, isAuthenticated, isLoading } = useAuth();
+    const { user, isAuthenticated, isLoading, isSuperAdminViewing } = useAuth();
 
     if (isLoading) return <PageLoader />;
 
@@ -53,6 +63,11 @@ const AuthRedirect = () => {
 
     // Redirect based on user role
     switch (user?.role) {
+        case SUPERADMIN:
+            // If viewing a tenant, go to dashboard; otherwise admin panel
+            return isSuperAdminViewing
+                ? <Navigate to="/dashboard" replace />
+                : <Navigate to="/super-admin/dashboard" replace />;
         case OWNER:
         case ADMIN:
             return <Navigate to="/dashboard" replace />;
@@ -66,8 +81,8 @@ const AuthRedirect = () => {
 };
 
 // Role-based route protection component
-const RoleRoute = ({ allowedRoles, children, redirectPath = "/unauthorized" }) => {
-    const { user, isAuthenticated, isLoading } = useAuth();
+const RoleRoute = ({ allowedRoles, children, redirectPath = "/unauthorized", noTenantRequired = false }) => {
+    const { user, isAuthenticated, isLoading, currentTenant } = useAuth();
 
     if (isLoading) return <PageLoader />;
 
@@ -75,11 +90,51 @@ const RoleRoute = ({ allowedRoles, children, redirectPath = "/unauthorized" }) =
         return <Navigate to="/login" replace />;
     }
 
+    // SUPERADMIN always passes role check
+    if (user?.role === 'SUPERADMIN') {
+        // Unless noTenantRequired, SUPERADMIN needs a tenant to access tenant-scoped pages
+        if (!noTenantRequired && !currentTenant) {
+            return <Navigate to="/super-admin/dashboard" replace />;
+        }
+        return children;
+    }
+
     if (!allowedRoles.includes(user?.role)) {
         return <Navigate to={redirectPath} replace />;
     }
 
+    // Non-SUPERADMIN users need an active tenant to access tenant-scoped pages
+    if (!currentTenant) {
+        return <NoTenantMessage />;
+    }
+
     return children;
+};
+
+// Shown when a user has no tenant association
+const NoTenantMessage = () => {
+    const { logout } = useAuth();
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+            <div className="text-center max-w-md mx-auto p-8">
+                <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl">!</span>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                    لا يوجد مستأجر مرتبط
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    حسابك غير مرتبط بأي مستأجر نشط. تواصل مع مدير النظام لإضافتك إلى مستأجر.
+                </p>
+                <button
+                    onClick={logout}
+                    className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                >
+                    تسجيل الخروج
+                </button>
+            </div>
+        </div>
+    );
 };
 
 // Public route wrapper - redirects authenticated users
@@ -237,6 +292,78 @@ const AppRouter = () => {
                                 element={
                                     <RoleRoute allowedRoles={MANAGEMENT_ROLES}>
                                         <OperationPricesPage />
+                                    </RoleRoute>
+                                }
+                            />
+
+                            {/* Tenant Settings - SUPERADMIN only */}
+                            <Route
+                                path="tenant-settings"
+                                element={
+                                    <RoleRoute allowedRoles={SUPERADMIN_ROLES}>
+                                        <TenantSettingsPage />
+                                    </RoleRoute>
+                                }
+                            />
+
+                            {/* Tenant Members - SUPERADMIN only */}
+                            <Route
+                                path="tenant-members"
+                                element={
+                                    <RoleRoute allowedRoles={SUPERADMIN_ROLES}>
+                                        <TenantMembersPage />
+                                    </RoleRoute>
+                                }
+                            />
+                        </Route>
+
+                        {/* Super Admin Routes — no tenant context needed */}
+                        <Route path="super-admin">
+                            <Route
+                                path="dashboard"
+                                element={
+                                    <RoleRoute allowedRoles={SUPERADMIN_ROLES} noTenantRequired>
+                                        <SuperAdminDashboardPage />
+                                    </RoleRoute>
+                                }
+                            />
+                            <Route
+                                path="tenants"
+                                element={
+                                    <RoleRoute allowedRoles={SUPERADMIN_ROLES} noTenantRequired>
+                                        <SuperAdminTenantsPage />
+                                    </RoleRoute>
+                                }
+                            />
+                            <Route
+                                path="tenants/:tenantId"
+                                element={
+                                    <RoleRoute allowedRoles={SUPERADMIN_ROLES} noTenantRequired>
+                                        <TenantDetailPage />
+                                    </RoleRoute>
+                                }
+                            />
+                            <Route
+                                path="users"
+                                element={
+                                    <RoleRoute allowedRoles={SUPERADMIN_ROLES} noTenantRequired>
+                                        <SuperAdminUsersPage />
+                                    </RoleRoute>
+                                }
+                            />
+                            <Route
+                                path="plans"
+                                element={
+                                    <RoleRoute allowedRoles={SUPERADMIN_ROLES} noTenantRequired>
+                                        <SuperAdminPlansPage />
+                                    </RoleRoute>
+                                }
+                            />
+                            <Route
+                                path="audit-logs"
+                                element={
+                                    <RoleRoute allowedRoles={SUPERADMIN_ROLES} noTenantRequired>
+                                        <SuperAdminAuditLogsPage />
                                     </RoleRoute>
                                 }
                             />

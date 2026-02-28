@@ -1,20 +1,24 @@
 import { MutationCtx } from "../_generated/server";
+import { Id } from "../_generated/dataModel";
 
 /**
  * Generate a numeric invoice number with atomic counter increment.
  *
  * Returns the next sequential number (1, 2, 3, ...).
+ * Uses tenant-scoped counters via the `by_tenantId_prefix` index.
  */
 export async function generateInvoiceNumber(
   ctx: MutationCtx,
-  prefix: string
+  prefix: string,
+  tenantId: Id<"tenants">
 ): Promise<number> {
   const counterKey = prefix;
 
-  // Find existing counter
   const existing = await ctx.db
     .query("idCounters")
-    .withIndex("by_prefix", (q) => q.eq("prefix", counterKey))
+    .withIndex("by_tenantId_prefix", (q) =>
+      q.eq("tenantId", tenantId).eq("prefix", counterKey)
+    )
     .unique();
 
   let nextValue: number;
@@ -24,6 +28,7 @@ export async function generateInvoiceNumber(
   } else {
     nextValue = 1;
     await ctx.db.insert("idCounters", {
+      tenantId,
       prefix: counterKey,
       currentValue: nextValue,
     });

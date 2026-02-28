@@ -1,34 +1,38 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
-import { requireAuth } from "../helpers/auth";
+import { tenantQuery } from "../helpers/multitenancy";
 import { bevelingType } from "../schema";
 
 /**
  * List all beveling rates, optionally filtered to active-only.
  */
-export const listBevelingRates = query({
+export const listBevelingRates = tenantQuery({
   args: { activeOnly: v.optional(v.boolean()) },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-    const rates = await ctx.db.query("bevelingRates").collect();
+  handler: async (ctx, args, tenant) => {
     if (args.activeOnly) {
-      return rates.filter((r) => r.active);
+      // Collect all active rates for this tenant across all beveling types
+      return await ctx.db
+        .query("bevelingRates")
+        .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant.tenantId))
+        .filter((q) => q.eq(q.field("active"), true))
+        .collect();
     }
-    return rates;
+    return await ctx.db
+      .query("bevelingRates")
+      .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant.tenantId))
+      .collect();
   },
 });
 
 /**
  * Get all active beveling rates for a specific beveling type.
  */
-export const getRatesByType = query({
+export const getRatesByType = tenantQuery({
   args: { bevelingType: bevelingType },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
+  handler: async (ctx, args, tenant) => {
     return await ctx.db
       .query("bevelingRates")
-      .withIndex("by_bevelingType_active", (q) =>
-        q.eq("bevelingType", args.bevelingType).eq("active", true)
+      .withIndex("by_tenantId_bevelingType_active", (q) =>
+        q.eq("tenantId", tenant.tenantId).eq("bevelingType", args.bevelingType).eq("active", true)
       )
       .collect();
   },
@@ -38,13 +42,13 @@ export const getRatesByType = query({
  * Get the rate per metre for a specific beveling type and glass thickness.
  * Used by operation calculation to price beveling work.
  */
-export const getRateForThickness = query({
+export const getRateForThickness = tenantQuery({
   args: { bevelingType: bevelingType, thickness: v.number() },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args, tenant) => {
     const rates = await ctx.db
       .query("bevelingRates")
-      .withIndex("by_bevelingType_active", (q) =>
-        q.eq("bevelingType", args.bevelingType).eq("active", true)
+      .withIndex("by_tenantId_bevelingType_active", (q) =>
+        q.eq("tenantId", tenant.tenantId).eq("bevelingType", args.bevelingType).eq("active", true)
       )
       .collect();
 

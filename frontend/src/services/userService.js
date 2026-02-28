@@ -87,7 +87,7 @@ export const validateUserData = (userData) => {
     if (failingChecks.length > 0) {
         errors.password = true; // flag as invalid; UI shows the checklist
     }
-    if (!['OWNER', 'ADMIN', 'CASHIER', 'WORKER'].includes(userData?.role)) {
+    if (!['SUPERADMIN', 'OWNER', 'ADMIN', 'CASHIER', 'WORKER'].includes(userData?.role)) {
         errors.role = 'يرجى اختيار دور صحيح';
     }
     return { isValid: Object.keys(errors).length === 0, errors };
@@ -111,6 +111,7 @@ export const extractErrorMessage = (err) => {
  */
 export const getRoleInfo = (role) => {
     const roles = {
+        SUPERADMIN: { name: 'مدير النظام', nameEn: 'Super Admin', color: 'text-red-600', bgColor: 'bg-red-100', description: 'إدارة كاملة للمنصة والمستأجرين' },
         OWNER: { name: 'مالك', nameEn: 'Owner', color: 'text-purple-600', bgColor: 'bg-purple-100', description: 'صلاحيات كاملة للنظام' },
         ADMIN: { name: 'مدير', nameEn: 'Admin', color: 'text-blue-600', bgColor: 'bg-blue-100', description: 'إدارة النظام والمستخدمين' },
         CASHIER: { name: 'أمين صندوق', nameEn: 'Cashier', color: 'text-green-600', bgColor: 'bg-green-100', description: 'إنشاء وإدارة الفواتير' },

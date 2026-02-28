@@ -201,13 +201,14 @@ export const PRINT_TYPE_ARABIC: Record<PrintType, string> = {
 export type NotificationType = "SUCCESS" | "ERROR" | "WARNING" | "INFO";
 
 // ---------- User Role ----------
-export type UserRole = "WORKER" | "CASHIER" | "ADMIN" | "OWNER";
+export type UserRole = "WORKER" | "CASHIER" | "ADMIN" | "OWNER" | "SUPERADMIN";
 
 export const USER_ROLE_ARABIC: Record<UserRole, string> = {
   WORKER: "عامل",
   CASHIER: "كاشير",
   ADMIN: "مدير",
   OWNER: "مالك",
+  SUPERADMIN: "مدير النظام",
 };
 
 export const USER_ROLE_HIERARCHY: Record<UserRole, number> = {
@@ -215,6 +216,7 @@ export const USER_ROLE_HIERARCHY: Record<UserRole, number> = {
   CASHIER: 2,
   ADMIN: 3,
   OWNER: 4,
+  SUPERADMIN: 5,
 };
 
 export function canManageRole(managerRole: UserRole, targetRole: UserRole): boolean {
@@ -223,4 +225,198 @@ export function canManageRole(managerRole: UserRole, targetRole: UserRole): bool
 
 export function isRoleEqualOrHigher(role: UserRole, other: UserRole): boolean {
   return USER_ROLE_HIERARCHY[role] >= USER_ROLE_HIERARCHY[other];
+}
+
+// ---------- Tenant Plan ----------
+export type TenantPlan = "free" | "starter" | "professional" | "enterprise";
+
+// ---------- Tenant Role ----------
+export type TenantRole = "owner" | "admin" | "manager" | "operator" | "viewer";
+
+export const TENANT_ROLE_HIERARCHY: Record<TenantRole, number> = {
+  viewer: 1,
+  operator: 2,
+  manager: 3,
+  admin: 4,
+  owner: 5,
+};
+
+export function canManageTenantRole(managerRole: TenantRole, targetRole: TenantRole): boolean {
+  return TENANT_ROLE_HIERARCHY[managerRole] > TENANT_ROLE_HIERARCHY[targetRole];
+}
+
+/**
+ * Map legacy UserRole to TenantRole for migration.
+ * OWNER→owner, ADMIN→admin, CASHIER→manager, WORKER→operator
+ */
+export const USER_ROLE_TO_TENANT_ROLE: Record<UserRole, TenantRole> = {
+  SUPERADMIN: "owner",
+  OWNER: "owner",
+  ADMIN: "admin",
+  CASHIER: "manager",
+  WORKER: "operator",
+};
+
+// ---------- Invitation Status ----------
+export type InvitationStatus = "pending" | "accepted" | "expired";
+
+// ---------- Subscription Status ----------
+export type SubscriptionStatus = "active" | "trial" | "past_due" | "cancelled" | "expired";
+
+// ---------- Billing Cycle ----------
+export type BillingCycle = "monthly" | "yearly";
+
+// ---------- Subscription Payment Status ----------
+export type SubscriptionPaymentStatus = "paid" | "pending" | "failed" | "refunded";
+
+// ---------- Audit Severity ----------
+export type AuditSeverity = "info" | "warning" | "critical";
+
+// ---------- RBAC Permissions ----------
+export type Permission = `${ResourceType}:${ActionType}`;
+
+export type ResourceType =
+  | "orders"
+  | "invoices"
+  | "products"
+  | "stickers"
+  | "customers"
+  | "inventory"
+  | "users"
+  | "roles"
+  | "settings"
+  | "audit"
+  | "reports"
+  | "tenant";
+
+export type ActionType =
+  | "create"
+  | "read"
+  | "update"
+  | "delete"
+  | "export"
+  | "print"
+  | "generate"
+  | "invite"
+  | "manage"
+  | "view";
+
+/** Default permissions per tenant role */
+export const TENANT_ROLE_PERMISSIONS: Record<TenantRole, Permission[]> = {
+  owner: [
+    "orders:create", "orders:read", "orders:update", "orders:delete", "orders:export",
+    "invoices:create", "invoices:read", "invoices:update", "invoices:delete", "invoices:print", "invoices:export",
+    "products:create", "products:read", "products:update", "products:delete",
+    "stickers:generate", "stickers:print",
+    "customers:create", "customers:read", "customers:update", "customers:delete",
+    "inventory:read", "inventory:update",
+    "users:read", "users:invite", "users:manage", "users:delete",
+    "roles:read", "roles:manage",
+    "settings:read", "settings:update",
+    "audit:read", "audit:export",
+    "reports:view", "reports:export",
+    "tenant:manage",
+  ],
+  admin: [
+    "orders:create", "orders:read", "orders:update", "orders:delete", "orders:export",
+    "invoices:create", "invoices:read", "invoices:update", "invoices:delete", "invoices:print", "invoices:export",
+    "products:create", "products:read", "products:update", "products:delete",
+    "stickers:generate", "stickers:print",
+    "customers:create", "customers:read", "customers:update", "customers:delete",
+    "inventory:read", "inventory:update",
+    "users:read", "users:invite", "users:manage",
+    "roles:read",
+    "settings:read", "settings:update",
+    "audit:read", "audit:export",
+    "reports:view", "reports:export",
+  ],
+  manager: [
+    "orders:create", "orders:read", "orders:update", "orders:delete",
+    "invoices:create", "invoices:read", "invoices:update", "invoices:print",
+    "products:create", "products:read", "products:update",
+    "stickers:generate", "stickers:print",
+    "customers:create", "customers:read", "customers:update",
+    "inventory:read", "inventory:update",
+    "users:read",
+    "reports:view",
+  ],
+  operator: [
+    "orders:create", "orders:read",
+    "invoices:read",
+    "products:create", "products:read",
+    "stickers:generate", "stickers:print",
+    "customers:read",
+    "inventory:read",
+  ],
+  viewer: [
+    "orders:read",
+    "invoices:read",
+    "products:read",
+    "customers:read",
+    "inventory:read",
+    "reports:view",
+  ],
+};
+
+// ---------- Permission Presets ----------
+
+/** Named presets for quick permission assignment (replaces role-based assignment) */
+export const PERMISSION_PRESETS: Record<string, Permission[]> = {
+  fullAccess: TENANT_ROLE_PERMISSIONS.owner,
+  management: TENANT_ROLE_PERMISSIONS.admin,
+  basic: TENANT_ROLE_PERMISSIONS.manager,
+  readOnly: TENANT_ROLE_PERMISSIONS.viewer,
+};
+
+/** All available permission preset keys */
+export type PermissionPresetKey = keyof typeof PERMISSION_PRESETS;
+
+// ---------- Permission Categories (for UI grouping) ----------
+
+export interface PermissionCategoryDef {
+  resource: ResourceType;
+  actions: ActionType[];
+}
+
+/**
+ * Permissions grouped by resource for rendering grouped checkboxes in the UI.
+ * Each category lists the actions available for that resource.
+ */
+export const PERMISSION_CATEGORIES: PermissionCategoryDef[] = [
+  { resource: "invoices", actions: ["create", "read", "update", "delete", "print", "export"] },
+  { resource: "orders", actions: ["create", "read", "update", "delete", "export"] },
+  { resource: "customers", actions: ["create", "read", "update", "delete"] },
+  { resource: "products", actions: ["create", "read", "update", "delete"] },
+  { resource: "stickers", actions: ["generate", "print"] },
+  { resource: "inventory", actions: ["read", "update"] },
+  { resource: "reports", actions: ["view", "export"] },
+  { resource: "users", actions: ["read", "invite", "manage", "delete"] },
+  { resource: "roles", actions: ["read", "manage"] },
+  { resource: "settings", actions: ["read", "update"] },
+  { resource: "audit", actions: ["read", "export"] },
+  { resource: "tenant", actions: ["manage"] },
+];
+
+/**
+ * Derive a tenant role label from a permissions array.
+ * Returns the closest matching preset key or "custom".
+ */
+export function deriveRoleFromPermissions(permissions: Permission[]): TenantRole {
+  const sorted = [...permissions].sort();
+  const sortedStr = sorted.join(",");
+
+  // Check exact match against role permissions (in priority order)
+  const roleOrder: TenantRole[] = ["owner", "admin", "manager", "operator", "viewer"];
+  for (const role of roleOrder) {
+    const rolePerms = [...TENANT_ROLE_PERMISSIONS[role]].sort().join(",");
+    if (sortedStr === rolePerms) return role;
+  }
+
+  // No exact match — find closest by counting permissions
+  const count = permissions.length;
+  if (count >= TENANT_ROLE_PERMISSIONS.owner.length) return "admin";
+  if (count >= TENANT_ROLE_PERMISSIONS.admin.length) return "admin";
+  if (count >= TENANT_ROLE_PERMISSIONS.manager.length) return "manager";
+  if (count >= TENANT_ROLE_PERMISSIONS.operator.length) return "operator";
+  return "viewer";
 }

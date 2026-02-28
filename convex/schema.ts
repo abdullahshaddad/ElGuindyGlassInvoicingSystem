@@ -77,7 +77,63 @@ export const userRole = v.union(
   v.literal("WORKER"),
   v.literal("CASHIER"),
   v.literal("ADMIN"),
-  v.literal("OWNER")
+  v.literal("OWNER"),
+  v.literal("SUPERADMIN")
+);
+
+// ============================================================
+// Multi-tenant enum validators
+// ============================================================
+
+export const tenantPlan = v.union(
+  v.literal("free"),
+  v.literal("starter"),
+  v.literal("professional"),
+  v.literal("enterprise")
+);
+
+export const tenantRole = v.union(
+  v.literal("owner"),
+  v.literal("admin"),
+  v.literal("manager"),
+  v.literal("operator"),
+  v.literal("viewer")
+);
+
+export const invitationStatus = v.union(
+  v.literal("pending"),
+  v.literal("accepted"),
+  v.literal("expired")
+);
+
+export const subscriptionStatus = v.union(
+  v.literal("active"),
+  v.literal("trial"),
+  v.literal("past_due"),
+  v.literal("cancelled"),
+  v.literal("expired")
+);
+
+export const billingCycle = v.union(
+  v.literal("monthly"),
+  v.literal("yearly")
+);
+
+export const subscriptionPaymentStatus = v.union(
+  v.literal("paid"),
+  v.literal("pending"),
+  v.literal("failed"),
+  v.literal("refunded")
+);
+
+// ============================================================
+// Audit log validators
+// ============================================================
+
+export const auditSeverity = v.union(
+  v.literal("info"),
+  v.literal("warning"),
+  v.literal("critical")
 );
 
 /**
@@ -197,8 +253,88 @@ export const invoiceLineOperationValidator = v.object({
 // ============================================================
 
 export default defineSchema({
+  // ====================== MULTI-TENANT TABLES ======================
+
+  // ---------------------- Tenants ----------------------
+  tenants: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    domain: v.optional(v.string()),
+    logo: v.optional(v.id("_storage")),
+    brandColors: v.optional(v.object({
+      primary: v.optional(v.string()),
+      secondary: v.optional(v.string()),
+    })),
+    theme: v.optional(v.string()),
+    plan: tenantPlan,
+    isActive: v.boolean(),
+    isSuspended: v.boolean(),
+    settings: v.optional(v.object({
+      locale: v.optional(v.string()),
+      currency: v.optional(v.string()),
+      timezone: v.optional(v.string()),
+      measurementUnit: v.optional(v.string()),
+      invoicePrefix: v.optional(v.string()),
+      invoiceNextNumber: v.optional(v.number()),
+      taxRates: v.optional(v.array(v.object({
+        name: v.string(),
+        rate: v.number(),
+      }))),
+      paymentTerms: v.optional(v.number()),
+    })),
+    maxUsers: v.optional(v.number()),
+    subscription: v.optional(v.object({
+      status: subscriptionStatus,
+      billingCycle: billingCycle,
+      startDate: v.number(),
+      currentPeriodStart: v.number(),
+      currentPeriodEnd: v.number(),
+      monthlyPrice: v.number(),
+      yearlyPrice: v.number(),
+      discount: v.optional(v.number()),
+      notes: v.optional(v.string()),
+    })),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_isActive", ["isActive"]),
+
+  // ---------------------- Tenant Memberships ----------------------
+  tenantMemberships: defineTable({
+    userId: v.id("users"),
+    tenantId: v.id("tenants"),
+    role: tenantRole,
+    permissions: v.optional(v.array(v.string())),
+    isActive: v.boolean(),
+    joinedAt: v.number(),
+    invitedBy: v.optional(v.id("users")),
+  })
+    .index("by_tenantId", ["tenantId"])
+    .index("by_userId", ["userId"])
+    .index("by_tenantId_userId", ["tenantId", "userId"]),
+
+  // ---------------------- Tenant Invitations ----------------------
+  tenantInvitations: defineTable({
+    email: v.string(),
+    tenantId: v.id("tenants"),
+    role: tenantRole,
+    permissions: v.optional(v.array(v.string())),
+    token: v.string(),
+    expiresAt: v.number(),
+    status: invitationStatus,
+    invitedBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_tenantId", ["tenantId"])
+    .index("by_token", ["token"])
+    .index("by_email", ["email"]),
+
+  // ====================== EXISTING TABLES (with tenantId) ======================
+
   // ---------------------- Customers ----------------------
   customers: defineTable({
+    tenantId: v.id("tenants"),
     name: v.string(),
     phone: v.optional(v.string()),
     address: v.optional(v.string()),
@@ -209,10 +345,14 @@ export default defineSchema({
   })
     .index("by_phone", ["phone"])
     .index("by_name",  ["name"])
-    .searchIndex("search_name", { searchField: "name" }),
+    .index("by_tenantId", ["tenantId"])
+    .index("by_tenantId_name", ["tenantId", "name"])
+    .index("by_tenantId_phone", ["tenantId", "phone"])
+    .searchIndex("search_name", { searchField: "name", filterFields: ["tenantId"] }),
 
   // ---------------------- Glass Types ----------------------
   glassTypes: defineTable({
+    tenantId: v.id("tenants"),
     name: v.string(),
     thickness: v.number(),     // mm
     color: v.optional(v.string()),
@@ -221,10 +361,13 @@ export default defineSchema({
     active: v.boolean(),
   })
     .index("by_active", ["active"])
-    .index("by_name",   ["name"]),
+    .index("by_name",   ["name"])
+    .index("by_tenantId", ["tenantId"])
+    .index("by_tenantId_active", ["tenantId", "active"]),
 
   // ---------------------- Invoices ----------------------
   invoices: defineTable({
+    tenantId: v.id("tenants"),
     readableId: v.string(),              // e.g. "INV-2024-001"
     invoiceNumber: v.optional(v.number()), // sequential numeric ID; optional for legacy docs
     customerId: v.id("customers"),
@@ -245,7 +388,11 @@ export default defineSchema({
     .index("by_customerId",           ["customerId"])
     .index("by_status",               ["status"])
     .index("by_issueDate",            ["issueDate"])
-    .index("by_customerId_issueDate", ["customerId", "issueDate"]),
+    .index("by_customerId_issueDate", ["customerId", "issueDate"])
+    .index("by_tenantId", ["tenantId"])
+    .index("by_tenantId_status", ["tenantId", "status"])
+    .index("by_tenantId_issueDate", ["tenantId", "issueDate"])
+    .index("by_tenantId_customerId", ["tenantId", "customerId"]),
 
   // ---------------------- Invoice Lines ----------------------
   //
@@ -253,6 +400,7 @@ export default defineSchema({
   // array so a single document read returns the complete line with all
   // pricing detail — no secondary query required.
   invoiceLines: defineTable({
+    tenantId: v.id("tenants"),
     invoiceId: v.id("invoices"),
 
     // ── Glass type ──────────────────────────────────────────────────────────
@@ -316,10 +464,12 @@ export default defineSchema({
     status: lineStatus,
   })
     .index("by_invoiceId", ["invoiceId"])
-    .index("by_status",    ["status"]),
+    .index("by_status",    ["status"])
+    .index("by_tenantId", ["tenantId"]),
 
   // ---------------------- Payments ----------------------
   payments: defineTable({
+    tenantId: v.id("tenants"),
     customerId: v.id("customers"),
     invoiceId: v.optional(v.id("invoices")),
     amount: v.number(),
@@ -332,10 +482,14 @@ export default defineSchema({
   })
     .index("by_customerId",  ["customerId"])
     .index("by_invoiceId",   ["invoiceId"])
-    .index("by_paymentDate", ["paymentDate"]),
+    .index("by_paymentDate", ["paymentDate"])
+    .index("by_tenantId", ["tenantId"])
+    .index("by_tenantId_customerId", ["tenantId", "customerId"])
+    .index("by_tenantId_paymentDate", ["tenantId", "paymentDate"]),
 
   // ---------------------- Print Jobs ----------------------
   printJobs: defineTable({
+    tenantId: v.id("tenants"),
     invoiceId: v.id("invoices"),
     invoiceReadableId: v.optional(v.string()),
     readableId: v.optional(v.string()),
@@ -351,20 +505,27 @@ export default defineSchema({
     .index("by_invoiceId",      ["invoiceId"])
     .index("by_status",         ["status"])
     .index("by_invoiceId_type", ["invoiceId", "type"])
-    .index("by_readableId",     ["readableId"]),
+    .index("by_readableId",     ["readableId"])
+    .index("by_tenantId", ["tenantId"])
+    .index("by_tenantId_status", ["tenantId", "status"]),
 
   // ---------------------- Laser Rates ----------------------
   // Rate lookup: given a glass thickness, what is the laser cutting rate per metre?
   laserRates: defineTable({
+    tenantId: v.id("tenants"),
     minThickness: v.number(), // mm (inclusive)
     maxThickness: v.number(), // mm (inclusive)
     ratePerMeter: v.number(),
     active: v.boolean(),
-  }).index("by_active", ["active"]),
+  })
+    .index("by_active", ["active"])
+    .index("by_tenantId", ["tenantId"])
+    .index("by_tenantId_active", ["tenantId", "active"]),
 
   // ---------------------- Beveling Rates ----------------------
   // Rate lookup: given an edge-finish style and glass thickness, what is the rate per metre?
   bevelingRates: defineTable({
+    tenantId: v.id("tenants"),
     bevelingType: bevelingType,
     minThickness: v.number(), // mm (inclusive)
     maxThickness: v.number(), // mm (inclusive)
@@ -372,10 +533,14 @@ export default defineSchema({
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
-  }).index("by_bevelingType_active", ["bevelingType", "active"]),
+  })
+    .index("by_bevelingType_active", ["bevelingType", "active"])
+    .index("by_tenantId", ["tenantId"])
+    .index("by_tenantId_bevelingType_active", ["tenantId", "bevelingType", "active"]),
 
   // ---------------------- Operation Prices ----------------------
   operationPrices: defineTable({
+    tenantId: v.id("tenants"),
     category: operationCategory, // BEVELING | CALCULATION | LASER
     subtype: v.string(),
     arabicName: v.string(),
@@ -385,10 +550,14 @@ export default defineSchema({
     description: v.optional(v.string()),
     active: v.boolean(),
     displayOrder: v.optional(v.number()),
-  }).index("by_category_subtype", ["category", "subtype"]),
+  })
+    .index("by_category_subtype", ["category", "subtype"])
+    .index("by_tenantId", ["tenantId"])
+    .index("by_tenantId_category_subtype", ["tenantId", "category", "subtype"]),
 
   // ---------------------- Company Profile ----------------------
   companyProfile: defineTable({
+    tenantId: v.id("tenants"),
     companyName: v.string(),
     companyNameArabic: v.optional(v.string()),
     address: v.optional(v.string()),
@@ -401,7 +570,8 @@ export default defineSchema({
     logoContentType: v.optional(v.string()),
     logoStorageId: v.optional(v.id("_storage")),
     footerText: v.optional(v.string()),
-  }),
+  })
+    .index("by_tenantId", ["tenantId"]),
 
   // ---------------------- Users ----------------------
   users: defineTable({
@@ -411,12 +581,15 @@ export default defineSchema({
     lastName: v.string(),
     role: userRole,
     isActive: v.boolean(),
+    defaultTenantId: v.optional(v.id("tenants")),
+    viewingTenantId: v.optional(v.id("tenants")),
   })
     .index("by_clerkUserId", ["clerkUserId"])
     .index("by_username",    ["username"]),
 
   // ---------------------- Notifications ----------------------
   notifications: defineTable({
+    tenantId: v.id("tenants"),
     title: v.string(),
     message: v.string(),
     type: notificationType,
@@ -428,11 +601,101 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_targetUserId", ["targetUserId"])
-    .index("by_createdAt",    ["createdAt"]),
+    .index("by_createdAt",    ["createdAt"])
+    .index("by_tenantId", ["tenantId"])
+    .index("by_tenantId_targetUserId", ["tenantId", "targetUserId"]),
 
   // ---------------------- ID Counters ----------------------
   idCounters: defineTable({
+    tenantId: v.id("tenants"),
     prefix: v.string(),
     currentValue: v.number(),
-  }).index("by_prefix", ["prefix"]),
+  })
+    .index("by_prefix", ["prefix"])
+    .index("by_tenantId_prefix", ["tenantId", "prefix"]),
+
+  // ====================== AUDIT LOG TABLES ======================
+
+  // ---------------------- Audit Logs (tenant-scoped) ----------------------
+  auditLogs: defineTable({
+    tenantId: v.id("tenants"),
+    userId: v.id("users"),
+    userEmail: v.string(),
+    action: v.string(),            // e.g. "invoice.created", "user.role_changed"
+    entityType: v.string(),        // e.g. "invoice", "user", "customer"
+    entityId: v.optional(v.string()),
+    changes: v.optional(v.any()),  // { field: { from, to } }
+    metadata: v.optional(v.object({
+      ipAddress: v.optional(v.string()),
+      userAgent: v.optional(v.string()),
+      source: v.optional(v.string()),
+    })),
+    severity: auditSeverity,
+    timestamp: v.number(),
+  })
+    .index("by_tenantId", ["tenantId"])
+    .index("by_tenantId_action", ["tenantId", "action"])
+    .index("by_tenantId_entityType", ["tenantId", "entityType"])
+    .index("by_tenantId_userId", ["tenantId", "userId"])
+    .index("by_tenantId_severity", ["tenantId", "severity"])
+    .index("by_tenantId_timestamp", ["tenantId", "timestamp"]),
+
+  // ---------------------- Super Admin Audit Logs (platform-wide) ----------------------
+  superAdminAuditLogs: defineTable({
+    userId: v.id("users"),
+    userEmail: v.string(),
+    action: v.string(),            // e.g. "tenant.created", "tenant.suspended"
+    entityType: v.string(),        // e.g. "tenant", "user"
+    entityId: v.optional(v.string()),
+    targetTenantId: v.optional(v.id("tenants")),
+    changes: v.optional(v.any()),
+    metadata: v.optional(v.object({
+      ipAddress: v.optional(v.string()),
+      userAgent: v.optional(v.string()),
+      source: v.optional(v.string()),
+    })),
+    severity: auditSeverity,
+    timestamp: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_action", ["action"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_targetTenantId", ["targetTenantId"]),
+
+  // ---------------------- Plan Configs ----------------------
+  planConfigs: defineTable({
+    planKey: v.string(),           // "free" | "starter" | "professional" | "enterprise"
+    nameEn: v.string(),
+    nameAr: v.string(),
+    monthlyPrice: v.number(),
+    yearlyPrice: v.number(),
+    maxUsers: v.number(),
+    maxInvoicesPerMonth: v.number(), // -1 = unlimited
+    features: v.array(v.string()),
+    color: v.string(),
+    isActive: v.boolean(),
+    displayOrder: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_planKey", ["planKey"])
+    .index("by_isActive", ["isActive"]),
+
+  // ---------------------- Subscription Payments ----------------------
+  subscriptionPayments: defineTable({
+    tenantId: v.id("tenants"),
+    amount: v.number(),
+    billingCycle: billingCycle,
+    periodStart: v.number(),
+    periodEnd: v.number(),
+    status: subscriptionPaymentStatus,
+    paymentMethod: v.optional(v.string()),
+    referenceNumber: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    recordedBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_tenantId", ["tenantId"])
+    .index("by_tenantId_createdAt", ["tenantId", "createdAt"])
+    .index("by_createdAt", ["createdAt"])
+    .index("by_status", ["status"]),
 });

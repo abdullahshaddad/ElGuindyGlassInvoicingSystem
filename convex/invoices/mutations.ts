@@ -1,6 +1,7 @@
-import { mutation } from "../_generated/server";
 import { v, Infer } from "convex/values";
-import { requireRole, requireAuth } from "../helpers/auth";
+import { tenantMutation, verifyTenantOwnership } from "../helpers/multitenancy";
+import { checkPermission } from "../helpers/permissions";
+import { logAuditEvent } from "../helpers/auditLog";
 import { generateInvoiceNumber } from "../helpers/idGenerator";
 import {
   toMeters,
@@ -13,14 +14,11 @@ import {
   type OperationInput,
 } from "../lib/operationCalculation";
 import {
-  invoiceStatus,
-  workStatus,
   lineStatus,
   dimensionUnit,
   operationTypeLabel,
   calculationMethodLabel,
   invoiceLineOperationValidator,
-  paymentMethod,
 } from "../schema";
 
 // ============================================================
@@ -29,13 +27,9 @@ import {
 
 /** What the frontend sends for a single operation on a line. */
 const operationInputArg = v.object({
-  /** Full bilingual label — stored as-is in the historical record. */
   operationType: operationTypeLabel,
-  /** Perimeter formula — omit for area-based (SANDING) or manual-price operations. */
   calculationMethod: v.optional(calculationMethodLabel),
-  /** Manually entered edge length in metres (CURVE_ARCH / PANELS calc method). */
   manualMeters: v.optional(v.number()),
-  /** Manual price override (LASER, CURVE_ARCH, PANELS). */
   manualPrice: v.optional(v.number()),
 });
 
@@ -47,7 +41,6 @@ const lineArg = v.object({
     height:        v.number(),
     measuringUnit: dimensionUnit,
   }),
-  /** Diameter in the same unit as dimensions — for CIRCLE calculations. */
   diameter: v.optional(v.number()),
   quantity: v.optional(v.number()),
   notes: v.optional(v.string()),
@@ -58,7 +51,7 @@ const lineArg = v.object({
 // createInvoice
 // ============================================================
 
-export const createInvoice = mutation({
+export const createInvoice = tenantMutation({
   args: {
     customerId: v.id("customers"),
     lines: v.array(lineArg),
@@ -66,21 +59,21 @@ export const createInvoice = mutation({
     notes: v.optional(v.string()),
     issueDate: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const user = await requireRole(ctx, ["OWNER", "ADMIN", "CASHIER"]);
+  handler: async (ctx, args, tenant) => {
+    checkPermission(tenant, "invoices", "create");
 
     const customer = await ctx.db.get(args.customerId);
-    if (!customer) throw new Error("العميل غير موجود");
+    if (!customer || customer.tenantId !== tenant.tenantId) throw new Error("العميل غير موجود");
 
     if (args.lines.length === 0) throw new Error("يجب أن تحتوي الفاتورة على بند واحد على الأقل");
 
-    const invoiceNumber = await generateInvoiceNumber(ctx, "INV");
+    const invoiceNumber = await generateInvoiceNumber(ctx, "INV", tenant.tenantId);
     const readableId = `INV-${invoiceNumber}`;
     const now = Date.now();
     let invoiceTotalPrice = 0;
 
-    // Create the invoice header first so we have its ID for line insertion
     const invoiceId = await ctx.db.insert("invoices", {
+      tenantId: tenant.tenantId,
       readableId,
       invoiceNumber,
       customerId: args.customerId,
@@ -97,9 +90,8 @@ export const createInvoice = mutation({
     for (let i = 0; i < args.lines.length; i++) {
       const lineReq = args.lines[i];
 
-      // Validate glass type
       const glassType = await ctx.db.get(lineReq.glassTypeId);
-      if (!glassType) throw new Error(`البند ${i + 1}: نوع الزجاج غير موجود`);
+      if (!glassType || glassType.tenantId !== tenant.tenantId) throw new Error(`البند ${i + 1}: نوع الزجاج غير موجود`);
       if (!glassType.active) throw new Error(`البند ${i + 1}: نوع الزجاج غير نشط`);
 
       const { width, height, measuringUnit } = lineReq.dimensions;
@@ -113,20 +105,16 @@ export const createInvoice = mutation({
       const areaM2  = calculateAreaM2(width, height, measuringUnit);
       const lengthM = calculateLengthM(width, height, measuringUnit);
 
-      // Diameter converted to metres for CIRCLE calculations
       const diameterM = lineReq.diameter != null
         ? toMeters(lineReq.diameter, measuringUnit)
         : undefined;
 
-      // Glass price
       const quantityForPricing = glassType.pricingMethod === "LENGTH" ? lengthM : areaM2;
       const glassPrice = roundTo2(quantityForPricing * glassType.pricePerMeter);
 
       const quantity = (lineReq.quantity != null && lineReq.quantity > 0) ? lineReq.quantity : 1;
 
-      // ── Build embedded operations ──────────────────────────────────────────
       const embeddedOperations: Infer<typeof invoiceLineOperationValidator>[] = [];
-
       let totalOperationsPrice = 0;
       let totalBevelingMeters  = 0;
 
@@ -139,7 +127,7 @@ export const createInvoice = mutation({
           diameterM,
         };
 
-        const result = await calculateOperation(ctx, opInput, widthM, heightM, glassType.thickness);
+        const result = await calculateOperation(ctx, opInput, widthM, heightM, glassType.thickness, tenant.tenantId);
 
         embeddedOperations.push({
           operationType:     opReq.operationType,
@@ -153,11 +141,10 @@ export const createInvoice = mutation({
       }
 
       totalOperationsPrice = roundTo2(totalOperationsPrice);
-
-      // lineTotal = (glassPrice + operations) × quantity
       const lineTotal = roundTo2((glassPrice + totalOperationsPrice) * quantity);
 
       await ctx.db.insert("invoiceLines", {
+        tenantId: tenant.tenantId,
         invoiceId,
         glassTypeId: lineReq.glassTypeId,
         glassTypeSnapshot: {
@@ -191,7 +178,6 @@ export const createInvoice = mutation({
       amountPaidNow    = args.amountPaidNow ?? 0;
       remainingBalance = roundTo2(invoiceTotalPrice - amountPaidNow);
     } else {
-      // Add invoice total to customer balance (debt)
       await ctx.db.patch(args.customerId, {
         balance:   (customer.balance ?? 0) + invoiceTotalPrice,
         updatedAt: now,
@@ -202,6 +188,7 @@ export const createInvoice = mutation({
         remainingBalance = roundTo2(invoiceTotalPrice - amountPaidNow);
 
         await ctx.db.insert("payments", {
+          tenantId:      tenant.tenantId,
           customerId:    args.customerId,
           invoiceId,
           amount:        amountPaidNow,
@@ -209,7 +196,7 @@ export const createInvoice = mutation({
           paymentDate:   now,
           notes:         "دفعة أولية عند إنشاء الفاتورة",
           createdAt:     now,
-          createdBy:     user.username,
+          createdBy:     tenant.user.username,
         });
 
         const updatedCustomer = await ctx.db.get(args.customerId);
@@ -224,7 +211,6 @@ export const createInvoice = mutation({
       }
     }
 
-    // ── Invoice status ─────────────────────────────────────────────────────
     let status: "PENDING" | "PAID" | "PARTIALLY_PAID" | "CANCELLED" = "PENDING";
     let paymentDate: number | undefined;
 
@@ -245,6 +231,12 @@ export const createInvoice = mutation({
       updatedAt: now,
     });
 
+    await logAuditEvent(ctx, tenant, {
+      action: "invoice.created",
+      entityType: "invoice",
+      entityId: invoiceId,
+    });
+
     return invoiceId;
   },
 });
@@ -253,13 +245,13 @@ export const createInvoice = mutation({
 // markAsPaid
 // ============================================================
 
-export const markAsPaid = mutation({
+export const markAsPaid = tenantMutation({
   args: { invoiceId: v.id("invoices") },
-  handler: async (ctx, args) => {
-    await requireRole(ctx, ["OWNER", "ADMIN", "CASHIER"]);
+  handler: async (ctx, args, tenant) => {
+    checkPermission(tenant, "invoices", "update");
 
     const invoice = await ctx.db.get(args.invoiceId);
-    if (!invoice) throw new Error("الفاتورة غير موجودة");
+    verifyTenantOwnership(invoice, tenant.tenantId);
 
     if (invoice.status !== "PAID") {
       const remaining = invoice.remainingBalance;
@@ -279,6 +271,13 @@ export const markAsPaid = mutation({
         paymentDate:      now,
         updatedAt:        now,
       });
+
+      await logAuditEvent(ctx, tenant, {
+        action: "invoice.status_changed",
+        entityType: "invoice",
+        entityId: args.invoiceId,
+        changes: { status: { from: invoice.status, to: "PAID" } },
+      });
     }
   },
 });
@@ -287,13 +286,13 @@ export const markAsPaid = mutation({
 // deleteInvoice
 // ============================================================
 
-export const deleteInvoice = mutation({
+export const deleteInvoice = tenantMutation({
   args: { invoiceId: v.id("invoices") },
-  handler: async (ctx, args) => {
-    await requireRole(ctx, ["OWNER", "ADMIN"]);
+  handler: async (ctx, args, tenant) => {
+    checkPermission(tenant, "invoices", "delete");
 
     const invoice = await ctx.db.get(args.invoiceId);
-    if (!invoice) throw new Error("الفاتورة غير موجودة");
+    verifyTenantOwnership(invoice, tenant.tenantId);
 
     const now = Date.now();
 
@@ -323,7 +322,7 @@ export const deleteInvoice = mutation({
       });
     }
 
-    // 3. Delete invoice lines (operations are embedded — no separate delete needed)
+    // 3. Delete invoice lines
     const lines = await ctx.db
       .query("invoiceLines")
       .withIndex("by_invoiceId", (q) => q.eq("invoiceId", args.invoiceId))
@@ -345,6 +344,13 @@ export const deleteInvoice = mutation({
 
     // 5. Delete the invoice itself
     await ctx.db.delete(args.invoiceId);
+
+    await logAuditEvent(ctx, tenant, {
+      action: "invoice.deleted",
+      entityType: "invoice",
+      entityId: args.invoiceId,
+      severity: "critical",
+    });
   },
 });
 
@@ -352,20 +358,19 @@ export const deleteInvoice = mutation({
 // updateLineStatus
 // ============================================================
 
-export const updateLineStatus = mutation({
+export const updateLineStatus = tenantMutation({
   args: {
     lineId: v.id("invoiceLines"),
     status: lineStatus,
   },
-  handler: async (ctx, args) => {
-    await requireRole(ctx, ["OWNER", "ADMIN", "WORKER"]);
+  handler: async (ctx, args, tenant) => {
+    checkPermission(tenant, "orders", "update");
 
     const line = await ctx.db.get(args.lineId);
-    if (!line) throw new Error("البند غير موجود");
+    verifyTenantOwnership(line, tenant.tenantId);
 
     await ctx.db.patch(args.lineId, { status: args.status });
 
-    // Recalculate invoice workStatus from all lines
     const allLines = await ctx.db
       .query("invoiceLines")
       .withIndex("by_invoiceId", (q) => q.eq("invoiceId", line.invoiceId))

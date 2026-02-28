@@ -11,6 +11,7 @@ export interface AppUser {
   lastName: string;
   role: UserRole;
   isActive: boolean;
+  defaultTenantId?: string;
 }
 
 /**
@@ -53,7 +54,7 @@ export async function requireRole(
   roles: UserRole[]
 ): Promise<AppUser> {
   const user = await requireAuth(ctx);
-  if (!roles.includes(user.role)) {
+  if (user.role !== "SUPERADMIN" && !roles.includes(user.role)) {
     throw new Error(
       `غير مصرح: هذا الإجراء يتطلب أحد الأدوار: ${roles.join(", ")}`
     );

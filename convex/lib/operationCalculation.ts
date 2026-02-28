@@ -1,4 +1,5 @@
 import { QueryCtx } from "../_generated/server";
+import { Id } from "../_generated/dataModel";
 import {
   BevelingType,
   isBevelingFormulaBased,
@@ -53,20 +54,31 @@ const DEFAULT_BEVELING_RATES: Record<BevelingType, number> = {
 };
 
 // ============================================================
-// Rate lookup
+// Rate lookup (tenant-scoped)
 // ============================================================
 
 async function getRateForThickness(
   ctx: QueryCtx,
   bevelingType: BevelingType,
-  thickness: number
+  thickness: number,
+  tenantId?: Id<"tenants">
 ): Promise<number> {
-  const rates = await ctx.db
-    .query("bevelingRates")
-    .withIndex("by_bevelingType_active", (q) =>
-      q.eq("bevelingType", bevelingType).eq("active", true)
-    )
-    .collect();
+  let rates;
+  if (tenantId) {
+    rates = await ctx.db
+      .query("bevelingRates")
+      .withIndex("by_tenantId_bevelingType_active", (q) =>
+        q.eq("tenantId", tenantId).eq("bevelingType", bevelingType).eq("active", true)
+      )
+      .collect();
+  } else {
+    rates = await ctx.db
+      .query("bevelingRates")
+      .withIndex("by_bevelingType_active", (q) =>
+        q.eq("bevelingType", bevelingType).eq("active", true)
+      )
+      .collect();
+  }
 
   const match = rates.find(
     (r) => thickness >= r.minThickness && thickness <= r.maxThickness
@@ -95,7 +107,8 @@ export async function calculateOperation(
   input: OperationInput,
   widthM: number,
   heightM: number,
-  thickness: number
+  thickness: number,
+  tenantId?: Id<"tenants">
 ): Promise<OperationResult> {
   const opCode = input.operationTypeCode;
 
@@ -107,7 +120,7 @@ export async function calculateOperation(
   // ── SANDING (area-based) ─────────────────────────────────────────────────
   if (opCode === "SANDING") {
     const areaM2 = widthM * heightM;
-    const rate = await getRateForThickness(ctx, "SANDING", thickness);
+    const rate = await getRateForThickness(ctx, "SANDING", thickness, tenantId);
     return { ratePerMeter: rate, price: areaM2 * rate };
   }
 
@@ -129,7 +142,7 @@ export async function calculateOperation(
   // CURVE_ARCH / PANELS as the *calculation method* → manual meters × rate
   if (isBevelingCalcManual(calcCode)) {
     const bevelingMeters = input.manualMeters ?? 0;
-    const rate = await getRateForThickness(ctx, bevelingType, thickness);
+    const rate = await getRateForThickness(ctx, bevelingType, thickness, tenantId);
     return { bevelingMeters, ratePerMeter: rate, price: bevelingMeters * rate };
   }
 
@@ -139,12 +152,12 @@ export async function calculateOperation(
       throw new Error("القطر مطلوب لحساب قطع العجلة");
     }
     const bevelingMeters = 6 * input.diameterM;
-    const rate = await getRateForThickness(ctx, bevelingType, thickness);
+    const rate = await getRateForThickness(ctx, bevelingType, thickness, tenantId);
     return { bevelingMeters, ratePerMeter: rate, price: bevelingMeters * rate };
   }
 
   // Formula-based → calculateBevelingMeters() × rate
   const bevelingMeters = calculateBevelingMeters(calcCode, widthM, heightM, input.diameterM);
-  const rate = await getRateForThickness(ctx, bevelingType, thickness);
+  const rate = await getRateForThickness(ctx, bevelingType, thickness, tenantId);
   return { bevelingMeters, ratePerMeter: rate, price: bevelingMeters * rate };
 }

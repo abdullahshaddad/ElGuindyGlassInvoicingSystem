@@ -118,7 +118,7 @@ const FactorySidebar = ({ isOpen, onClose }) => {
                                 شاشة القطع
                             </h1>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                                نظام الجيندي للزجاج
+                                نظام كوارتز
                             </p>
                         </div>
                     </div>

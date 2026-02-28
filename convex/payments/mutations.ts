@@ -1,13 +1,13 @@
-import { mutation } from "../_generated/server";
 import { v } from "convex/values";
-import { requireRole } from "../helpers/auth";
+import { tenantMutation, verifyTenantOwnership } from "../helpers/multitenancy";
+import { checkPermission } from "../helpers/permissions";
+import { logAuditEvent } from "../helpers/auditLog";
 import { paymentMethod } from "../schema";
 
 /**
  * Record a payment for an invoice or general customer balance.
- * Port of PaymentService.recordPayment() from Java.
  */
-export const recordPayment = mutation({
+export const recordPayment = tenantMutation({
   args: {
     customerId: v.id("customers"),
     invoiceId: v.optional(v.id("invoices")),
@@ -16,19 +16,16 @@ export const recordPayment = mutation({
     referenceNumber: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const user = await requireRole(ctx, ["OWNER", "ADMIN", "CASHIER"]);
+  handler: async (ctx, args, tenant) => {
+    checkPermission(tenant, "invoices", "update");
 
-    // Validate amount
     if (args.amount <= 0) {
       throw new Error("مبلغ الدفع يجب أن يكون أكبر من صفر");
     }
 
-    // Get customer
     const customer = await ctx.db.get(args.customerId);
-    if (!customer) throw new Error("العميل غير موجود");
+    verifyTenantOwnership(customer, tenant.tenantId);
 
-    // CASH customers cannot have payments recorded
     if (customer.customerType === "CASH") {
       throw new Error("العملاء النقديون يدفعون كامل المبلغ عند إنشاء الفاتورة");
     }
@@ -36,19 +33,16 @@ export const recordPayment = mutation({
     let invoice = null;
     if (args.invoiceId) {
       invoice = await ctx.db.get(args.invoiceId);
-      if (!invoice) throw new Error("الفاتورة غير موجودة");
+      verifyTenantOwnership(invoice, tenant.tenantId);
 
-      // Validate invoice belongs to customer
       if (invoice.customerId !== args.customerId) {
         throw new Error("الفاتورة لا تنتمي للعميل المحدد");
       }
 
-      // Check if already fully paid
       if (invoice.remainingBalance <= 0.01) {
         throw new Error("الفاتورة مدفوعة بالكامل بالفعل");
       }
 
-      // Validate amount doesn't exceed remaining
       if (args.amount > invoice.remainingBalance + 0.01) {
         throw new Error(
           `المبلغ المدفوع (${args.amount.toFixed(2)}) أكبر من الرصيد المتبقي (${invoice.remainingBalance.toFixed(2)})`
@@ -58,8 +52,8 @@ export const recordPayment = mutation({
 
     const now = Date.now();
 
-    // Create payment record
     const paymentId = await ctx.db.insert("payments", {
+      tenantId: tenant.tenantId,
       customerId: args.customerId,
       invoiceId: args.invoiceId,
       amount: args.amount,
@@ -68,10 +62,9 @@ export const recordPayment = mutation({
       referenceNumber: args.referenceNumber,
       notes: args.notes,
       createdAt: now,
-      createdBy: user.username,
+      createdBy: tenant.user.username,
     });
 
-    // Update invoice if specified
     if (invoice && args.invoiceId) {
       const newAmountPaid = (invoice.amountPaidNow ?? 0) + args.amount;
       const newRemaining = invoice.totalPrice - newAmountPaid;
@@ -86,10 +79,15 @@ export const recordPayment = mutation({
       });
     }
 
-    // Update customer balance (subtract payment)
     await ctx.db.patch(args.customerId, {
       balance: (customer.balance ?? 0) - args.amount,
       updatedAt: now,
+    });
+
+    await logAuditEvent(ctx, tenant, {
+      action: "payment.created",
+      entityType: "payment",
+      entityId: paymentId,
     });
 
     return paymentId;
@@ -98,19 +96,17 @@ export const recordPayment = mutation({
 
 /**
  * Delete a payment (admin only, reverses balance changes).
- * Port of PaymentService.deletePayment() from Java.
  */
-export const deletePayment = mutation({
+export const deletePayment = tenantMutation({
   args: { paymentId: v.id("payments") },
-  handler: async (ctx, args) => {
-    await requireRole(ctx, ["OWNER", "ADMIN"]);
+  handler: async (ctx, args, tenant) => {
+    checkPermission(tenant, "invoices", "delete");
 
     const payment = await ctx.db.get(args.paymentId);
-    if (!payment) throw new Error("لم يتم العثور على الدفعة");
+    verifyTenantOwnership(payment, tenant.tenantId);
 
     const now = Date.now();
 
-    // Reverse customer balance (add back the payment amount)
     const customer = await ctx.db.get(payment.customerId);
     if (customer) {
       await ctx.db.patch(payment.customerId, {
@@ -119,7 +115,6 @@ export const deletePayment = mutation({
       });
     }
 
-    // Reverse invoice if applicable
     if (payment.invoiceId) {
       const invoice = await ctx.db.get(payment.invoiceId);
       if (invoice) {
@@ -136,5 +131,12 @@ export const deletePayment = mutation({
     }
 
     await ctx.db.delete(args.paymentId);
+
+    await logAuditEvent(ctx, tenant, {
+      action: "payment.deleted",
+      entityType: "payment",
+      entityId: args.paymentId,
+      severity: "critical",
+    });
   },
 });

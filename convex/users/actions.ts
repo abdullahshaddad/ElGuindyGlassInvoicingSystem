@@ -1,7 +1,7 @@
 "use node";
 
 import { action } from "../_generated/server";
-import { internal } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import { v } from "convex/values";
 import { userRole } from "../schema";
 
@@ -10,6 +10,8 @@ import { userRole } from "../schema";
  *
  * Requires the CLERK_SECRET_KEY environment variable to be set in the
  * Convex dashboard.
+ *
+ * The new user is automatically placed into the caller's tenant.
  */
 export const createUserWithClerk = action({
   args: {
@@ -20,11 +22,22 @@ export const createUserWithClerk = action({
     role: userRole,
   },
   handler: async (ctx, args): Promise<string> => {
-    // 1. Verify caller is authenticated
+    // 1. Verify caller is authenticated and resolve their tenant
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("غير مصرح: يرجى تسجيل الدخول");
     }
+
+    // Look up the calling user to get their defaultTenantId
+    const callerUser: any = await ctx.runQuery(
+      api.users.queries.getCurrentUser,
+      {}
+    ).catch(() => null);
+
+    // SUPERADMIN creates users inside the tenant they're viewing
+    const defaultTenantId = callerUser?.role === "SUPERADMIN"
+        ? (callerUser.viewingTenantId ?? callerUser.defaultTenantId ?? undefined)
+        : (callerUser?.defaultTenantId ?? undefined);
 
     // 2. Get Clerk secret key from environment
     const clerkSecretKey = process.env.CLERK_SECRET_KEY;
@@ -80,6 +93,7 @@ export const createUserWithClerk = action({
     const clerkUserId: string = clerkUser.id;
 
     // 4. Insert the user record in Convex via internal mutation
+    //    Pass defaultTenantId so the new user gets placed into the caller's tenant
     try {
       const userId = await ctx.runMutation(
         internal.users.mutations.insertUser,
@@ -89,6 +103,7 @@ export const createUserWithClerk = action({
           firstName: args.firstName,
           lastName: args.lastName || "",
           role: args.role,
+          defaultTenantId,
         }
       );
       return userId;

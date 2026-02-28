@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth, usePermissions } from '@/contexts/AuthContext';
 import { useTheme } from '@contexts/ThemeContext.jsx';
 import { useCompanyProfile } from '@services/companyProfileService';
+import { useExitTenant } from '@services/superAdminService';
 import clsx from 'clsx';
 import {
     FiHome,
@@ -26,7 +27,11 @@ import {
     FiUser,
     FiChevronLeft,
     FiChevronRight,
-    FiMenu
+    FiMenu,
+    FiChevronDown,
+    FiCheck,
+    FiGrid,
+    FiArrowLeft,
 } from 'react-icons/fi';
 
 // Professional icon mapping using React Icons
@@ -49,6 +54,48 @@ const icons = {
 
 // Sidebar configuration - centralized navigation structure
 const getSidebarItems = (t) => [
+    {
+        id: 'superAdmin',
+        title: t('superAdmin.nav.title', 'مدير النظام'),
+        roles: ['SUPERADMIN'],
+        items: [
+            {
+                id: 'sa-dashboard',
+                to: '/super-admin/dashboard',
+                icon: icons.dashboard,
+                label: t('superAdmin.nav.dashboard', 'لوحة النظام'),
+                roles: ['SUPERADMIN']
+            },
+            {
+                id: 'sa-tenants',
+                to: '/super-admin/tenants',
+                icon: FiGrid,
+                label: t('superAdmin.nav.manageTenants', 'إدارة المستأجرين'),
+                roles: ['SUPERADMIN']
+            },
+            {
+                id: 'sa-plans',
+                to: '/super-admin/plans',
+                icon: FiDollarSign,
+                label: t('superAdmin.nav.managePlans', 'إدارة الخطط'),
+                roles: ['SUPERADMIN']
+            },
+            {
+                id: 'sa-users',
+                to: '/super-admin/users',
+                icon: icons.userManagement,
+                label: t('superAdmin.nav.manageUsers', 'إدارة المستخدمين'),
+                roles: ['SUPERADMIN']
+            },
+            {
+                id: 'sa-audit',
+                to: '/super-admin/audit-logs',
+                icon: FiActivity,
+                label: t('superAdmin.nav.auditLogs', 'سجل المراجعة'),
+                roles: ['SUPERADMIN']
+            }
+        ]
+    },
     {
         id: 'main',
         title: t('navigation.main', '\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629'),
@@ -114,7 +161,7 @@ const getSidebarItems = (t) => [
     {
         id: 'admin',
         title: t('navigation.admin', '\u0627\u0644\u0625\u062f\u0627\u0631\u0629'),
-        roles: ['OWNER', 'ADMIN'],
+        roles: ['SUPERADMIN', 'OWNER', 'ADMIN'],
         items: [
             {
                 id: 'company-profile',
@@ -128,7 +175,7 @@ const getSidebarItems = (t) => [
                 to: '/admin/users',
                 icon: icons.userManagement,
                 label: t('users.title', '\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u064a\u0646'),
-                roles: ['OWNER', 'ADMIN']
+                roles: ['SUPERADMIN', 'OWNER', 'ADMIN']
             },
             {
                 id: 'glass-types',
@@ -136,6 +183,20 @@ const getSidebarItems = (t) => [
                 icon: icons.glassTypes,
                 label: t('navigation.glassTypes', '\u0623\u0646\u0648\u0627\u0639 \u0627\u0644\u0632\u062c\u0627\u062c'),
                 roles: ['OWNER', 'ADMIN']
+            },
+            {
+                id: 'tenantSettings',
+                to: '/admin/tenant-settings',
+                icon: FiGrid,
+                label: t('tenant.settings', '\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0627\u0644\u0645\u0633\u062a\u0623\u062c\u0631'),
+                roles: ['SUPERADMIN']
+            },
+            {
+                id: 'tenantMembers',
+                to: '/admin/tenant-members',
+                icon: FiUsers,
+                label: t('tenant.members', '\u0623\u0639\u0636\u0627\u0621 \u0627\u0644\u0645\u0633\u062a\u0623\u062c\u0631'),
+                roles: ['SUPERADMIN']
             },
             // {
             //     id: 'cutting-prices',
@@ -197,12 +258,116 @@ const NavGroup = ({ title, children, isCollapsed }) => (
     </div>
 );
 
+const TenantSwitcher = ({ tenants, currentTenant, switchTenant, isCollapsed, isRTL }) => {
+    const { t } = useTranslation();
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        if (isDropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isDropdownOpen]);
+
+    if (!tenants || tenants.length <= 1) return null;
+
+    const currentName = currentTenant?.name || t('tenant.selectTenant', 'اختر مستأجر');
+    const firstLetter = currentName.charAt(0).toUpperCase();
+
+    const handleSwitch = async (tenantId) => {
+        setIsDropdownOpen(false);
+        if (tenantId !== currentTenant?._id) {
+            await switchTenant(tenantId);
+        }
+    };
+
+    return (
+        <div className="border-b border-gray-200 dark:border-gray-700 relative" ref={dropdownRef}>
+            <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                title={isCollapsed ? currentName : undefined}
+                className={clsx(
+                    'w-full flex items-center gap-3 transition-colors',
+                    'hover:bg-gray-50 dark:hover:bg-gray-800',
+                    isCollapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3',
+                    isDropdownOpen && 'bg-gray-50 dark:bg-gray-800'
+                )}
+            >
+                <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                    style={{ backgroundColor: currentTenant?.brandColors?.primary || '#6366f1' }}
+                >
+                    {firstLetter}
+                </div>
+                {!isCollapsed && (
+                    <>
+                        <span className="flex-1 text-sm font-medium text-gray-900 dark:text-white truncate text-start">
+                            {currentName}
+                        </span>
+                        <FiChevronDown className={clsx(
+                            'w-4 h-4 text-gray-400 transition-transform',
+                            isDropdownOpen && 'rotate-180'
+                        )} />
+                    </>
+                )}
+            </button>
+
+            {isDropdownOpen && (
+                <div className={clsx(
+                    'absolute z-50 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg',
+                    'border border-gray-200 dark:border-gray-700 py-1 max-h-60 overflow-y-auto',
+                    isCollapsed
+                        ? (isRTL ? 'right-full mr-2 top-0' : 'left-full ml-2 top-0')
+                        : 'inset-x-2',
+                    'min-w-[200px]'
+                )}>
+                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        {t('tenant.switchTenant', 'تبديل المستأجر')}
+                    </div>
+                    {tenants.map((tenant) => (
+                        <button
+                            key={tenant._id}
+                            onClick={() => handleSwitch(tenant._id)}
+                            className={clsx(
+                                'w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors',
+                                'hover:bg-gray-100 dark:hover:bg-gray-700',
+                                tenant._id === currentTenant?._id && 'bg-primary-50 dark:bg-primary-900/20'
+                            )}
+                        >
+                            <div
+                                className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                                style={{ backgroundColor: tenant.brandColors?.primary || '#6366f1' }}
+                            >
+                                {tenant.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="flex-1 text-gray-700 dark:text-gray-300 truncate text-start">
+                                {tenant.name}
+                            </span>
+                            {tenant._id === currentTenant?._id && (
+                                <FiCheck className="w-4 h-4 text-primary-600 dark:text-primary-400 flex-shrink-0" />
+                            )}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
     const { t, i18n } = useTranslation();
-    const { user, logout } = useAuth();
+    const { user, logout, currentTenant, tenants, switchTenant, isSuperAdminViewing } = useAuth();
     const { isOwner, isCashier, isWorker, isAdmin } = usePermissions();
     const { isDarkMode, toggleTheme } = useTheme();
     const location = useLocation();
+    const navigate = useNavigate();
+    const exitTenant = useExitTenant();
     const [showUserSettings, setShowUserSettings] = useState(false);
     const popupRef = useRef(null);
 
@@ -238,10 +403,17 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
     };
 
     // Helper function to check if user has access to a specific role
+    // SUPERADMIN sees super admin items always, and regular tenant items only when inside a tenant
     const hasRole = (requiredRoles) => {
         if (!requiredRoles || requiredRoles.length === 0) return true;
 
         const userRole = user?.role;
+        if (userRole === 'SUPERADMIN') {
+            // Items explicitly marked SUPERADMIN → always visible
+            if (requiredRoles.includes('SUPERADMIN')) return true;
+            // Regular tenant items → only visible when switched into a tenant
+            return !!currentTenant;
+        }
         return requiredRoles.includes(userRole);
     };
 
@@ -303,7 +475,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                                 {companyLogo ? (
                                     <img
                                         src={companyLogo}
-                                        alt={companyName || t('app.name', 'الجندي للزجاج')}
+                                        alt={companyName || t('app.name', 'كوارتز')}
                                         className="w-10 h-10 rounded-xl object-contain flex-shrink-0"
                                         onError={(e) => {
                                             e.target.style.display = 'none';
@@ -313,16 +485,15 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                                 ) : null}
                                 <div
                                     className={clsx(
-                                        "w-10 h-10 rounded-xl items-center justify-center text-white font-bold flex-shrink-0",
+                                        "w-10 h-10 rounded-xl items-center justify-center text-white font-bold flex-shrink-0 bg-primary-500",
                                         companyLogo ? "hidden" : "flex"
                                     )}
-                                    style={{ backgroundColor: '#0077B6' }}
                                 >
-                                    G
+                                    K
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">
-                                        {companyName || t('app.name', 'الجندي للزجاج')}
+                                        {companyName || t('app.name', 'كوارتز')}
                                     </h1>
                                 </div>
                             </div>
@@ -352,6 +523,43 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                         </div>
                     )}
                 </div>
+
+                {/* Tenant Switcher — hidden for SUPERADMIN */}
+                {user?.role !== 'SUPERADMIN' && (
+                    <TenantSwitcher
+                        tenants={tenants}
+                        currentTenant={currentTenant}
+                        switchTenant={switchTenant}
+                        isCollapsed={isCollapsed}
+                        isRTL={isRTL}
+                    />
+                )}
+
+                {/* Back to Admin Panel — shown when SUPERADMIN is viewing a tenant */}
+                {isSuperAdminViewing && (
+                    <div className="border-b border-gray-200 dark:border-gray-700">
+                        <button
+                            onClick={async () => {
+                                await exitTenant({});
+                                navigate('/super-admin/dashboard');
+                            }}
+                            title={isCollapsed ? t('superAdmin.backToPanel', 'العودة للوحة النظام') : undefined}
+                            className={clsx(
+                                'w-full flex items-center gap-2 transition-colors',
+                                'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400',
+                                'hover:bg-amber-100 dark:hover:bg-amber-900/30',
+                                isCollapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'
+                            )}
+                        >
+                            <FiArrowLeft className="w-4 h-4 flex-shrink-0" />
+                            {!isCollapsed && (
+                                <span className="text-sm font-medium">
+                                    {t('superAdmin.backToPanel', 'العودة للوحة النظام')}
+                                </span>
+                            )}
+                        </button>
+                    </div>
+                )}
 
                 {/* Navigation - Scrollable section */}
                 <div className="flex-1 px-2 py-4 overflow-y-auto overflow-x-hidden">
@@ -402,6 +610,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                                     {user?.displayName || t('users.user')}
                                 </div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    {user?.role === 'SUPERADMIN' && t('users.roles.SUPERADMIN')}
                                     {user?.role === 'OWNER' && t('users.roles.OWNER')}
                                     {user?.role === 'ADMIN' && t('users.roles.ADMIN')}
                                     {user?.role === 'CASHIER' && t('users.roles.CASHIER')}
@@ -475,8 +684,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                             isCollapsed ? 'justify-center' : 'gap-3'
                         )}>
                             <div
-                                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium flex-shrink-0"
-                                style={{ backgroundColor: '#0077B6' }}
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium flex-shrink-0 bg-primary-500"
                             >
                                 {user?.firstName?.charAt(0) || <FiUser size={18} />}
                             </div>
@@ -487,6 +695,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                                             {user?.displayName || t('users.user')}
                                         </div>
                                         <div className="text-xs text-gray-500 dark:text-gray-400">
+                                            {user?.role === 'SUPERADMIN' && t('users.roles.SUPERADMIN')}
                                             {user?.role === 'OWNER' && t('users.roles.OWNER')}
                                             {user?.role === 'ADMIN' && t('users.roles.ADMIN')}
                                             {user?.role === 'CASHIER' && t('users.roles.CASHIER')}

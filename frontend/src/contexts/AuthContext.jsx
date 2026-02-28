@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useMemo, useCallback } from 'react';
 import { useUser, useAuth as useClerkAuth } from '@clerk/clerk-react';
-import { useQuery } from 'convex/react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '@convex/_generated/api';
 
 // Create the context
@@ -16,9 +16,28 @@ export const AuthProvider = ({ children }) => {
         isSignedIn ? {} : "skip"
     );
 
-    const isLoading = !isClerkLoaded || (isSignedIn && convexUser === undefined);
+    // Tenant queries — bootstrap (no tenant scope needed)
+    const tenants = useQuery(
+        api.tenants.queries.listMyTenants,
+        isSignedIn ? {} : "skip"
+    );
 
-    // Build user object matching the old interface
+    // Current tenant — tenant-scoped (when user has a defaultTenantId or viewingTenantId)
+    const currentTenant = useQuery(
+        api.tenants.queries.getCurrentTenant,
+        isSignedIn && convexUser && (convexUser.defaultTenantId || convexUser.viewingTenantId) ? {} : "skip"
+    );
+
+    // Switch tenant mutation
+    const switchTenantMutation = useMutation(api.tenants.mutations.switchTenant);
+
+    // Loading: wait for Clerk, Convex user, and tenant data (when applicable)
+    const isLoading =
+        !isClerkLoaded ||
+        (isSignedIn && convexUser === undefined) ||
+        (isSignedIn && convexUser && (convexUser.defaultTenantId || convexUser.viewingTenantId) && currentTenant === undefined);
+
+    // Build user object matching the old interface + tenant fields
     const user = useMemo(() => {
         if (!isSignedIn || !convexUser) return null;
         return {
@@ -30,8 +49,13 @@ export const AuthProvider = ({ children }) => {
             displayName: `${convexUser.firstName || ''} ${convexUser.lastName || ''}`.trim(),
             role: convexUser.role,
             isActive: convexUser.isActive,
+            defaultTenantId: convexUser.defaultTenantId,
+            viewingTenantId: convexUser.viewingTenantId,
+            isSuperAdminViewing: currentTenant?.isSuperAdminViewing || false,
+            tenantRole: currentTenant?.currentUserRole,
+            permissions: currentTenant?.currentUserPermissions || [],
         };
-    }, [isSignedIn, convexUser, clerkUser]);
+    }, [isSignedIn, convexUser, clerkUser, currentTenant]);
 
     const isAuthenticated = isSignedIn && !!convexUser;
 
@@ -40,7 +64,12 @@ export const AuthProvider = ({ children }) => {
         await signOut();
     };
 
-    // Role checking functions
+    // Switch tenant — Convex reactivity handles refresh of all subscriptions
+    const switchTenant = useCallback(async (tenantId) => {
+        await switchTenantMutation({ tenantId });
+    }, [switchTenantMutation]);
+
+    // Role checking functions (app-level roles)
     const hasRole = (requiredRole) => {
         if (!user) return false;
         return user.role === requiredRole;
@@ -51,14 +80,35 @@ export const AuthProvider = ({ children }) => {
         return requiredRoles.includes(user.role);
     };
 
+    // Tenant role checking functions (deprecated — use hasTenantPermission instead)
+    const hasTenantRole = (requiredRole) => {
+        if (!user?.tenantRole) return false;
+        return user.tenantRole === requiredRole;
+    };
+
+    const hasTenantAccess = (minimumRole) => {
+        if (!user?.tenantRole) return false;
+        // Kept for backward compat — maps roles to a hierarchy level
+        const TENANT_ROLE_HIERARCHY = { viewer: 1, operator: 2, manager: 3, admin: 4, owner: 5 };
+        return (TENANT_ROLE_HIERARCHY[user.tenantRole] || 0) >= (TENANT_ROLE_HIERARCHY[minimumRole] || 0);
+    };
+
+    // Permission checking — granular, checks the permissions array from the backend
+    const hasTenantPermission = (permission) => {
+        if (!user) return false;
+        // SUPERADMIN bypasses
+        if (user.role === 'SUPERADMIN') return true;
+        return user.permissions?.includes(permission) || false;
+    };
+
     // Permission checking function (preserved from original)
     const canAccess = (resource, action = 'read') => {
         if (!user) return false;
 
         const { role } = user;
 
-        // Owner has access to everything
-        if (role === 'OWNER') return true;
+        // SUPERADMIN and OWNER have access to everything
+        if (role === 'SUPERADMIN' || role === 'OWNER') return true;
 
         // Define permission matrix
         const permissions = {
@@ -100,11 +150,19 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Context value
+    const isSuperAdminViewing = user?.isSuperAdminViewing || false;
+
     const value = {
         // State
         user,
         isAuthenticated,
         isLoading,
+
+        // Tenant state
+        currentTenant: currentTenant || null,
+        tenants: tenants || [],
+        switchTenant,
+        isSuperAdminViewing,
 
         // Authentication methods
         logout,
@@ -113,6 +171,9 @@ export const AuthProvider = ({ children }) => {
         hasRole,
         hasAnyRole,
         canAccess,
+        hasTenantRole,
+        hasTenantAccess,
+        hasTenantPermission,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -129,14 +190,18 @@ export const useAuth = () => {
 
 // Custom hook for permission-based functionality
 export const usePermissions = () => {
-    const { user, hasRole, hasAnyRole, canAccess } = useAuth();
+    const { user, hasRole, hasAnyRole, canAccess, hasTenantRole, hasTenantAccess, hasTenantPermission } = useAuth();
 
     return {
         user,
         hasRole,
         hasAnyRole,
         canAccess,
+        hasTenantRole,
+        hasTenantAccess,
+        hasTenantPermission,
         // Convenience methods for common checks
+        isSuperAdmin: () => hasRole('SUPERADMIN'),
         isOwner: () => hasRole('OWNER'),
         isCashier: () => hasRole('CASHIER'),
         isWorker: () => hasRole('WORKER'),

@@ -14,28 +14,28 @@ export default {
       },
       colors: {
         primary: {
-          50: '#e6f3fa',
-          100: '#cce7f5',
-          200: '#99cfeb',
-          300: '#66b7e1',
-          400: '#339fd7',
-          500: '#0077B6', // Glass Blue
-          600: '#006ba5',
-          700: '#005f94',
-          800: '#005383',
-          900: '#004772',
+          50:  'rgb(var(--color-primary-50) / <alpha-value>)',
+          100: 'rgb(var(--color-primary-100) / <alpha-value>)',
+          200: 'rgb(var(--color-primary-200) / <alpha-value>)',
+          300: 'rgb(var(--color-primary-300) / <alpha-value>)',
+          400: 'rgb(var(--color-primary-400) / <alpha-value>)',
+          500: 'rgb(var(--color-primary-500) / <alpha-value>)',
+          600: 'rgb(var(--color-primary-600) / <alpha-value>)',
+          700: 'rgb(var(--color-primary-700) / <alpha-value>)',
+          800: 'rgb(var(--color-primary-800) / <alpha-value>)',
+          900: 'rgb(var(--color-primary-900) / <alpha-value>)',
         },
         secondary: {
-          50: '#e8f5f3',
-          100: '#d1ebe7',
-          200: '#a3d7cf',
-          300: '#75c3b7',
-          400: '#47af9f',
-          500: '#3FA796', // Reflective Green
-          600: '#399687',
-          700: '#338578',
-          800: '#2d7469',
-          900: '#27635a',
+          50:  'rgb(var(--color-secondary-50) / <alpha-value>)',
+          100: 'rgb(var(--color-secondary-100) / <alpha-value>)',
+          200: 'rgb(var(--color-secondary-200) / <alpha-value>)',
+          300: 'rgb(var(--color-secondary-300) / <alpha-value>)',
+          400: 'rgb(var(--color-secondary-400) / <alpha-value>)',
+          500: 'rgb(var(--color-secondary-500) / <alpha-value>)',
+          600: 'rgb(var(--color-secondary-600) / <alpha-value>)',
+          700: 'rgb(var(--color-secondary-700) / <alpha-value>)',
+          800: 'rgb(var(--color-secondary-800) / <alpha-value>)',
+          900: 'rgb(var(--color-secondary-900) / <alpha-value>)',
         },
         accent: {
           50: '#f2ede6',
@@ -118,16 +118,16 @@ export default {
       boxShadow: {
         'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
         'glass-inset': 'inset 0 -1px 0 0 rgba(255, 255, 255, 0.05)',
-        'glow': '0 0 20px rgba(0, 119, 182, 0.3)',
-        'glow-lg': '0 0 40px rgba(0, 119, 182, 0.4)',
+        'glow': '0 0 20px rgb(var(--color-primary-500) / 0.3)',
+        'glow-lg': '0 0 40px rgb(var(--color-primary-500) / 0.4)',
         'inner-border': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
       },
       // Add gradient color stops
       gradientColorStops: {
-        'primary-light': '#e6f3fa',
-        'primary-dark': '#004772',
-        'secondary-light': '#e8f5f3',
-        'secondary-dark': '#27635a',
+        'primary-light': 'rgb(var(--color-primary-50))',
+        'primary-dark': 'rgb(var(--color-primary-900))',
+        'secondary-light': 'rgb(var(--color-secondary-50))',
+        'secondary-dark': 'rgb(var(--color-secondary-900))',
         'accent-light': '#f2ede6',
         'accent-dark': '#654526',
       },
@@ -193,10 +193,10 @@ export default {
         },
         'pulse-glow': {
           '0%, 100%': {
-            boxShadow: '0 0 20px rgba(0, 119, 182, 0.3)'
+            boxShadow: '0 0 20px rgb(var(--color-primary-500) / 0.3)'
           },
           '50%': {
-            boxShadow: '0 0 40px rgba(0, 119, 182, 0.6)'
+            boxShadow: '0 0 40px rgb(var(--color-primary-500) / 0.6)'
           },
         },
         'blob': {
