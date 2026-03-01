@@ -16,7 +16,6 @@ import { useCreateTenant } from '@/services/tenantService';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { ConfirmationDialog } from '@/components/ui/ConfirmationDialog';
 import {
-  FiSearch,
   FiPlus,
   FiPause,
   FiPlay,
@@ -27,6 +26,7 @@ import {
   FiX,
   FiEye,
 } from 'react-icons/fi';
+import { SearchInput } from '@components';
 
 const SuperAdminTenantsPage = () => {
   const { t, i18n } = useTranslation();
@@ -126,20 +126,16 @@ const SuperAdminTenantsPage = () => {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <FiSearch className="absolute top-1/2 -translate-y-1/2 start-3 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('superAdmin.tenants.searchPlaceholder', 'بحث بالاسم أو الرابط...')}
-            className="w-full ps-10 pe-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          />
-        </div>
+        <SearchInput
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('superAdmin.tenants.searchPlaceholder', 'بحث بالاسم أو الرابط...')}
+          wrapperClassName="flex-1"
+        />
         <select
           value={planFilter}
           onChange={(e) => setPlanFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+          className="w-full sm:w-44 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
         >
           <option value="all">{t('superAdmin.tenants.allPlans', 'جميع الخطط')}</option>
           <option value="free">{t('tenant.plans.free', 'مجاني')}</option>
@@ -150,7 +146,7 @@ const SuperAdminTenantsPage = () => {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+          className="w-full sm:w-44 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
         >
           <option value="all">{t('superAdmin.tenants.allStatuses', 'جميع الحالات')}</option>
           <option value="active">{t('superAdmin.tenants.statusActive', 'نشط')}</option>

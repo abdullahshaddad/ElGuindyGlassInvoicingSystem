@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { FiUser, FiSearch, FiX, FiPlus, FiDollarSign } from 'react-icons/fi';
 import Input from '@components/ui/Input.jsx';
+import SearchInput from '@components/ui/SearchInput.jsx';
 import Button from '@components/ui/Button.jsx';
 import LoadingSpinner from '@components/ui/LoadingSpinner.jsx';
 import Badge from '@components/ui/Badge.jsx';
@@ -133,15 +134,13 @@ const CustomerSelection = ({
                 // Customer Search
                 <div className="space-y-3">
                     <div className="relative">
-                        <Input
+                        <SearchInput
                             placeholder={t('customers.searchPlaceholder')}
                             value={customerSearch}
                             onChange={(e) => onCustomerSearchChange(e.target.value)}
-                            icon={<FiSearch />}
-                            className="w-full"
                         />
                         {isSearchingCustomers && (
-                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                            <div className="absolute start-3 top-1/2 -translate-y-1/2">
                                 <LoadingSpinner size="sm" />
                             </div>
                         )}

@@ -1,14 +1,15 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiEye } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiEye } from 'react-icons/fi';
 import {
     Button,
     Input,
     Modal,
     DataTable,
     PageHeader,
-    Badge
+    Badge,
+    SearchInput
 } from '@components';
 import { useCustomers, useSearchCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer } from '@services/customerService';
 import useAuthorized from '@hooks/useAuthorized';
@@ -407,19 +408,11 @@ const CustomersPage = () => {
             )}
 
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-                <div className="relative">
-                    <FiSearch
-                        className={`absolute top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 ${isRTL ? 'right-3' : 'left-3'}`}
-                        size={20}
-                    />
-                    <Input
-                        type="text"
-                        placeholder={t('customers.searchPlaceholder')}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className={`w-full ${isRTL ? 'pr-10' : 'pl-10'} bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white`}
-                    />
-                </div>
+                <SearchInput
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={t('customers.searchPlaceholder')}
+                />
             </div>
 
             <DataTable

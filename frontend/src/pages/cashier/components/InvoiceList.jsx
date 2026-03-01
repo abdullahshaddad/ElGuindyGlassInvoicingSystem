@@ -1,12 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { FiSearch, FiClock, FiEye, FiPrinter, FiCreditCard, FiPackage, FiTrash2 } from 'react-icons/fi';
+import { FiClock, FiEye, FiPrinter, FiCreditCard, FiPackage, FiTrash2 } from 'react-icons/fi';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { usePermissions } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import {
     Button,
     Input,
+    SearchInput,
     Modal,
     DataTable,
     PageHeader,
@@ -244,12 +245,10 @@ const InvoiceList = ({
                                     onChange={(e) => onFilterChange && onFilterChange('invoiceId', e.target.value)}
                                     className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
                                 />
-                                <Input
+                                <SearchInput
                                     placeholder={t('invoices.customerName') + '...'}
                                     value={filters?.customerName || ''}
                                     onChange={(e) => onFilterChange && onFilterChange('customerName', e.target.value)}
-                                    icon={<FiSearch />}
-                                    className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
                                 />
                                 <Input
                                     type="date"

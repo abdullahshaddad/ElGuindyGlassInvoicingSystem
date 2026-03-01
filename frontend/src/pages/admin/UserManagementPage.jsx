@@ -1,10 +1,10 @@
 // src/pages/admin/UserManagementPage.jsx - WITH FULL DARK MODE SUPPORT
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FiPlus, FiSearch, FiUserCheck, FiUserX, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiPlus, FiUserCheck, FiUserX, FiEye, FiEyeOff } from 'react-icons/fi';
 
 // Import existing components
-import { Badge, Button, DataTable, Input, Modal, PageHeader, Select } from '@components';
+import { Badge, Button, DataTable, Input, Modal, PageHeader, Select, SearchInput } from '@components';
 
 // Import Convex hooks and utilities from rewritten service
 import { useUsers, useCreateUser, useUpdateUser, validateUserData, getPasswordChecks, getRoleInfo, extractErrorMessage } from '@services/userService';
@@ -305,18 +305,12 @@ const UserManagementPage = () => {
 
             {/* Search */}
             <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="relative max-w-md">
-                    <FiSearch
-                        className={`absolute top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5 ${isRTL ? 'right-3' : 'left-3'}`}
-                    />
-                    <Input
-                        type="text"
-                        placeholder={t('users.search_placeholder')}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className={`w-full ${isRTL ? 'pr-10' : 'pl-10'} bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-primary-500 dark:focus:border-primary-400 focus:ring-primary-500 dark:focus:ring-primary-400`}
-                    />
-                </div>
+                <SearchInput
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={t('users.search_placeholder')}
+                    wrapperClassName="max-w-md"
+                />
             </div>
 
             {/* Step 3 -- User List Table */}

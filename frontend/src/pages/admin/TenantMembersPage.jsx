@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FiPlus, FiSearch, FiTrash2, FiMail, FiX, FiClock, FiEdit2, FiShield } from 'react-icons/fi';
-import { Badge, Button, Modal, Select } from '@components';
+import { FiPlus, FiTrash2, FiMail, FiX, FiClock, FiEdit2, FiShield } from 'react-icons/fi';
+import { Badge, Button, Modal, Select, SearchInput } from '@components';
 import { ConfirmationDialog } from '@/components/ui/ConfirmationDialog';
 import { useSnackbar } from '@/contexts/SnackbarContext';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -497,16 +497,12 @@ const TenantMembersPage = () => {
             </header>
 
             {/* Search */}
-            <div className="relative max-w-md">
-                <FiSearch className="absolute top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 start-3" />
-                <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder={t('tenant.membersPage.searchPlaceholder')}
-                    className="w-full ps-10 pe-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                />
-            </div>
+            <SearchInput
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={t('tenant.membersPage.searchPlaceholder')}
+                wrapperClassName="max-w-md"
+            />
 
             {/* Members Table */}
             <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">

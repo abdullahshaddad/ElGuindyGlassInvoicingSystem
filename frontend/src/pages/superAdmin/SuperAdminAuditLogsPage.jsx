@@ -4,7 +4,6 @@ import { useSuperAdminAuditLogs, getSeverityInfo, formatAuditAction } from '@/se
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import {
   FiActivity,
-  FiSearch,
   FiFilter,
   FiClock,
   FiChevronDown,
