@@ -331,7 +331,7 @@ const SuperAdminTenantsPage = () => {
                   value={newTenantName}
                   onChange={(e) => setNewTenantName(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                  placeholder={t('superAdmin.tenants.namePlaceholder', 'مثال: كوارتز')}
+                  placeholder={t('superAdmin.tenants.namePlaceholder', 'مثال: كووارتز')}
                 />
               </div>
               <div>
@@ -344,7 +344,7 @@ const SuperAdminTenantsPage = () => {
                   onChange={(e) => setNewTenantSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 ltr"
                   dir="ltr"
-                  placeholder="kwartz-glass"
+                  placeholder="cowartz-glass"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {t('superAdmin.tenants.slugHelp', 'أحرف صغيرة وأرقام وشرطات فقط، 3 أحرف على الأقل')}

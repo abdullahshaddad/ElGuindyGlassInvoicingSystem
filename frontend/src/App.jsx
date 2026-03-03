@@ -12,7 +12,7 @@ const GlobalLoader = () => (
     <div className="fixed inset-0 bg-white dark:bg-gray-900 flex items-center justify-center z-50">
         <div className="text-center">
             <div className="w-16 h-16 bg-primary-500 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                <span className="text-2xl font-bold text-white">K</span>
+                <span className="text-2xl font-bold text-white">C</span>
             </div>
             <LoadingSpinner size="lg" />
             <p className="text-gray-600 dark:text-gray-400 mt-4">

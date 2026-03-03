@@ -4,7 +4,7 @@ import { USER_ROLE_TO_TENANT_ROLE } from "../helpers/enums";
 import type { UserRole } from "../helpers/enums";
 
 /**
- * Idempotent migration: create the default "Kwartz" tenant and
+ * Idempotent migration: create the default "Cowartz" tenant and
  * backfill tenantId on ALL existing records.
  *
  * Safe to run multiple times — checks for existing tenant by slug.
@@ -27,7 +27,7 @@ export const createDefaultTenant = internalMutation({
       tenantId = existingTenant._id;
     } else {
       tenantId = await ctx.db.insert("tenants", {
-        name: "Kwartz",
+        name: "Cowartz",
         slug,
         plan: "enterprise",
         isActive: true,

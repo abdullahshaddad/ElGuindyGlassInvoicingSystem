@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Kwartz",
+    "name": "Cowartz",
     "welcome": "Welcome",
     "loading": "Loading...",
     "error": "An error occurred",
@@ -1122,7 +1122,7 @@
       "colStatus": "Status",
       "colCreated": "Created",
       "noTenants": "No tenants found",
-      "namePlaceholder": "e.g., Kwartz Glass",
+      "namePlaceholder": "e.g., Cowartz Glass",
       "slugHelp": "Lowercase letters, numbers, and hyphens only. Minimum 3 characters.",
       "suspend": "Suspend",
       "activate": "Activate",
@@ -1295,7 +1295,7 @@
       "colStatus": "Status",
       "colCreated": "Created",
       "noTenants": "No tenants found",
-      "namePlaceholder": "e.g., Kwartz Glass",
+      "namePlaceholder": "e.g., Cowartz Glass",
       "slugHelp": "Lowercase letters, numbers, and hyphens only. Minimum 3 characters.",
       "suspend": "Suspend",
       "activate": "Activate",

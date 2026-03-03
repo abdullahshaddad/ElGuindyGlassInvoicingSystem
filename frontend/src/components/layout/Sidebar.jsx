@@ -475,7 +475,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                                 {companyLogo ? (
                                     <img
                                         src={companyLogo}
-                                        alt={companyName || t('app.name', 'كوارتز')}
+                                        alt={companyName || t('app.name', 'كووارتز')}
                                         className="w-10 h-10 rounded-xl object-contain flex-shrink-0"
                                         onError={(e) => {
                                             e.target.style.display = 'none';
@@ -489,11 +489,11 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                                         companyLogo ? "hidden" : "flex"
                                     )}
                                 >
-                                    K
-                                </div>
+                                    C
+</div>
                                 <div className="min-w-0 flex-1">
                                     <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">
-                                        {companyName || t('app.name', 'كوارتز')}
+                                        {companyName || t('app.name', 'كووارتز')}
                                     </h1>
                                 </div>
                             </div>

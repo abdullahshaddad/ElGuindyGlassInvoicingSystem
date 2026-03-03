@@ -91,7 +91,7 @@ const LoginPage = () => {
                             >
                                 <img
                                     src={logo}
-                                    alt="Kwartz Logo"
+                                    alt="Cowartz Logo"
                                     style={{
                                         height: '100px',
                                         width: 'auto',
@@ -112,7 +112,7 @@ const LoginPage = () => {
                                 letterSpacing: '0.025em'
                             }}
                         >
-                            {i18n.language === 'ar' ? 'كوارتز' : 'KWARTZ'}
+                            {i18n.language === 'ar' ? 'كووارتز' : 'COWARTZ'}
                         </h1>
 
                         {/* Tagline */}
@@ -227,12 +227,12 @@ const LoginPage = () => {
                             >
                                 <img
                                     src={logo}
-                                    alt="Kwartz Logo"
+                                    alt="Cowartz Logo"
                                     style={{ height: '60px', width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
                                 />
                             </div>
                             <h1 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937' }}>
-                                {i18n.language === 'ar' ? 'كوارتز' : 'Kwartz'}
+                                {i18n.language === 'ar' ? 'كووارتز' : 'Cowartz'}
                             </h1>
                         </div>
 
