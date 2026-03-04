@@ -66,6 +66,10 @@ export function useDeleteTenant() {
   return useMutation(api.superAdmin.mutations.deleteTenant);
 }
 
+export function useCreateUser() {
+  return useMutation(api.superAdmin.mutations.createUser);
+}
+
 export function useChangeUserRole() {
   return useMutation(api.superAdmin.mutations.changeUserRole);
 }

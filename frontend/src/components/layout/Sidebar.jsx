@@ -175,7 +175,8 @@ const getSidebarItems = (t) => [
                 to: '/admin/users',
                 icon: icons.userManagement,
                 label: t('users.title', '\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u064a\u0646'),
-                roles: ['SUPERADMIN', 'OWNER', 'ADMIN']
+                roles: ['SUPERADMIN', 'OWNER', 'ADMIN'],
+                requiresTenant: true
             },
             {
                 id: 'glass-types',
@@ -189,14 +190,16 @@ const getSidebarItems = (t) => [
                 to: '/admin/tenant-settings',
                 icon: FiGrid,
                 label: t('tenant.settings', '\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0627\u0644\u0645\u0633\u062a\u0623\u062c\u0631'),
-                roles: ['SUPERADMIN']
+                roles: ['SUPERADMIN'],
+                requiresTenant: true
             },
             {
                 id: 'tenantMembers',
                 to: '/admin/tenant-members',
                 icon: FiUsers,
                 label: t('tenant.members', '\u0623\u0639\u0636\u0627\u0621 \u0627\u0644\u0645\u0633\u062a\u0623\u062c\u0631'),
-                roles: ['SUPERADMIN']
+                roles: ['SUPERADMIN'],
+                requiresTenant: true
             },
             // {
             //     id: 'cutting-prices',
@@ -426,6 +429,8 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
     // Helper function to check if item should be visible
     const shouldShowItem = (item) => {
         if (!item.roles) return true;
+        // Items that require being inside a tenant — hide for SUPERADMIN when not viewing a tenant
+        if (item.requiresTenant && user?.role === 'SUPERADMIN' && !isSuperAdminViewing) return false;
         return hasRole(item.roles);
     };
 

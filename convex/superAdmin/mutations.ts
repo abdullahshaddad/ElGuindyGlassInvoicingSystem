@@ -581,6 +581,55 @@ export const assignUserToTenant = mutation({
   },
 });
 
+/**
+ * createUser — SUPERADMIN only.
+ * Creates a new user record (without Clerk account).
+ */
+export const createUser = mutation({
+  args: {
+    username: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
+    role: v.union(
+      v.literal("WORKER"),
+      v.literal("CASHIER"),
+      v.literal("ADMIN"),
+      v.literal("OWNER"),
+      v.literal("SUPERADMIN")
+    ),
+    clerkUserId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const caller = await requireSuperAdmin(ctx);
+
+    // Check username uniqueness
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q: any) => q.eq("username", args.username))
+      .unique();
+    if (existing) throw new Error("اسم المستخدم مسجل بالفعل");
+
+    const userId = await ctx.db.insert("users", {
+      clerkUserId: args.clerkUserId || `manual_${Date.now()}`,
+      username: args.username,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      role: args.role,
+      isActive: true,
+    });
+
+    await logSuperAdminEvent(ctx, caller._id, caller.username, {
+      action: "user.created",
+      entityType: "user",
+      entityId: userId,
+      changes: { role: { from: null, to: args.role } },
+      severity: "critical",
+    });
+
+    return userId;
+  },
+});
+
 // ====================== PLAN CONFIG MUTATIONS ======================
 
 /**

@@ -5,6 +5,7 @@ import { useSnackbar } from '@/contexts/SnackbarContext';
 import {
   useAllUsers,
   useAllTenants,
+  useCreateUser,
   useChangeUserRole,
   useDeactivateUser,
   useActivateUser,
@@ -17,6 +18,7 @@ import {
   FiUser,
   FiUserCheck,
   FiUserX,
+  FiUserPlus,
   FiShield,
   FiLink,
   FiX,
@@ -37,9 +39,13 @@ const SuperAdminUsersPage = () => {
   const [assignModal, setAssignModal] = useState(null); // { userId, name }
   const [assignTenantId, setAssignTenantId] = useState('');
   const [assignLoading, setAssignLoading] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newUser, setNewUser] = useState({ username: '', firstName: '', lastName: '', role: 'OWNER', clerkUserId: '' });
+  const [createLoading, setCreateLoading] = useState(false);
 
   const users = useAllUsers({ search: search || undefined, role: roleFilter });
   const tenants = useAllTenants({});
+  const createUser = useCreateUser();
   const changeUserRole = useChangeUserRole();
   const deactivateUser = useDeactivateUser();
   const activateUser = useActivateUser();
@@ -94,6 +100,26 @@ const SuperAdminUsersPage = () => {
     }
   };
 
+  const handleCreateUser = async () => {
+    try {
+      setCreateLoading(true);
+      await createUser({
+        username: newUser.username.trim(),
+        firstName: newUser.firstName.trim(),
+        lastName: newUser.lastName.trim(),
+        role: newUser.role,
+        clerkUserId: newUser.clerkUserId.trim() || undefined,
+      });
+      showSuccess(t('superAdmin.users.created', 'تم إنشاء المستخدم بنجاح'));
+      setShowCreateModal(false);
+      setNewUser({ username: '', firstName: '', lastName: '', role: 'OWNER', clerkUserId: '' });
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   // Get active tenants for the assign modal
   const activeTenants = tenants?.filter((t) => t.isActive && !t.isSuspended) || [];
 
@@ -104,13 +130,22 @@ const SuperAdminUsersPage = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {t('superAdmin.users.title', 'إدارة المستخدمين')}
-        </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          {t('superAdmin.users.subtitle', 'عرض وإدارة جميع المستخدمين على المنصة')}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {t('superAdmin.users.title', 'إدارة المستخدمين')}
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {t('superAdmin.users.subtitle', 'عرض وإدارة جميع المستخدمين على المنصة')}
+          </p>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+        >
+          <FiUserPlus className="w-4 h-4" />
+          {t('superAdmin.users.addUser', 'إضافة مستخدم')}
+        </button>
       </div>
 
       {/* Filters */}
@@ -307,6 +342,102 @@ const SuperAdminUsersPage = () => {
           confirmText={t('actions.confirm', 'تأكيد')}
           type={confirmAction.type === 'deactivate' ? 'danger' : 'warning'}
         />
+      )}
+
+      {/* Create User Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {t('superAdmin.users.addUser', 'إضافة مستخدم')}
+              </h2>
+              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600">
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  {t('users.fields.username', 'اسم المستخدم')}
+                </label>
+                <input
+                  type="text"
+                  value={newUser.username}
+                  onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                  dir="ltr"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('users.fields.firstName', 'الاسم الأول')}
+                  </label>
+                  <input
+                    type="text"
+                    value={newUser.firstName}
+                    onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('users.fields.lastName', 'الاسم الأخير')}
+                  </label>
+                  <input
+                    type="text"
+                    value={newUser.lastName}
+                    onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  {t('superAdmin.users.colRole', 'الدور')}
+                </label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                >
+                  {ROLES.map((role) => (
+                    <option key={role} value={role}>{t(`users.roles.${role}`, role)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Clerk User ID <span className="text-gray-400 text-xs">({t('common.optional', 'اختياري')})</span>
+                </label>
+                <input
+                  type="text"
+                  value={newUser.clerkUserId}
+                  onChange={(e) => setNewUser({ ...newUser, clerkUserId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                  dir="ltr"
+                  placeholder="user_2abc..."
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                {t('actions.cancel', 'إلغاء')}
+              </button>
+              <button
+                onClick={handleCreateUser}
+                disabled={!newUser.username.trim() || !newUser.firstName.trim() || createLoading}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {createLoading ? t('actions.saving', 'جارٍ الحفظ...') : t('actions.create', 'إنشاء')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Assign to Tenant Modal */}
