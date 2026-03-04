@@ -62,6 +62,10 @@ export function useUpdateTenantMaxUsers() {
   return useMutation(api.superAdmin.mutations.updateTenantMaxUsers);
 }
 
+export function useUpdateTenantInfo() {
+  return useMutation(api.superAdmin.mutations.updateTenantInfo);
+}
+
 export function useDeleteTenant() {
   return useMutation(api.superAdmin.mutations.deleteTenant);
 }

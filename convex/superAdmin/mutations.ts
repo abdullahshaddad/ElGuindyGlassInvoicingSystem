@@ -176,6 +176,60 @@ export const updateTenantMaxUsers = mutation({
 });
 
 /**
+ * updateTenantInfo — SUPERADMIN only.
+ * Updates tenant name and/or slug.
+ */
+export const updateTenantInfo = mutation({
+  args: {
+    tenantId: v.id("tenants"),
+    name: v.optional(v.string()),
+    slug: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireSuperAdmin(ctx);
+
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) throw new Error("المستأجر غير موجود");
+
+    const updates: Record<string, any> = { updatedAt: Date.now() };
+    const changes: Record<string, any> = {};
+
+    if (args.name !== undefined && args.name.trim() !== tenant.name) {
+      updates.name = args.name.trim();
+      changes.name = { from: tenant.name, to: updates.name };
+    }
+
+    if (args.slug !== undefined && args.slug.trim() !== tenant.slug) {
+      const newSlug = args.slug.trim().toLowerCase();
+      if (newSlug.length < 3) throw new Error("الرابط المختصر يجب أن يكون 3 أحرف على الأقل");
+      if (!/^[a-z0-9-]+$/.test(newSlug)) throw new Error("الرابط المختصر يجب أن يحتوي فقط على أحرف صغيرة وأرقام وشرطات");
+      // Check uniqueness
+      const existing = await ctx.db
+        .query("tenants")
+        .withIndex("by_slug", (q: any) => q.eq("slug", newSlug))
+        .unique();
+      if (existing && existing._id !== args.tenantId) {
+        throw new Error("هذا الرابط المختصر مستخدم بالفعل");
+      }
+      updates.slug = newSlug;
+      changes.slug = { from: tenant.slug, to: newSlug };
+    }
+
+    if (Object.keys(changes).length === 0) return;
+
+    await ctx.db.patch(args.tenantId, updates);
+
+    await logSuperAdminEvent(ctx, user._id, user.username, {
+      action: "tenant.info_updated",
+      entityType: "tenant",
+      entityId: args.tenantId,
+      targetTenantId: args.tenantId,
+      changes,
+    });
+  },
+});
+
+/**
  * deleteTenant — SUPERADMIN only.
  * Soft-deactivates a tenant (sets isActive=false).
  */

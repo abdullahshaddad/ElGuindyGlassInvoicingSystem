@@ -1136,7 +1136,9 @@
       "confirmActivateMsg": "هل أنت متأكد من تنشيط",
       "confirmDeleteMsg": "هل أنت متأكد من حذف",
       "deleteWarning": "هذا الإجراء لا يمكن التراجع عنه.",
-      "colSubscription": "الاشتراك"
+      "colSubscription": "الاشتراك",
+      "editTenant": "تعديل المستأجر",
+      "editSuccess": "تم تحديث المستأجر بنجاح"
     },
     "backToPanel": "العودة للوحة النظام",
     "viewingTenant": "أنت تعرض بيانات المستأجر",
@@ -1166,7 +1168,16 @@
       "confirmActivate": "تنشيط المستخدم",
       "confirmDeactivate": "تعطيل المستخدم",
       "confirmActivateMsg": "هل أنت متأكد من تنشيط",
-      "confirmDeactivateMsg": "هل أنت متأكد من تعطيل"
+      "confirmDeactivateMsg": "هل أنت متأكد من تعطيل",
+      "addUser": "إضافة مستخدم",
+      "created": "تم إنشاء المستخدم بنجاح",
+      "noTenant": "بدون مستأجر",
+      "assignToTenant": "تعيين لمستأجر",
+      "assigningUser": "تعيين المستخدم",
+      "selectTenant": "اختر المستأجر",
+      "chooseTenant": "-- اختر مستأجر --",
+      "assignedToTenant": "تم تعيين المستخدم للمستأجر بنجاح",
+      "assign": "تعيين"
     },
     "auditLogs": {
       "title": "سجل مراجعة النظام",
@@ -1279,36 +1290,6 @@
       "usersUsage": "المستخدمون",
       "invoicesUsage": "فواتير هذا الشهر",
       "unlimited": "غير محدود"
-    },
-    "tenants": {
-      "title": "إدارة المستأجرين",
-      "subtitle": "عرض وإدارة جميع المستأجرين على المنصة",
-      "searchPlaceholder": "بحث بالاسم أو الرابط...",
-      "allPlans": "جميع الخطط",
-      "allStatuses": "جميع الحالات",
-      "statusActive": "نشط",
-      "statusSuspended": "معلق",
-      "colName": "المستأجر",
-      "colPlan": "الخطة",
-      "colMembers": "الأعضاء",
-      "colSubscription": "الاشتراك",
-      "colStatus": "الحالة",
-      "colCreated": "تاريخ الإنشاء",
-      "noTenants": "لا يوجد مستأجرون",
-      "namePlaceholder": "مثال: كووارتز للزجاج",
-      "slugHelp": "أحرف صغيرة وأرقام وشرطات فقط، 3 أحرف على الأقل",
-      "suspend": "تعليق",
-      "activate": "تنشيط",
-      "suspended": "تم تعليق المستأجر بنجاح",
-      "activated": "تم تنشيط المستأجر بنجاح",
-      "deleted": "تم حذف المستأجر بنجاح",
-      "confirmSuspend": "تعليق المستأجر",
-      "confirmActivate": "تنشيط المستأجر",
-      "confirmDelete": "حذف المستأجر",
-      "confirmSuspendMsg": "هل أنت متأكد من تعليق",
-      "confirmActivateMsg": "هل أنت متأكد من تنشيط",
-      "confirmDeleteMsg": "هل أنت متأكد من حذف",
-      "deleteWarning": "هذا الإجراء لا يمكن التراجع عنه."
     }
   }
 }

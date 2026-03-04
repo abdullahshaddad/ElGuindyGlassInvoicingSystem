@@ -1136,7 +1136,9 @@
       "confirmActivateMsg": "Are you sure you want to activate",
       "confirmDeleteMsg": "Are you sure you want to delete",
       "deleteWarning": "This action cannot be undone.",
-      "colSubscription": "Subscription"
+      "colSubscription": "Subscription",
+      "editTenant": "Edit Tenant",
+      "editSuccess": "Tenant updated successfully"
     },
     "backToPanel": "Back to Admin Panel",
     "viewingTenant": "You are viewing tenant data",
@@ -1166,7 +1168,16 @@
       "confirmActivate": "Activate User",
       "confirmDeactivate": "Deactivate User",
       "confirmActivateMsg": "Are you sure you want to activate",
-      "confirmDeactivateMsg": "Are you sure you want to deactivate"
+      "confirmDeactivateMsg": "Are you sure you want to deactivate",
+      "addUser": "Add User",
+      "created": "User created successfully",
+      "noTenant": "No tenant",
+      "assignToTenant": "Assign to Tenant",
+      "assigningUser": "Assigning user",
+      "selectTenant": "Select Tenant",
+      "chooseTenant": "-- Choose a tenant --",
+      "assignedToTenant": "User assigned to tenant successfully",
+      "assign": "Assign"
     },
     "auditLogs": {
       "title": "System Audit Logs",
@@ -1279,36 +1290,6 @@
       "usersUsage": "Users",
       "invoicesUsage": "Invoices This Month",
       "unlimited": "Unlimited"
-    },
-    "tenants": {
-      "title": "Tenant Management",
-      "subtitle": "View and manage all tenants on the platform",
-      "searchPlaceholder": "Search by name or slug...",
-      "allPlans": "All Plans",
-      "allStatuses": "All Statuses",
-      "statusActive": "Active",
-      "statusSuspended": "Suspended",
-      "colName": "Tenant",
-      "colPlan": "Plan",
-      "colMembers": "Members",
-      "colSubscription": "Subscription",
-      "colStatus": "Status",
-      "colCreated": "Created",
-      "noTenants": "No tenants found",
-      "namePlaceholder": "e.g., Cowartz Glass",
-      "slugHelp": "Lowercase letters, numbers, and hyphens only. Minimum 3 characters.",
-      "suspend": "Suspend",
-      "activate": "Activate",
-      "suspended": "Tenant suspended successfully",
-      "activated": "Tenant activated successfully",
-      "deleted": "Tenant deleted successfully",
-      "confirmSuspend": "Suspend Tenant",
-      "confirmActivate": "Activate Tenant",
-      "confirmDelete": "Delete Tenant",
-      "confirmSuspendMsg": "Are you sure you want to suspend",
-      "confirmActivateMsg": "Are you sure you want to activate",
-      "confirmDeleteMsg": "Are you sure you want to delete",
-      "deleteWarning": "This action cannot be undone."
     }
   }
 }

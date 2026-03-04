@@ -24,7 +24,8 @@
       "Bash(python3:*)",
       "Bash(npx tsc:*)",
       "Bash(ls:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(npx convex:*)"
     ],
     "deny": [],
     "ask": []

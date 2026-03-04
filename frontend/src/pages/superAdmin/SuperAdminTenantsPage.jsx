@@ -10,10 +10,12 @@ import {
   useChangeTenantPlan,
   useDeleteTenant,
   useEnterTenant,
+  useUpdateTenantInfo,
   getPlanInfo,
 } from '@/services/superAdminService';
 import { useCreateTenant } from '@/services/tenantService';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import Modal from '@/components/ui/Modal';
 import { ConfirmationDialog } from '@/components/ui/ConfirmationDialog';
 import {
   FiPlus,
@@ -21,9 +23,7 @@ import {
   FiPlay,
   FiTrash2,
   FiUsers,
-  FiGrid,
-  FiFilter,
-  FiX,
+  FiEdit2,
   FiEye,
 } from 'react-icons/fi';
 import { SearchInput } from '@components';
@@ -41,6 +41,8 @@ const SuperAdminTenantsPage = () => {
   const [newTenantName, setNewTenantName] = useState('');
   const [newTenantSlug, setNewTenantSlug] = useState('');
   const [confirmAction, setConfirmAction] = useState(null);
+  const [editModal, setEditModal] = useState(null); // { tenantId, name, slug }
+  const [editLoading, setEditLoading] = useState(false);
 
   const tenants = useAllTenants({ search: search || undefined, plan: planFilter, status: statusFilter });
   const suspendTenant = useSuspendTenant();
@@ -48,6 +50,7 @@ const SuperAdminTenantsPage = () => {
   const changePlan = useChangeTenantPlan();
   const deleteTenant = useDeleteTenant();
   const enterTenant = useEnterTenant();
+  const updateTenantInfo = useUpdateTenantInfo();
   const createTenant = useCreateTenant();
 
   const loading = tenants === undefined;
@@ -70,6 +73,24 @@ const SuperAdminTenantsPage = () => {
       setNewTenantSlug('');
     } catch (err) {
       showSnackbar(err.message || t('tenant.messages.tenantCreateError', 'فشل إنشاء المستأجر'), 'error');
+    }
+  };
+
+  const handleEditTenant = async () => {
+    if (!editModal) return;
+    try {
+      setEditLoading(true);
+      await updateTenantInfo({
+        tenantId: editModal.tenantId,
+        name: editModal.name.trim(),
+        slug: editModal.slug.trim().toLowerCase(),
+      });
+      showSnackbar(t('superAdmin.tenants.editSuccess', 'تم تحديث المستأجر بنجاح'), 'success');
+      setEditModal(null);
+    } catch (err) {
+      showSnackbar(err.message, 'error');
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -261,6 +282,13 @@ const SuperAdminTenantsPage = () => {
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-2">
                           <button
+                            onClick={(e) => { e.stopPropagation(); setEditModal({ tenantId: tenant._id, name: tenant.name, slug: tenant.slug }); }}
+                            className="p-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            title={t('superAdmin.tenants.editTenant', 'تعديل المستأجر')}
+                          >
+                            <FiEdit2 className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={(e) => { e.stopPropagation(); handleEnterTenant(tenant._id); }}
                             className="p-1.5 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
                             title={t('superAdmin.enterTenant', 'الدخول للمستأجر')}
@@ -310,65 +338,114 @@ const SuperAdminTenantsPage = () => {
       </div>
 
       {/* Create Tenant Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {t('tenant.createTenant', 'إنشاء مستأجر')}
-              </h2>
-              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600">
-                <FiX className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('tenant.fields.name', 'اسم المستأجر')}
-                </label>
-                <input
-                  type="text"
-                  value={newTenantName}
-                  onChange={(e) => setNewTenantName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                  placeholder={t('superAdmin.tenants.namePlaceholder', 'مثال: كووارتز')}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('tenant.fields.slug', 'الرابط المختصر')}
-                </label>
-                <input
-                  type="text"
-                  value={newTenantSlug}
-                  onChange={(e) => setNewTenantSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 ltr"
-                  dir="ltr"
-                  placeholder="cowartz-glass"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t('superAdmin.tenants.slugHelp', 'أحرف صغيرة وأرقام وشرطات فقط، 3 أحرف على الأقل')}
-                </p>
-              </div>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                {t('actions.cancel', 'إلغاء')}
-              </button>
-              <button
-                onClick={handleCreate}
-                disabled={!newTenantName.trim() || newTenantSlug.trim().length < 3}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {t('actions.create', 'إنشاء')}
-              </button>
-            </div>
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title={t('tenant.createTenant', 'إنشاء مستأجر')}
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setShowCreateModal(false)}
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              {t('actions.cancel', 'إلغاء')}
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={!newTenantName.trim() || newTenantSlug.trim().length < 3}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {t('actions.create', 'إنشاء')}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t('tenant.fields.name', 'اسم المستأجر')}
+            </label>
+            <input
+              type="text"
+              value={newTenantName}
+              onChange={(e) => setNewTenantName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+              placeholder={t('superAdmin.tenants.namePlaceholder', 'مثال: كووارتز')}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t('tenant.fields.slug', 'الرابط المختصر')}
+            </label>
+            <input
+              type="text"
+              value={newTenantSlug}
+              onChange={(e) => setNewTenantSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+              dir="ltr"
+              placeholder="cowartz-glass"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {t('superAdmin.tenants.slugHelp', 'أحرف صغيرة وأرقام وشرطات فقط، 3 أحرف على الأقل')}
+            </p>
           </div>
         </div>
-      )}
+      </Modal>
+
+      {/* Edit Tenant Modal */}
+      <Modal
+        isOpen={!!editModal}
+        onClose={() => setEditModal(null)}
+        title={t('superAdmin.tenants.editTenant', 'تعديل المستأجر')}
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setEditModal(null)}
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              {t('actions.cancel', 'إلغاء')}
+            </button>
+            <button
+              onClick={handleEditTenant}
+              disabled={!editModal?.name?.trim() || (editModal?.slug?.trim().length || 0) < 3 || editLoading}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {editLoading ? t('actions.saving', 'جارٍ الحفظ...') : t('actions.save', 'حفظ')}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t('tenant.fields.name', 'اسم المستأجر')}
+            </label>
+            <input
+              type="text"
+              value={editModal?.name || ''}
+              onChange={(e) => setEditModal({ ...editModal, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t('tenant.fields.slug', 'الرابط المختصر')}
+            </label>
+            <input
+              type="text"
+              value={editModal?.slug || ''}
+              onChange={(e) => setEditModal({ ...editModal, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+              dir="ltr"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {t('superAdmin.tenants.slugHelp', 'أحرف صغيرة وأرقام وشرطات فقط، 3 أحرف على الأقل')}
+            </p>
+          </div>
+        </div>
+      </Modal>
 
       {/* Confirmation Dialogs */}
       {confirmAction && (
