@@ -5,14 +5,14 @@ import { useSnackbar } from '@/contexts/SnackbarContext';
 import {
   useAllUsers,
   useAllTenants,
-  useCreateUser,
   useChangeUserRole,
   useDeactivateUser,
   useActivateUser,
   useAssignUserToTenant,
 } from '@/services/superAdminService';
-import { getRoleInfo } from '@/services/userService';
+import { getRoleInfo, useCreateUser } from '@/services/userService';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import Modal from '@/components/ui/Modal';
 import { ConfirmationDialog } from '@/components/ui/ConfirmationDialog';
 import {
   FiUser,
@@ -21,7 +21,6 @@ import {
   FiUserPlus,
   FiShield,
   FiLink,
-  FiX,
 } from 'react-icons/fi';
 import { SearchInput } from '@components';
 
@@ -40,7 +39,7 @@ const SuperAdminUsersPage = () => {
   const [assignTenantId, setAssignTenantId] = useState('');
   const [assignLoading, setAssignLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newUser, setNewUser] = useState({ username: '', firstName: '', lastName: '', role: 'OWNER', clerkUserId: '' });
+  const [newUser, setNewUser] = useState({ username: '', firstName: '', lastName: '', role: 'OWNER', password: '' });
   const [createLoading, setCreateLoading] = useState(false);
 
   const users = useAllUsers({ search: search || undefined, role: roleFilter });
@@ -106,13 +105,13 @@ const SuperAdminUsersPage = () => {
       await createUser({
         username: newUser.username.trim(),
         firstName: newUser.firstName.trim(),
-        lastName: newUser.lastName.trim(),
+        lastName: newUser.lastName.trim() || undefined,
+        password: newUser.password,
         role: newUser.role,
-        clerkUserId: newUser.clerkUserId.trim() || undefined,
       });
       showSuccess(t('superAdmin.users.created', 'تم إنشاء المستخدم بنجاح'));
       setShowCreateModal(false);
-      setNewUser({ username: '', firstName: '', lastName: '', role: 'OWNER', clerkUserId: '' });
+      setNewUser({ username: '', firstName: '', lastName: '', role: 'OWNER', password: '' });
     } catch (err) {
       showError(err.message);
     } finally {
@@ -345,160 +344,150 @@ const SuperAdminUsersPage = () => {
       )}
 
       {/* Create User Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {t('superAdmin.users.addUser', 'إضافة مستخدم')}
-              </h2>
-              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600">
-                <FiX className="w-5 h-5" />
-              </button>
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title={t('superAdmin.users.addUser', 'إضافة مستخدم')}
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setShowCreateModal(false)}
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              {t('actions.cancel', 'إلغاء')}
+            </button>
+            <button
+              onClick={handleCreateUser}
+              disabled={!newUser.username.trim() || !newUser.firstName.trim() || newUser.password.length < 8 || createLoading}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {createLoading ? t('actions.saving', 'جارٍ الحفظ...') : t('actions.create', 'إنشاء')}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t('users.fields.username', 'اسم المستخدم')}
+            </label>
+            <input
+              type="text"
+              value={newUser.username}
+              onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+              dir="ltr"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {t('users.fields.firstName', 'الاسم الأول')}
+              </label>
+              <input
+                type="text"
+                value={newUser.firstName}
+                onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+              />
             </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('users.fields.username', 'اسم المستخدم')}
-                </label>
-                <input
-                  type="text"
-                  value={newUser.username}
-                  onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                  dir="ltr"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t('users.fields.firstName', 'الاسم الأول')}
-                  </label>
-                  <input
-                    type="text"
-                    value={newUser.firstName}
-                    onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t('users.fields.lastName', 'الاسم الأخير')}
-                  </label>
-                  <input
-                    type="text"
-                    value={newUser.lastName}
-                    onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('superAdmin.users.colRole', 'الدور')}
-                </label>
-                <select
-                  value={newUser.role}
-                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                >
-                  {ROLES.map((role) => (
-                    <option key={role} value={role}>{t(`users.roles.${role}`, role)}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Clerk User ID <span className="text-gray-400 text-xs">({t('common.optional', 'اختياري')})</span>
-                </label>
-                <input
-                  type="text"
-                  value={newUser.clerkUserId}
-                  onChange={(e) => setNewUser({ ...newUser, clerkUserId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                  dir="ltr"
-                  placeholder="user_2abc..."
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                {t('actions.cancel', 'إلغاء')}
-              </button>
-              <button
-                onClick={handleCreateUser}
-                disabled={!newUser.username.trim() || !newUser.firstName.trim() || createLoading}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {createLoading ? t('actions.saving', 'جارٍ الحفظ...') : t('actions.create', 'إنشاء')}
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {t('users.fields.lastName', 'الاسم الأخير')}
+              </label>
+              <input
+                type="text"
+                value={newUser.lastName}
+                onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+              />
             </div>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t('superAdmin.users.colRole', 'الدور')}
+            </label>
+            <select
+              value={newUser.role}
+              onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+            >
+              {ROLES.map((role) => (
+                <option key={role} value={role}>{t(`users.roles.${role}`, role)}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t('users.fields.password', 'كلمة المرور')}
+            </label>
+            <input
+              type="password"
+              value={newUser.password}
+              onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+              dir="ltr"
+              placeholder="••••••••"
+            />
+            {newUser.password && newUser.password.length < 8 && (
+              <p className="mt-1 text-xs text-red-500">
+                {t('validation.passwordMinLength', 'كلمة المرور يجب أن تكون 8 أحرف على الأقل')}
+              </p>
+            )}
+          </div>
         </div>
-      )}
+      </Modal>
 
       {/* Assign to Tenant Modal */}
-      {assignModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {t('superAdmin.users.assignToTenant', 'تعيين لمستأجر')}
-              </h3>
-              <button
-                onClick={() => { setAssignModal(null); setAssignTenantId(''); }}
-                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded"
-              >
-                <FiX className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {t('superAdmin.users.assigningUser', 'تعيين المستخدم')}: <strong className="text-gray-900 dark:text-white">{assignModal.name}</strong>
-              </p>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('superAdmin.users.selectTenant', 'اختر المستأجر')}
-                </label>
-                <select
-                  value={assignTenantId}
-                  onChange={(e) => setAssignTenantId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="">{t('superAdmin.users.chooseTenant', '-- اختر مستأجر --')}</option>
-                  {activeTenants.map((tenant) => (
-                    <option key={tenant._id} value={tenant._id}>
-                      {tenant.name} ({tenant.slug})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                <button
-                  onClick={() => { setAssignModal(null); setAssignTenantId(''); }}
-                  className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                >
-                  {t('actions.cancel', 'إلغاء')}
-                </button>
-                <button
-                  onClick={handleAssignToTenant}
-                  disabled={!assignTenantId || assignLoading}
-                  className="px-4 py-2 text-sm text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {assignLoading
-                    ? t('actions.saving', 'جارٍ الحفظ...')
-                    : t('superAdmin.users.assign', 'تعيين')}
-                </button>
-              </div>
-            </div>
+      <Modal
+        isOpen={!!assignModal}
+        onClose={() => { setAssignModal(null); setAssignTenantId(''); }}
+        title={t('superAdmin.users.assignToTenant', 'تعيين لمستأجر')}
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => { setAssignModal(null); setAssignTenantId(''); }}
+              className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              {t('actions.cancel', 'إلغاء')}
+            </button>
+            <button
+              onClick={handleAssignToTenant}
+              disabled={!assignTenantId || assignLoading}
+              className="px-4 py-2 text-sm text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {assignLoading
+                ? t('actions.saving', 'جارٍ الحفظ...')
+                : t('superAdmin.users.assign', 'تعيين')}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {t('superAdmin.users.assigningUser', 'تعيين المستخدم')}: <strong className="text-gray-900 dark:text-white">{assignModal?.name}</strong>
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t('superAdmin.users.selectTenant', 'اختر المستأجر')}
+            </label>
+            <select
+              value={assignTenantId}
+              onChange={(e) => setAssignTenantId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              <option value="">{t('superAdmin.users.chooseTenant', '-- اختر مستأجر --')}</option>
+              {activeTenants.map((tenant) => (
+                <option key={tenant._id} value={tenant._id}>
+                  {tenant.name} ({tenant.slug})
+                </option>
+              ))}
+            </select>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 };
