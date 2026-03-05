@@ -32,7 +32,13 @@ import {
     FiCheck,
     FiGrid,
     FiArrowLeft,
+    FiBell,
+    FiCheckCircle,
+    FiAlertCircle,
+    FiAlertTriangle,
+    FiInfo,
 } from 'react-icons/fi';
+import { useMyNotifications, useUnreadCount, useMarkAsRead, useMarkAllAsRead } from '@/services/notificationService';
 
 // Professional icon mapping using React Icons
 const icons = {
@@ -372,9 +378,17 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
     const navigate = useNavigate();
     const exitTenant = useExitTenant();
     const [showUserSettings, setShowUserSettings] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
     const popupRef = useRef(null);
 
     const isRTL = i18n.language === 'ar';
+
+    // Notifications
+    const hasTenant = !!(user?.defaultTenantId || user?.viewingTenantId);
+    const notifications = useMyNotifications(!hasTenant);
+    const unreadCount = useUnreadCount(!hasTenant);
+    const markAsRead = useMarkAsRead();
+    const markAllAsRead = useMarkAllAsRead();
 
     // Convex reactive query for company profile
     const profileData = useCompanyProfile();
@@ -623,6 +637,78 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                                 </div>
                             </div>
 
+                            {/* Notifications */}
+                            {hasTenant && (
+                                <div>
+                                    <button
+                                        onClick={() => setShowNotifications(!showNotifications)}
+                                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <FiBell className="w-4 h-4" />
+                                            <span className="text-sm font-medium">{t('notifications.title')}</span>
+                                        </div>
+                                        {unreadCount > 0 && (
+                                            <span className="min-w-[20px] h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold px-1.5">
+                                                {unreadCount > 99 ? '99+' : unreadCount}
+                                            </span>
+                                        )}
+                                    </button>
+
+                                    {showNotifications && (
+                                        <div className="mt-1 max-h-64 overflow-y-auto rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                                            {/* Mark all as read */}
+                                            {unreadCount > 0 && (
+                                                <div className="flex justify-end px-3 py-1.5 border-b border-gray-100 dark:border-gray-700">
+                                                    <button
+                                                        onClick={() => markAllAsRead({})}
+                                                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                                    >
+                                                        <FiCheck size={10} />
+                                                        {t('notifications.markAllRead')}
+                                                    </button>
+                                                </div>
+                                            )}
+                                            {!notifications || notifications.length === 0 ? (
+                                                <div className="px-3 py-4 text-center text-gray-400 dark:text-gray-500 text-xs">
+                                                    {t('notifications.noNotifications')}
+                                                </div>
+                                            ) : (
+                                                notifications.slice(0, 10).map((n) => {
+                                                    const iconMap = { SUCCESS: FiCheckCircle, ERROR: FiAlertCircle, WARNING: FiAlertTriangle, INFO: FiInfo };
+                                                    const colorMap = { SUCCESS: 'text-green-500', ERROR: 'text-red-500', WARNING: 'text-yellow-500', INFO: 'text-blue-500' };
+                                                    const NIcon = iconMap[n.type] || FiInfo;
+                                                    return (
+                                                        <button
+                                                            key={n._id}
+                                                            onClick={async () => {
+                                                                if (!n.isRead) await markAsRead({ notificationId: n._id });
+                                                                if (n.actionUrl) window.location.href = n.actionUrl;
+                                                            }}
+                                                            className={clsx(
+                                                                'w-full text-start px-3 py-2 flex gap-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700/50 last:border-b-0',
+                                                                !n.isRead && 'bg-blue-50/50 dark:bg-blue-900/10'
+                                                            )}
+                                                        >
+                                                            <NIcon className={clsx('w-3.5 h-3.5 mt-0.5 shrink-0', colorMap[n.type] || 'text-blue-500')} />
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className={clsx('text-xs truncate', !n.isRead ? 'font-medium text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400')}>
+                                                                    {n.title}
+                                                                </p>
+                                                                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                                                                    {n.message}
+                                                                </p>
+                                                            </div>
+                                                            {!n.isRead && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />}
+                                                        </button>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Theme Toggle */}
                             <button
                                 onClick={toggleTheme}
@@ -688,10 +774,17 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                             'flex items-center',
                             isCollapsed ? 'justify-center' : 'gap-3'
                         )}>
-                            <div
-                                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium flex-shrink-0 bg-primary-500"
-                            >
-                                {user?.firstName?.charAt(0) || <FiUser size={18} />}
+                            <div className="relative flex-shrink-0">
+                                <div
+                                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium bg-primary-500"
+                                >
+                                    {user?.firstName?.charAt(0) || <FiUser size={18} />}
+                                </div>
+                                {hasTenant && unreadCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-1 leading-none">
+                                        {unreadCount > 9 ? '9+' : unreadCount}
+                                    </span>
+                                )}
                             </div>
                             {!isCollapsed && (
                                 <>
