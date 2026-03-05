@@ -1,26 +1,40 @@
+import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
 
 /**
- * Monitor stuck print jobs — mark QUEUED jobs older than 10 min as FAILED.
+ * Check if a specific print job has timed out.
+ * Scheduled per-job via ctx.scheduler.runAfter when a print job is created.
+ * If the job is still QUEUED after 10 minutes, marks it as FAILED and
+ * inserts a broadcast notification for the tenant.
  */
-export const monitorPrintJobs = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
+export const checkPrintJobTimeout = internalMutation({
+  args: {
+    printJobId: v.id("printJobs"),
+    tenantId: v.id("tenants"),
+  },
+  handler: async (ctx, args) => {
+    const job = await ctx.db.get(args.printJobId);
+    if (!job || job.status !== "QUEUED") return;
 
-    const queuedJobs = await ctx.db
-      .query("printJobs")
-      .withIndex("by_status", (q) => q.eq("status", "QUEUED"))
-      .collect();
+    await ctx.db.patch(args.printJobId, {
+      status: "FAILED",
+      errorMessage: "تجاوز المهلة الزمنية - مهمة الطباعة عالقة",
+    });
 
-    const stuckJobs = queuedJobs.filter((j) => j.createdAt < tenMinutesAgo);
+    const readableId = job.invoiceReadableId || job.readableId || "";
 
-    for (const job of stuckJobs) {
-      await ctx.db.patch(job._id, {
-        status: "FAILED",
-        errorMessage: "تجاوز المهلة الزمنية - مهمة الطباعة عالقة",
-      });
-    }
+    await ctx.db.insert("notifications", {
+      tenantId: args.tenantId,
+      title: `انتهت مهلة مهمة الطباعة ${readableId}`,
+      message: "تجاوزت مهمة الطباعة المهلة الزمنية وتم تحديدها كفاشلة",
+      type: "ERROR",
+      targetUserId: undefined,
+      actionUrl: undefined,
+      relatedEntity: args.printJobId,
+      readByUserIds: [],
+      hiddenByUserIds: [],
+      createdAt: Date.now(),
+    });
   },
 });
 

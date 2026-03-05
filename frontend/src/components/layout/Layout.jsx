@@ -5,6 +5,7 @@ import SuperAdminBanner from './SuperAdminBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { FiMenu } from 'react-icons/fi';
 import clsx from 'clsx';
+import NotificationBell from './NotificationBell';
 
 const Layout = ({ children }) => {
     const { t, i18n } = useTranslation();
@@ -47,17 +48,25 @@ const Layout = ({ children }) => {
                         : (sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64')
                 )}
             >
-                {/* Mobile menu button */}
+                {/* Top bar: mobile menu + notifications */}
                 <div className={clsx(
-                    'lg:hidden fixed top-4 z-30',
+                    'fixed top-4 z-30 flex items-center gap-2',
                     isRTL ? 'right-4' : 'left-4'
                 )}>
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="p-3 bg-white dark:bg-gray-800 rounded-xl shadow-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        className="lg:hidden p-3 bg-white dark:bg-gray-800 rounded-xl shadow-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                         <FiMenu size={24} />
                     </button>
+                </div>
+                <div className={clsx(
+                    'fixed top-4 z-30',
+                    isRTL ? 'left-4' : 'right-4'
+                )}>
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+                        <NotificationBell />
+                    </div>
                 </div>
 
                 {/* SuperAdmin viewing banner */}

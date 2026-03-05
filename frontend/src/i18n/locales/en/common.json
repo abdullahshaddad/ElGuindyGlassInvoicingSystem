@@ -1291,5 +1291,17 @@
       "invoicesUsage": "Invoices This Month",
       "unlimited": "Unlimited"
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "noNotifications": "No notifications",
+    "printJobCompleted": "Print job completed",
+    "printJobFailed": "Print job failed",
+    "printJobTimeout": "Print job timed out",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago"
   }
 }

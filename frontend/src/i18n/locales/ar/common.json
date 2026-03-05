@@ -1291,5 +1291,17 @@
       "invoicesUsage": "فواتير هذا الشهر",
       "unlimited": "غير محدود"
     }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "markAllRead": "تحديد الكل كمقروء",
+    "noNotifications": "لا توجد إشعارات",
+    "printJobCompleted": "اكتملت مهمة الطباعة",
+    "printJobFailed": "فشلت مهمة الطباعة",
+    "printJobTimeout": "انتهت مهلة مهمة الطباعة",
+    "justNow": "الآن",
+    "minutesAgo": "منذ {{count}} د",
+    "hoursAgo": "منذ {{count}} س",
+    "daysAgo": "منذ {{count}} ي"
   }
 }

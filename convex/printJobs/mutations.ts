@@ -4,6 +4,7 @@ import { checkPermission } from "../helpers/permissions";
 import { logAuditEvent } from "../helpers/auditLog";
 import { generateInvoiceNumber } from "../helpers/idGenerator";
 import { printType, printStatus } from "../schema";
+import { internal } from "../_generated/api";
 
 export const createPrintJob = tenantMutation({
   args: {
@@ -36,6 +37,13 @@ export const createPrintJob = tenantMutation({
       entityId: id,
     });
 
+    // Schedule a timeout check after 10 minutes
+    await ctx.scheduler.runAfter(
+      10 * 60 * 1000,
+      internal.printJobs.internal.checkPrintJobTimeout,
+      { printJobId: id, tenantId: tenant.tenantId }
+    );
+
     return id;
   },
 });
@@ -59,6 +67,36 @@ export const updatePrintJobStatus = tenantMutation({
     if (args.status === "PRINTED") updates.printedAt = Date.now();
 
     await ctx.db.patch(args.printJobId, updates);
+
+    // Insert notification for PRINTED or FAILED status changes
+    const readableId = job.invoiceReadableId || job.readableId || "";
+    if (args.status === "PRINTED") {
+      await ctx.db.insert("notifications", {
+        tenantId: tenant.tenantId,
+        title: `تم طباعة ${readableId}`,
+        message: "اكتملت مهمة الطباعة بنجاح",
+        type: "SUCCESS",
+        targetUserId: undefined,
+        actionUrl: undefined,
+        relatedEntity: args.printJobId,
+        readByUserIds: [],
+        hiddenByUserIds: [],
+        createdAt: Date.now(),
+      });
+    } else if (args.status === "FAILED") {
+      await ctx.db.insert("notifications", {
+        tenantId: tenant.tenantId,
+        title: `فشلت مهمة الطباعة ${readableId}`,
+        message: args.errorMessage || "فشلت مهمة الطباعة",
+        type: "ERROR",
+        targetUserId: undefined,
+        actionUrl: undefined,
+        relatedEntity: args.printJobId,
+        readByUserIds: [],
+        hiddenByUserIds: [],
+        createdAt: Date.now(),
+      });
+    }
 
     await logAuditEvent(ctx, tenant, {
       action: "sticker.printed",
