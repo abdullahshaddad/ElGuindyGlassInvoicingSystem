@@ -5,6 +5,7 @@ import { Badge, Button, Modal, Select, SearchInput } from '@components';
 import { ConfirmationDialog } from '@/components/ui/ConfirmationDialog';
 import { useSnackbar } from '@/contexts/SnackbarContext';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import UserAvatar from '@/components/ui/UserAvatar';
 import useAuthorized from '@hooks/useAuthorized.js';
 import { useUsers } from '@services/userService';
 import {
@@ -356,11 +357,7 @@ const TenantMembersPage = () => {
             label: t('tenant.membersPage.columns.user'),
             render: (row) => (
                 <div className="flex items-center gap-3">
-                    <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0 bg-primary-500"
-                    >
-                        {row.firstName?.charAt(0) || row.username?.charAt(0) || '?'}
-                    </div>
+                    <UserAvatar firstName={row.firstName} username={row.username} size="sm" />
                     <div>
                         <div className="font-medium text-gray-900 dark:text-white">
                             {row.firstName} {row.lastName}

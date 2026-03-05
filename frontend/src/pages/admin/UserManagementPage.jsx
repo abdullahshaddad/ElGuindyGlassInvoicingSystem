@@ -5,6 +5,7 @@ import { FiPlus, FiUserCheck, FiUserX, FiEye, FiEyeOff } from 'react-icons/fi';
 
 // Import existing components
 import { Badge, Button, DataTable, Input, Modal, PageHeader, Select, SearchInput } from '@components';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 // Import Convex hooks and utilities from rewritten service
 import { useUsers, useCreateUser, useUpdateUser, validateUserData, getPasswordChecks, getRoleInfo, extractErrorMessage } from '@services/userService';
@@ -148,9 +149,7 @@ const UserManagementPage = () => {
             header: t('users.fields.username'),
             render: (value, row) => (
                 <div className="flex items-center">
-                    <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium text-sm">
-                        {row.firstName?.[0] || ''}{row.lastName?.[0] || row.username?.[0] || ''}
-                    </div>
+                    <UserAvatar firstName={row.firstName} lastName={row.lastName} username={row.username} size="sm" />
                     <div className={`${isRTL ? 'mr-3' : 'ml-3'}`}>
                         <div className="font-medium text-gray-900 dark:text-white">{row.username}</div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">

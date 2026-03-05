@@ -39,6 +39,7 @@ import {
     FiInfo,
 } from 'react-icons/fi';
 import { useMyNotifications, useUnreadCount, useMarkAsRead, useMarkAllAsRead } from '@/services/notificationService';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 // Professional icon mapping using React Icons
 const icons = {
@@ -775,11 +776,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
                             isCollapsed ? 'justify-center' : 'gap-3'
                         )}>
                             <div className="relative flex-shrink-0">
-                                <div
-                                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium bg-primary-500"
-                                >
-                                    {user?.firstName?.charAt(0) || <FiUser size={18} />}
-                                </div>
+                                <UserAvatar firstName={user?.firstName} lastName={user?.lastName} size="lg" />
                                 {hasTenant && unreadCount > 0 && (
                                     <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-1 leading-none">
                                         {unreadCount > 9 ? '9+' : unreadCount}

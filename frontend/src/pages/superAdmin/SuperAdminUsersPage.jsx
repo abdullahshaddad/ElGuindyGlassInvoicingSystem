@@ -13,9 +13,9 @@ import {
 import { getRoleInfo, useCreateUser } from '@/services/userService';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import Modal from '@/components/ui/Modal';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { ConfirmationDialog } from '@/components/ui/ConfirmationDialog';
 import {
-  FiUser,
   FiUserCheck,
   FiUserX,
   FiUserPlus,
@@ -206,9 +206,7 @@ const SuperAdminUsersPage = () => {
                     <tr key={u._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-medium flex-shrink-0">
-                            {u.firstName?.charAt(0) || <FiUser className="w-4 h-4" />}
-                          </div>
+                          <UserAvatar firstName={u.firstName} lastName={u.lastName} username={u.username} size="md" />
                           <div>
                             <p className="font-medium text-gray-900 dark:text-white">
                               {u.firstName} {u.lastName}
