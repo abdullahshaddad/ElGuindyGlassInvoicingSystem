@@ -3,12 +3,12 @@ import { api } from "@convex/_generated/api";
 
 // ===== QUERY HOOKS =====
 
-export function useMyNotifications() {
-    return useQuery(api.notifications.queries.getMyNotifications, {});
+export function useMyNotifications(skip = false) {
+    return useQuery(api.notifications.queries.getMyNotifications, skip ? "skip" : {});
 }
 
-export function useUnreadCount() {
-    return useQuery(api.notifications.queries.getUnreadCount, {});
+export function useUnreadCount(skip = false) {
+    return useQuery(api.notifications.queries.getUnreadCount, skip ? "skip" : {});
 }
 
 // ===== MUTATION HOOKS =====

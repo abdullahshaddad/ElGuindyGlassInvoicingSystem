@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FiBell, FiCheck, FiCheckCircle, FiAlertCircle, FiAlertTriangle, FiInfo, FiX } from 'react-icons/fi';
+import { FiBell, FiCheck, FiCheckCircle, FiAlertCircle, FiAlertTriangle, FiInfo } from 'react-icons/fi';
 import { useMyNotifications, useUnreadCount, useMarkAsRead, useMarkAllAsRead } from '@/services/notificationService';
+import { useAuth } from '@/contexts/AuthContext';
 import clsx from 'clsx';
 
 const typeConfig = {
@@ -25,12 +26,16 @@ function getRelativeTime(timestamp, t) {
 
 const NotificationBell = () => {
     const { t } = useTranslation();
+    const { user, isAuthenticated } = useAuth();
     const [open, setOpen] = useState(false);
     const panelRef = useRef(null);
     const buttonRef = useRef(null);
 
-    const notifications = useMyNotifications();
-    const unreadCount = useUnreadCount();
+    // Skip queries when not authenticated or no tenant context
+    const hasTenant = isAuthenticated && !!(user?.defaultTenantId || user?.viewingTenantId);
+    const shouldSkip = !hasTenant;
+    const notifications = useMyNotifications(shouldSkip);
+    const unreadCount = useUnreadCount(shouldSkip);
     const markAsRead = useMarkAsRead();
     const markAllAsRead = useMarkAllAsRead();
 
@@ -58,6 +63,9 @@ const NotificationBell = () => {
         document.addEventListener('keydown', handler);
         return () => document.removeEventListener('keydown', handler);
     }, [open]);
+
+    // Don't render anything if user has no tenant
+    if (!hasTenant) return null;
 
     const handleNotificationClick = async (notification) => {
         if (!notification.isRead) {
